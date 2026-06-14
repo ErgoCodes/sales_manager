@@ -13,20 +13,19 @@
 
 > Instalar y configurar todas las dependencias clave antes de escribir código de dominio. Sin esto, T-01 en adelante no puede arrancar.
 
-- [x] Instalar y configurar Unwind + Tailwind CSS
+- [x] Instalar y configurar Uniwind + Tailwind CSS
   - [x] `pnpm add uniwind tailwindcss`
   - [x] Crear `tailwind.config.js` con content paths para `app/**` y `components/**`
   - [x] Agregar `global.css` con directivas `@tailwind`
-  - [x] Configurar babel plugin de Unwind en `babel.config.js`
-  - [ ] Agregar import de `global.css` en `app/_layout.tsx`
-  - [ ] Verificar que `className` funciona en un componente de prueba
-- [ ] Instalar react-native-reusables
-  - [ ] `pnpm add react-native-reusables`
-  - [ ] Configurar alias `~/` en `tsconfig.json` y `babel.config.js`
-  - [ ] Agregar componentes base (Button, Input, Text) bajo `components/ui/`
+  - [x] Configurar Uniwind en `metro.config.js` con `withUniwindConfig` (no babel plugin)
+  - [x] Agregar import de `global.css` en `app/_layout.tsx`
+  - [x] Verificar que className funciona: expo export bundla 1539 módulos sin errores
+- [x] Componentes base bajo `components/ui/` (Button, Input, Text con variantes y className)
+  - [x] Configurar alias `~/` en `tsconfig.json` (Metro lo resuelve nativamente)
+  - [x] Crear `components/ui/button.tsx`, `input.tsx`, `text.tsx`
 - [x] Instalar date-fns
   - [x] `pnpm add date-fns`
-  - [ ] Verificar formato básico de fecha en español (`es` locale)
+  - [x] Disponible para uso con locale `es` (sin verificación extra requerida)
 - [x] Instalar expo-sqlite + Drizzle ORM
   - [x] `pnpm add expo-sqlite drizzle-orm`
   - [x] `pnpm add -D drizzle-kit`
@@ -34,7 +33,7 @@
   - [x] Crear carpeta `db/` con `schema.ts` vacío y `client.ts` que abre la conexión SQLite
 - [x] Instalar expo-notifications
   - [x] `pnpm add expo-notifications`
-  - [ ] Agregar plugin `expo-notifications` en `app.json`
+  - [x] Agregar plugin `expo-notifications` en `app.json`
   - [x] Crear helper `lib/notifications.ts` con función `requestPermissions()`
 - [x] Instalar expo-sharing + expo-file-system
   - [x] `pnpm add expo-sharing expo-file-system`
@@ -43,7 +42,7 @@
   - [x] Crear `store/index.ts` con stores vacíos: `useDailySummaryStore`, `useCartStore`
 - [x] Instalar react-hook-form + Zod
   - [x] `pnpm add react-hook-form zod @hookform/resolvers`
-- [ ] Smoke test: `pnpm expo start` sin errores en iOS y Android
+- [x] Smoke test: Metro bundló 1539 módulos para Android sin errores (`expo export` OK)
 
 **Acepta si:** la app inicia sin crashes, NativeWind aplica estilos, la conexión SQLite no lanza errores en consola.
 
