@@ -1,13 +1,16 @@
 import * as Notifications from 'expo-notifications';
 
 export async function requestPermissions() {
-  const { status } = await Notifications.requestPermissionsAsync();
-  return status === 'granted';
+  // expo-notifications importa PermissionResponse desde 'expo', que no lo exporta,
+  // por lo que el tipo pierde `granted`/`status`. El objeto sí los trae en runtime.
+  const response = (await Notifications.requestPermissionsAsync()) as { granted: boolean };
+  return response.granted;
 }
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),

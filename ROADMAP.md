@@ -54,21 +54,21 @@
 
 > Crear el esquema SQLite completo con Drizzle. Todo el MVP depende de esto.
 
-- [ ] Crear tabla `productos` en `db/schema.ts`
+- [x] Crear tabla `productos` en `db/schema.ts`
   - Campos: `id`, `nombre`, `unidad_medida` (ud/kg/litro/caja), `categoria`, `precio_costo`, `precio_efectivo`, `precio_transferencia`, `costo_promedio`, `umbral_alerta`, `fecha_vencimiento`, `activo`
-- [ ] Crear tabla `movimientos_almacen`
+- [x] Crear tabla `movimientos_almacen`
   - Campos: `id`, `producto_id`, `tipo` (entrada/salida/merma/perdida/retiro_owner/ajuste), `cantidad`, `fecha`, `precio_costo_unitario` (obligatorio, sin default), `precio_venta`, `notas`
-- [ ] Crear tabla `ventas`
+- [x] Crear tabla `ventas`
   - Campos: `id`, `producto_id`, `cantidad`, `precio_aplicado`, `metodo_pago` (efectivo/transferencia/costo), `costo_al_vender` (congelado al momento), `utilidad`, `fecha`, `descuento_pct`, `anulada` (bool)
-- [ ] Crear tabla `gastos`
+- [x] Crear tabla `gastos`
   - Campos: `id`, `tipo` (salario/multa/onat/rebaja_liquidacion), `concepto`, `monto`, `fecha`
-- [ ] Crear tabla `configuracion`
+- [x] Crear tabla `configuracion`
   - Campos: `clave`, `valor`
-- [ ] Aplicar índices en `producto_id` y `fecha` para cálculo rápido de stock derivado
-- [ ] Crear función SQL/Drizzle `calcularStock(productoId)`: `SUM(entradas) - SUM(salidas+ventas+mermas+retiros)`
-- [ ] Crear función `recalcularCostoPromedio(productoId, cantidadNueva, costoNuevo)`: promedio ponderado
-- [ ] Ejecutar migration inicial y verificar que las tablas se crean al instalar
-- [ ] Test: datos persisten después de cerrar y reabrir la app
+- [x] Aplicar índices en `producto_id` y `fecha` para cálculo rápido de stock derivado
+- [x] Crear función SQL/Drizzle `calcularStock(productoId)`: `SUM(entradas+ajuste) - SUM(salidas+ventas+mermas+retiros)` (en `db/queries.ts`)
+- [x] Crear función `recalcularCostoPromedio(productoId, cantidadNueva, costoNuevo)`: promedio ponderado (verificado: 4u×100 + 10u×130 → 121.43)
+- [x] Ejecutar migration inicial: `drizzle-kit generate` (`drizzle/0000_dark_payback.sql`) + `useMigrations` en `app/_layout.tsx`; bundle Android OK (1684 módulos)
+- [ ] Test: datos persisten después de cerrar y reabrir la app (pendiente: requiere device/emulador)
 
 **Depende de:** T-00
 
