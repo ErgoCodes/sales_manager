@@ -37,6 +37,40 @@ export async function calcularStock(productoId: number): Promise<number> {
 }
 
 /**
+ * Stock derivado de todos los productos en lote (misma lógica que `calcularStock`
+ * pero agrupado por producto). Devuelve un Map id→stock; productos sin movimientos
+ * ni ventas no aparecen (asumir 0). Eficiente para la lista del catálogo.
+ */
+export async function calcularStockTodos(): Promise<Map<number, number>> {
+  const movRows = await db
+    .select({
+      productoId: movimientosAlmacen.productoId,
+      total: sql<number>`COALESCE(SUM(CASE
+        WHEN ${movimientosAlmacen.tipo} IN ('entrada', 'ajuste') THEN ${movimientosAlmacen.cantidad}
+        ELSE -${movimientosAlmacen.cantidad}
+      END), 0)`,
+    })
+    .from(movimientosAlmacen)
+    .groupBy(movimientosAlmacen.productoId);
+
+  const ventaRows = await db
+    .select({
+      productoId: ventas.productoId,
+      total: sql<number>`COALESCE(SUM(${ventas.cantidad}), 0)`,
+    })
+    .from(ventas)
+    .where(eq(ventas.anulada, false))
+    .groupBy(ventas.productoId);
+
+  const stock = new Map<number, number>();
+  for (const row of movRows) stock.set(row.productoId, row.total);
+  for (const row of ventaRows) {
+    stock.set(row.productoId, (stock.get(row.productoId) ?? 0) - row.total);
+  }
+  return stock;
+}
+
+/**
  * Promedio ponderado del costo tras una entrada nueva. Devuelve el nuevo costo
  * promedio SIN persistirlo (la persistencia es responsabilidad de T-06).
  *

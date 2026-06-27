@@ -103,21 +103,24 @@
 
 > Pantalla para crear y editar los 20-50 productos del mercado.
 
-- [ ] Pantalla lista de productos (`app/catalogo/index.tsx`)
+- [x] Pantalla lista de productos (`app/catalogo/index.tsx`) — accesible vía botón en tab Inventario
   - Buscador por nombre
-  - Filtro por categoría
-  - Mostrar stock actual calculado junto a cada producto
-- [ ] Formulario nuevo/editar producto (`app/catalogo/[id].tsx`)
-  - Campos: nombre (texto), unidad de medida (selector), categoría (selector), umbral de alerta de stock
-  - Validar con Zod: nombre no vacío, umbral > 0
+  - Filtro por categoría (chips, lista fija en `constants/catalogo.ts`)
+  - Mostrar stock actual calculado junto a cada producto (`calcularStockTodos` en lote)
+- [x] Formulario nuevo/editar producto (`app/catalogo/[id].tsx`)
+  - Campos: nombre (texto), unidad de medida (selector `components/ui/select.tsx`), categoría (selector), umbral de alerta de stock
+  - Validar con Zod: nombre no vacío, umbral > 0 (entero)
   - Integrar con react-hook-form
-- [ ] Opción archivar/desactivar producto (soft delete — `activo = false`)
+- [x] Opción archivar/desactivar producto (soft delete — `activo = false`) + toggle "Mostrar archivados" + Restaurar
   - Producto archivado no aparece en ventas pero sí en historial
-- [ ] Botón editar en cada ítem de la lista
+- [x] Botón editar en cada ítem de la lista
+- [x] Capa de datos `db/productos.ts` (crear/actualizar/archivar/restaurar/listar/get)
 
 **Depende de:** T-01, T-02
 
-**Acepta si:** crear producto con todos los campos, archivar sin perder historial, lista muestra stock actual.
+**Acepta si:** crear producto con todos los campos, archivar sin perder historial, lista muestra stock actual. *(verificación runtime pendiente de device/emulador; tsc + lint + bundle Android OK)*
+
+> Nota: precios (`precio_costo`, `precio_efectivo`, `precio_transferencia`) se agregan al formulario en T-04; los productos nuevos se crean con precios null.
 
 ---
 
