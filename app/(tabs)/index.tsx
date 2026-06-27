@@ -1,98 +1,73 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { format } from 'date-fns';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ScrollView, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Text } from '@/components/ui/text';
+import { contarStockBajo, resumenDelDia, type ResumenDia } from '@/db/queries';
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+const RESUMEN_VACIO: ResumenDia = { efectivo: 0, transferencia: 0, total: 0, utilidad: 0 };
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+function formatMoneda(valor: number): string {
+  return `$${valor.toLocaleString('es-CU', { maximumFractionDigits: 2 })}`;
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+export default function InicioScreen() {
+  const [resumen, setResumen] = useState<ResumenDia>(RESUMEN_VACIO);
+  const [stockBajo, setStockBajo] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
+      const hoy = format(new Date(), 'yyyy-MM-dd');
+      (async () => {
+        const [r, sb] = await Promise.all([resumenDelDia(hoy), contarStockBajo()]);
+        if (activo) {
+          setResumen(r);
+          setStockBajo(sb);
+        }
+      })();
+      return () => {
+        activo = false;
+      };
+    }, []),
+  );
+
+  return (
+    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
+      <Text variant="title">Resumen de hoy</Text>
+
+      <View className="flex-row gap-3">
+        <View className="flex-1 rounded-xl bg-white p-4 shadow-sm">
+          <Text variant="caption">Efectivo</Text>
+          <Text variant="heading" className="text-green-700">
+            {formatMoneda(resumen.efectivo)}
+          </Text>
+        </View>
+        <View className="flex-1 rounded-xl bg-white p-4 shadow-sm">
+          <Text variant="caption">Transferencia</Text>
+          <Text variant="heading" className="text-blue-700">
+            {formatMoneda(resumen.transferencia)}
+          </Text>
+        </View>
+      </View>
+
+      <View className="rounded-xl bg-white p-4 shadow-sm gap-1">
+        <Text variant="caption">Total del día</Text>
+        <Text variant="title">{formatMoneda(resumen.total)}</Text>
+        <Text variant="label" className="text-gray-500">
+          Utilidad: {formatMoneda(resumen.utilidad)}
+        </Text>
+      </View>
+
+      <View
+        className={`rounded-xl p-4 ${stockBajo > 0 ? 'bg-red-50' : 'bg-white'} shadow-sm`}>
+        <Text variant="label" className={stockBajo > 0 ? 'text-red-700' : 'text-gray-500'}>
+          {stockBajo > 0
+            ? `⚠️ ${stockBajo} producto(s) con stock bajo`
+            : 'Sin alertas de stock bajo'}
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}

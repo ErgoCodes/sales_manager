@@ -80,19 +80,20 @@
 
 > App navegable de extremo a extremo. MVP: un solo usuario (Yamile/Admin).
 
-- [ ] Reemplazar tabs del starter por navegación principal: Inventario, Ventas, Gastos, Reportes, Configuración
-- [ ] Crear pantalla de inicio (`app/(tabs)/index.tsx`) con widget de resumen del día
-  - Mostrar: total efectivo, total transferencia, alertas de stock bajo pendientes
+- [x] Reemplazar tabs del starter por navegación principal: Inicio, Inventario, Ventas, Gastos, Reportes (Configuración como pantalla de stack vía engranaje en Inicio)
+- [x] Crear pantalla de inicio (`app/(tabs)/index.tsx`) con widget de resumen del día
+  - Mostrar: total efectivo, total transferencia, total/utilidad, alertas de stock bajo (`resumenDelDia` + `contarStockBajo` en `db/queries.ts`)
   - Datos reales desde DB (aunque estén vacíos al inicio)
-- [ ] Crear pantalla de Configuración (`app/configuracion.tsx`)
-  - Campos: nombre del negocio, % descuento por efectivo (default 10%), umbrales de stock por categoría
-  - Persistir en tabla `configuracion`
-- [ ] Navegación fluida: cualquier módulo accesible desde inicio en ≤2 toques
-- [ ] Aplicar NativeWind + colores del tema a layouts base
+- [x] Crear pantalla de Configuración (`app/configuracion.tsx`)
+  - Campos: nombre del negocio, % descuento por efectivo (default 10%), umbral de stock general (default 5) — umbrales por categoría se refinan en T-07
+  - Persistir en tabla `configuracion` (`db/config.ts`: getConfig/setConfig/getAllConfig + react-hook-form + zod)
+- [x] Navegación fluida: cualquier módulo accesible desde inicio en ≤2 toques
+- [x] Aplicar NativeWind + colores del tema a layouts base
+- [x] Limpieza del starter: eliminados explore, modal, hello-wave, parallax, external-link, collapsible
 
 **Depende de:** T-01
 
-**Acepta si:** configuración persiste al cerrar app, resumen del día visible al abrir.
+**Acepta si:** configuración persiste al cerrar app, resumen del día visible al abrir. *(persistencia/navegación runtime pendiente de verificación en device/emulador; tsc + lint + bundle Android OK)*
 
 ---
 
