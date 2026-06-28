@@ -6,10 +6,15 @@ import { type NuevoProducto, type Producto, productos } from './schema';
 
 export type ProductoConStock = Producto & { stock: number };
 
-/** Campos editables del producto en T-03 (precios llegan en T-04). */
 export type DatosProducto = Pick<
   NuevoProducto,
-  'nombre' | 'unidadMedida' | 'categoria' | 'umbralAlerta'
+  | 'nombre'
+  | 'unidadMedida'
+  | 'categoria'
+  | 'umbralAlerta'
+  | 'precioCosto'
+  | 'precioEfectivo'
+  | 'precioTransferencia'
 >;
 
 interface ListarOpts {
@@ -40,7 +45,7 @@ export async function getProducto(id: number): Promise<Producto | undefined> {
   return row;
 }
 
-/** Crea un producto (precios quedan null hasta T-04). Devuelve el id nuevo. */
+/** Crea un producto. Devuelve el id nuevo. */
 export async function crearProducto(datos: DatosProducto): Promise<number> {
   const [row] = await db.insert(productos).values(datos).returning({ id: productos.id });
   return row.id;

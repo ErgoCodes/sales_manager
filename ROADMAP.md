@@ -128,16 +128,16 @@
 
 > Tres precios por producto. Transferencia se calcula solo. Solo Yamile puede modificar.
 
-- [ ] Agregar campos al formulario de producto: `precio_costo` y `precio_efectivo`
-- [ ] Cálculo automático en tiempo real del `precio_transferencia`: `efectivo × 1.10` redondeado al múltiplo de 5 más cercano
-  - Función: `Math.round(result / 5) * 5`
-- [ ] Mostrar los tres precios calculados antes de guardar
-- [ ] Guardar los tres precios en tabla `productos`
-- [ ] Test de redondeo: efectivo=47 → transferencia=50; efectivo=20 → transferencia=20
+- [x] Agregar campos al formulario de producto: `precio_costo` y `precio_efectivo`
+- [x] Cálculo automático en tiempo real del `precio_transferencia`: `efectivo × 1.10` redondeado al múltiplo de 5 más cercano
+  - Función: `Math.round((efectivo * 1.10) / 5) * 5`
+- [x] Mostrar los tres precios calculados antes de guardar (bloque resumen)
+- [x] Guardar los tres precios en tabla `productos` (DatosProducto ampliado en db/productos.ts)
+- [x] Test de redondeo: efectivo=47 → transferencia=50 ✓; efectivo=20 → transferencia=20 ✓
 
 **Depende de:** T-03
 
-**Acepta si:** transferencia se actualiza en vivo al cambiar efectivo, redondeo correcto en ambos casos de prueba.
+**Acepta si:** transferencia se actualiza en vivo al cambiar efectivo, redondeo correcto en ambos casos de prueba. *(fórmula verificada; runtime pendiente de Expo Go)*
 
 ---
 
@@ -145,10 +145,10 @@
 
 > Orientativo. Yamile puede ignorarlo o aceptarlo.
 
-- [ ] Mostrar badge junto a campo `precio_efectivo`: `≈ Precio sugerido: X (costo +30%)`
-- [ ] Botón "Usar sugerido" que rellena el campo con `costo × 1.30`
-- [ ] La sugerencia no se aplica automáticamente — requiere acción de Yamile
-- [ ] Si Yamile escribe un precio diferente, la sugerencia no lo sobreescribe
+- [x] Mostrar badge junto a campo `precio_efectivo`: `≈ Sugerido: X (costo +30%)` (solo cuando costo > 0)
+- [x] Botón "Usar sugerido" que rellena el campo con `costo × 1.30` vía `setValue`
+- [x] La sugerencia no se aplica automáticamente — requiere acción de Yamile
+- [x] Si Yamile escribe un precio diferente, la sugerencia no lo sobreescribe
 
 **Depende de:** T-04
 
