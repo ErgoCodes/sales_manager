@@ -162,21 +162,21 @@
 
 > Yamile registra cada compra. Costo siempre obligatorio.
 
-- [ ] Pantalla nueva entrada (`app/inventario/entrada.tsx`)
-  - Selector de producto (búsqueda por nombre)
+- [x] Pantalla nueva entrada (`app/inventario/entrada.tsx`)
+  - Selector de producto (`components/ui/product-picker.tsx`, reutilizable en T-09)
   - Campo cantidad
-  - Mostrar precios actuales del producto (costo, efectivo, transferencia)
-  - Opción de actualizar precios en el mismo formulario
-- [ ] Campo `precio_costo_unitario`: pre-rellenado con último costo del producto, pero Yamile debe confirmar o corregir antes de guardar (no tiene `default`, es obligatorio)
-- [ ] Campo fecha (default hoy, editable)
-- [ ] Campo notas (opcional)
-- [ ] Al confirmar: insertar movimiento tipo `entrada`, recalcular `costo_promedio` del producto (promedio ponderado), stock sube automáticamente
-- [ ] Si se actualiza precio de venta en la entrada → actualizar catálogo
-- [ ] Historial de entradas (`app/inventario/historial.tsx`): filtrable por producto y fecha, mostrando costo de cada entrada
+  - Mostrar precios actuales del producto (costo, efectivo, transferencia) al seleccionar
+  - Toggle "Actualizar precios del catálogo" con campos de costo y efectivo
+- [x] Campo `precio_costo_unitario`: pre-rellenado con último costo del producto, editable y obligatorio (zod)
+- [x] Campo fecha (default hoy, editable)
+- [x] Campo notas (opcional)
+- [x] Al confirmar: insertar movimiento tipo `entrada` + recalcular y persistir `costo_promedio` del producto (`db/movimientos.ts`)
+- [x] Si se actualiza precio de venta en la entrada → actualizar catálogo (toggle + `actualizarProducto`)
+- [x] Historial de entradas (`app/inventario/historial.tsx`): filtrable por producto y fecha
 
 **Depende de:** T-03, T-04
 
-**Acepta si:** no se puede guardar sin costo, stock sube tras entrada, costo promedio ponderado correcto (4u×100 + 10u×130 → promedio=121.4).
+**Acepta si:** no se puede guardar sin costo, stock sube tras entrada, costo promedio ponderado correcto (4u×100 + 10u×130 → promedio=121.4). *(tsc + lint + bundle OK; runtime pendiente Expo Go)*
 
 ---
 

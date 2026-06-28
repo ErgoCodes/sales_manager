@@ -12,7 +12,19 @@ export default function InventarioScreen() {
         <Text variant="caption">El stock en tiempo real llega en T-07.</Text>
       </View>
 
-      <Button label="Catálogo de productos" onPress={() => router.push('/catalogo')} />
+      <View className="gap-3">
+        <Button label="Catálogo de productos" onPress={() => router.push('/catalogo')} />
+        <Button
+          label="Registrar entrada"
+          variant="outline"
+          onPress={() => router.push('/inventario/entrada')}
+        />
+        <Button
+          label="Historial de entradas"
+          variant="ghost"
+          onPress={() => router.push('/inventario/historial')}
+        />
+      </View>
     </View>
   );
 }
