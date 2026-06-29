@@ -9,13 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { CONFIG_KEYS, getAllConfig, setConfig } from '@/db/config';
 
-const numeroNoNegativo = (msg: string) =>
+const nonNegativeNumber = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) >= 0, msg);
 
 const schema = z.object({
-  nombreNegocio: z.string().trim().min(1, 'El nombre no puede estar vacío'),
-  descuentoEfectivoPct: numeroNoNegativo('Debe ser un número ≥ 0'),
-  umbralStockGeneral: numeroNoNegativo('Debe ser un número ≥ 0').refine(
+  businessName: z.string().trim().min(1, 'El nombre no puede estar vacío'),
+  cashDiscountPercent: nonNegativeNumber('Debe ser un número ≥ 0'),
+  generalStockThreshold: nonNegativeNumber('Debe ser un número ≥ 0').refine(
     (v) => Number.isInteger(Number(v)),
     'Debe ser un número entero',
   ),
@@ -23,8 +23,8 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-export default function ConfiguracionScreen() {
-  const [guardado, setGuardado] = useState(false);
+export default function ConfigurationScreen() {
+  const [saved, setSaved] = useState(false);
 
   const {
     control,
@@ -33,90 +33,90 @@ export default function ConfiguracionScreen() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { nombreNegocio: '', descuentoEfectivoPct: '10', umbralStockGeneral: '5' },
+    defaultValues: { businessName: '', cashDiscountPercent: '10', generalStockThreshold: '5' },
   });
 
   useEffect(() => {
     (async () => {
       const cfg = await getAllConfig();
       reset({
-        nombreNegocio: cfg[CONFIG_KEYS.nombreNegocio],
-        descuentoEfectivoPct: cfg[CONFIG_KEYS.descuentoEfectivoPct],
-        umbralStockGeneral: cfg[CONFIG_KEYS.umbralStockGeneral],
+        businessName: cfg[CONFIG_KEYS.businessName],
+        cashDiscountPercent: cfg[CONFIG_KEYS.cashDiscountPercent],
+        generalStockThreshold: cfg[CONFIG_KEYS.generalStockThreshold],
       });
     })();
   }, [reset]);
 
   const onSubmit = handleSubmit(async (values) => {
     await Promise.all([
-      setConfig(CONFIG_KEYS.nombreNegocio, values.nombreNegocio.trim()),
-      setConfig(CONFIG_KEYS.descuentoEfectivoPct, String(Number(values.descuentoEfectivoPct))),
-      setConfig(CONFIG_KEYS.umbralStockGeneral, String(Number(values.umbralStockGeneral))),
+      setConfig(CONFIG_KEYS.businessName, values.businessName.trim()),
+      setConfig(CONFIG_KEYS.cashDiscountPercent, String(Number(values.cashDiscountPercent))),
+      setConfig(CONFIG_KEYS.generalStockThreshold, String(Number(values.generalStockThreshold))),
     ]);
-    setGuardado(true);
+    setSaved(true);
   });
 
   return (
     <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
       <Controller
         control={control}
-        name="nombreNegocio"
+        name="businessName"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Nombre del negocio"
             value={String(value ?? '')}
             onChangeText={(t) => {
               onChange(t);
-              setGuardado(false);
+              setSaved(false);
             }}
             onBlur={onBlur}
             placeholder="Mercado Mónaco"
-            error={errors.nombreNegocio?.message}
+            error={errors.businessName?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="descuentoEfectivoPct"
+        name="cashDiscountPercent"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="% descuento por efectivo"
             value={String(value ?? '')}
             onChangeText={(t) => {
               onChange(t);
-              setGuardado(false);
+              setSaved(false);
             }}
             onBlur={onBlur}
             keyboardType="numeric"
             placeholder="10"
-            error={errors.descuentoEfectivoPct?.message}
+            error={errors.cashDiscountPercent?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="umbralStockGeneral"
+        name="generalStockThreshold"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Umbral de stock bajo (general)"
             value={String(value ?? '')}
             onChangeText={(t) => {
               onChange(t);
-              setGuardado(false);
+              setSaved(false);
             }}
             onBlur={onBlur}
             keyboardType="numeric"
             placeholder="5"
-            error={errors.umbralStockGeneral?.message}
+            error={errors.generalStockThreshold?.message}
           />
         )}
       />
 
       <Button label={isSubmitting ? 'Guardando…' : 'Guardar'} onPress={onSubmit} disabled={isSubmitting} />
 
-      {guardado ? (
+      {saved ? (
         <View className="rounded-lg bg-green-50 p-3">
           <Text variant="label" className="text-green-700">
             ✓ Configuración guardada

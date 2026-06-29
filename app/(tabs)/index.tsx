@@ -1,73 +1,348 @@
 import { format } from 'date-fns';
-import { useFocusEffect } from 'expo-router';
+import { es } from 'date-fns/locale';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Text } from '@/components/ui/text';
-import { contarStockBajo, resumenDelDia, type ResumenDia } from '@/db/queries';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { StatCard } from '@/components/ui/stat-card';
+import { Colors, Semantic, Shadows } from '@/constants/theme';
+import { countLowStock, getDailySummary, type DailySummary } from '@/db/queries';
 
-const RESUMEN_VACIO: ResumenDia = { efectivo: 0, transferencia: 0, total: 0, utilidad: 0 };
+const EMPTY_SUMMARY: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
 
-function formatMoneda(valor: number): string {
-  return `$${valor.toLocaleString('es-CU', { maximumFractionDigits: 2 })}`;
+function formatCurrency(value: number, opts?: { compact?: boolean }): string {
+  if (opts?.compact) {
+    return `$${value.toLocaleString('es-CU', { maximumFractionDigits: 0 })}`;
+  }
+  return `$${value.toLocaleString('es-CU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function InicioScreen() {
-  const [resumen, setResumen] = useState<ResumenDia>(RESUMEN_VACIO);
-  const [stockBajo, setStockBajo] = useState(0);
+interface QuickActionProps {
+  icon: Parameters<typeof IconSymbol>[0]['name'];
+  label: string;
+  onPress: () => void;
+  accent: string;
+  bg: string;
+}
+
+function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 18,
+        paddingVertical: 14,
+        alignItems: 'center',
+        gap: 8,
+        borderCurve: 'continuous',
+        boxShadow: Shadows.md,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          backgroundColor: bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderCurve: 'continuous',
+        }}
+      >
+        <IconSymbol name={icon} size={20} color={accent} />
+      </View>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: '#0F172A', textAlign: 'center' }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+export default function HomeScreen() {
+  const [summary, setSummary] = useState<DailySummary>(EMPTY_SUMMARY);
+  const [lowStockCount, setLowStockCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
-      let activo = true;
-      const hoy = format(new Date(), 'yyyy-MM-dd');
+      let active = true;
+      const today = format(new Date(), 'yyyy-MM-dd');
       (async () => {
-        const [r, sb] = await Promise.all([resumenDelDia(hoy), contarStockBajo()]);
-        if (activo) {
-          setResumen(r);
-          setStockBajo(sb);
+        const [s, lsc] = await Promise.all([getDailySummary(today), countLowStock()]);
+        if (active) {
+          setSummary(s);
+          setLowStockCount(lsc);
         }
       })();
       return () => {
-        activo = false;
+        active = false;
       };
     }, []),
   );
 
+  const today = format(new Date(), "EEEE d 'de' MMMM", { locale: es });
+  const todayCap = today.charAt(0).toUpperCase() + today.slice(1);
+
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
-      <Text variant="title">Resumen de hoy</Text>
-
-      <View className="flex-row gap-3">
-        <View className="flex-1 rounded-xl bg-white p-4 shadow-sm">
-          <Text variant="caption">Efectivo</Text>
-          <Text variant="heading" className="text-green-700">
-            {formatMoneda(resumen.efectivo)}
-          </Text>
-        </View>
-        <View className="flex-1 rounded-xl bg-white p-4 shadow-sm">
-          <Text variant="caption">Transferencia</Text>
-          <Text variant="heading" className="text-blue-700">
-            {formatMoneda(resumen.transferencia)}
-          </Text>
-        </View>
-      </View>
-
-      <View className="rounded-xl bg-white p-4 shadow-sm gap-1">
-        <Text variant="caption">Total del día</Text>
-        <Text variant="title">{formatMoneda(resumen.total)}</Text>
-        <Text variant="label" className="text-gray-500">
-          Utilidad: {formatMoneda(resumen.utilidad)}
+    <ScrollView
+      style={{ flex: 1, backgroundColor: Colors.light.background }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16 }}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Greeting */}
+      <Animated.View entering={FadeInDown.duration(380).springify()}>
+        <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500', letterSpacing: 0.3 }}>
+          {todayCap}
         </Text>
-      </View>
-
-      <View
-        className={`rounded-xl p-4 ${stockBajo > 0 ? 'bg-red-50' : 'bg-white'} shadow-sm`}>
-        <Text variant="label" className={stockBajo > 0 ? 'text-red-700' : 'text-gray-500'}>
-          {stockBajo > 0
-            ? `⚠️ ${stockBajo} producto(s) con stock bajo`
-            : 'Sin alertas de stock bajo'}
+        <Text style={{ fontSize: 22, fontWeight: '700', color: '#0F172A', marginTop: 2 }}>
+          Resumen del día
         </Text>
-      </View>
+      </Animated.View>
+
+      {/* HERO Card */}
+      <Animated.View entering={FadeInDown.delay(60).duration(380).springify()}>
+        <Pressable
+          onPress={() => router.push('/(tabs)/sales')}
+          style={({ pressed }) => ({
+            backgroundColor: Colors.light.tint,
+            borderRadius: 26,
+            padding: 22,
+            gap: 6,
+            borderCurve: 'continuous',
+            boxShadow: Shadows.hero,
+            opacity: pressed ? 0.92 : 1,
+            overflow: 'hidden',
+          })}
+        >
+          {/* Decorative orb */}
+          <View
+            style={{
+              position: 'absolute',
+              right: -40,
+              top: -40,
+              width: 160,
+              height: 160,
+              borderRadius: 80,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              right: 30,
+              bottom: -50,
+              width: 110,
+              height: 110,
+              borderRadius: 55,
+              backgroundColor: 'rgba(255,255,255,0.06)',
+            }}
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '700',
+                letterSpacing: 1,
+                color: 'rgba(255,255,255,0.75)',
+                textTransform: 'uppercase',
+              }}
+            >
+              Total del día
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 999,
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#FFFFFF' }}>Ver desglose</Text>
+              <IconSymbol name="arrow.up.right" size={11} color="#FFFFFF" />
+            </View>
+          </View>
+
+          <Text
+            selectable
+            style={{
+              fontSize: 40,
+              fontWeight: '800',
+              color: '#FFFFFF',
+              letterSpacing: -1.2,
+              marginTop: 6,
+              fontVariant: ['tabular-nums'],
+            }}
+          >
+            {formatCurrency(summary.total)}
+          </Text>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 8,
+              paddingTop: 12,
+              borderTopWidth: 1,
+              borderTopColor: 'rgba(255,255,255,0.15)',
+            }}
+          >
+            <IconSymbol name="sparkles" size={14} color="rgba(255,255,255,0.85)" />
+            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '500' }}>
+              Utilidad
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {formatCurrency(summary.profit)}
+            </Text>
+          </View>
+        </Pressable>
+      </Animated.View>
+
+      {/* Stats grid */}
+      <Animated.View
+        entering={FadeInDown.delay(120).duration(380).springify()}
+        style={{ flexDirection: 'row', gap: 12 }}
+      >
+        <StatCard
+          label="Efectivo"
+          value={formatCurrency(summary.cash)}
+          accent={Semantic.cash}
+          iconBg={Semantic.cashSoft}
+          icon="dollarsign.circle.fill"
+        />
+        <StatCard
+          label="Transferencia"
+          value={formatCurrency(summary.transfer)}
+          accent={Semantic.transfer}
+          iconBg={Semantic.transferSoft}
+          icon="arrow.left.arrow.right.circle.fill"
+        />
+      </Animated.View>
+
+      {/* Quick actions */}
+      <Animated.View entering={FadeInDown.delay(180).duration(380).springify()} style={{ gap: 10 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: '700',
+            color: '#64748B',
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+            marginLeft: 4,
+          }}
+        >
+          Acciones rápidas
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <QuickAction
+            icon="cart.fill"
+            label="Nueva venta"
+            onPress={() => router.push('/sales/new-session')}
+            accent={Semantic.cash}
+            bg={Semantic.cashSoft}
+          />
+          <QuickAction
+            icon="shippingbox.fill"
+            label="Entrada"
+            onPress={() => router.push('/inventory/stock-entry')}
+            accent={Semantic.transfer}
+            bg={Semantic.transferSoft}
+          />
+          <QuickAction
+            icon="square.grid.2x2"
+            label="Catálogo"
+            onPress={() => router.push('/catalog')}
+            accent={Colors.light.tint}
+            bg="#CCFBF1"
+          />
+        </View>
+      </Animated.View>
+
+      {/* Low stock alert */}
+      <Animated.View entering={FadeInDown.delay(240).duration(380).springify()}>
+        {lowStockCount > 0 ? (
+          <Pressable
+            onPress={() => router.push('/(tabs)/inventory')}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              backgroundColor: Semantic.dangerSoft,
+              borderRadius: 18,
+              padding: 14,
+              borderCurve: 'continuous',
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: Semantic.danger,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <IconSymbol name="exclamationmark.triangle.fill" size={20} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#7F1D1D' }}>
+                Stock bajo en {lowStockCount} producto{lowStockCount > 1 ? 's' : ''}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 2 }}>
+                Toca para revisar el inventario
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={18} color={Semantic.danger} />
+          </Pressable>
+        ) : (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 18,
+              padding: 14,
+              borderCurve: 'continuous',
+              boxShadow: Shadows.sm,
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: Semantic.cashSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <IconSymbol name="checkmark.circle.fill" size={20} color={Semantic.cash} />
+            </View>
+            <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500', flex: 1 }}>
+              Inventario en orden — sin alertas
+            </Text>
+          </View>
+        )}
+      </Animated.View>
     </ScrollView>
   );
 }

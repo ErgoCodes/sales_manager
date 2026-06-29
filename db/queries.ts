@@ -1,159 +1,150 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from './client';
 import { CONFIG_KEYS, getConfig } from './config';
-import { movimientosAlmacen, productos, ventas } from './schema';
+import { products, sales, warehouseMovements } from './schema';
 
-/**
- * Stock derivado de un producto. No se guarda como contador: se calcula sumando
- * movimientos de almacén y restando ventas no anuladas, para que cualquier
- * corrección (T-22) ajuste el stock automáticamente.
- *
- *   entrada            → +cantidad
- *   ajuste             → +cantidad (firmada: puede ser negativa)
- *   salida/merma/      → −cantidad
- *   perdida/retiro_owner
- *   venta (no anulada) → −cantidad
- */
-export async function calcularStock(productoId: number): Promise<number> {
+export async function calculateStock(productId: number): Promise<number> {
   const [movRow] = await db
     .select({
       total: sql<number>`COALESCE(SUM(CASE
-        WHEN ${movimientosAlmacen.tipo} IN ('entrada', 'ajuste') THEN ${movimientosAlmacen.cantidad}
-        ELSE -${movimientosAlmacen.cantidad}
+        WHEN ${warehouseMovements.type} IN ('entrada', 'ajuste') THEN ${warehouseMovements.quantity}
+        ELSE -${warehouseMovements.quantity}
       END), 0)`,
     })
-    .from(movimientosAlmacen)
-    .where(eq(movimientosAlmacen.productoId, productoId));
+    .from(warehouseMovements)
+    .where(eq(warehouseMovements.productId, productId));
 
-  const [ventaRow] = await db
+  const [saleRow] = await db
     .select({
-      total: sql<number>`COALESCE(SUM(${ventas.cantidad}), 0)`,
+      total: sql<number>`COALESCE(SUM(${sales.quantity}), 0)`,
     })
-    .from(ventas)
-    .where(and(eq(ventas.productoId, productoId), eq(ventas.anulada, false)));
+    .from(sales)
+    .where(and(eq(sales.productId, productId), eq(sales.cancelled, false)));
 
-  return (movRow?.total ?? 0) - (ventaRow?.total ?? 0);
+  return (movRow?.total ?? 0) - (saleRow?.total ?? 0);
 }
 
-/**
- * Stock derivado de todos los productos en lote (misma lógica que `calcularStock`
- * pero agrupado por producto). Devuelve un Map id→stock; productos sin movimientos
- * ni ventas no aparecen (asumir 0). Eficiente para la lista del catálogo.
- */
-export async function calcularStockTodos(): Promise<Map<number, number>> {
+export async function calculateAllStocks(): Promise<Map<number, number>> {
   const movRows = await db
     .select({
-      productoId: movimientosAlmacen.productoId,
+      productId: warehouseMovements.productId,
       total: sql<number>`COALESCE(SUM(CASE
-        WHEN ${movimientosAlmacen.tipo} IN ('entrada', 'ajuste') THEN ${movimientosAlmacen.cantidad}
-        ELSE -${movimientosAlmacen.cantidad}
+        WHEN ${warehouseMovements.type} IN ('entrada', 'ajuste') THEN ${warehouseMovements.quantity}
+        ELSE -${warehouseMovements.quantity}
       END), 0)`,
     })
-    .from(movimientosAlmacen)
-    .groupBy(movimientosAlmacen.productoId);
+    .from(warehouseMovements)
+    .groupBy(warehouseMovements.productId);
 
-  const ventaRows = await db
+  const saleRows = await db
     .select({
-      productoId: ventas.productoId,
-      total: sql<number>`COALESCE(SUM(${ventas.cantidad}), 0)`,
+      productId: sales.productId,
+      total: sql<number>`COALESCE(SUM(${sales.quantity}), 0)`,
     })
-    .from(ventas)
-    .where(eq(ventas.anulada, false))
-    .groupBy(ventas.productoId);
+    .from(sales)
+    .where(eq(sales.cancelled, false))
+    .groupBy(sales.productId);
 
   const stock = new Map<number, number>();
-  for (const row of movRows) stock.set(row.productoId, row.total);
-  for (const row of ventaRows) {
-    stock.set(row.productoId, (stock.get(row.productoId) ?? 0) - row.total);
+  for (const row of movRows) stock.set(row.productId, row.total);
+  for (const row of saleRows) {
+    stock.set(row.productId, (stock.get(row.productId) ?? 0) - row.total);
   }
   return stock;
 }
 
-/**
- * Promedio ponderado del costo tras una entrada nueva. Devuelve el nuevo costo
- * promedio SIN persistirlo (la persistencia es responsabilidad de T-06).
- *
- *   nuevo = (stockActual × costoPromedioActual + cantidadNueva × costoNuevo)
- *           / (stockActual + cantidadNueva)
- *
- * Ej.: entrada 4u×100 y luego 10u×130 → 1700/14 = 121.43
- */
-export async function recalcularCostoPromedio(
-  productoId: number,
-  cantidadNueva: number,
-  costoNuevo: number,
+export async function recalculateAverageCost(
+  productId: number,
+  newQuantity: number,
+  newCost: number,
 ): Promise<number> {
-  const stockActual = await calcularStock(productoId);
+  const currentStock = await calculateStock(productId);
 
   const [prod] = await db
-    .select({ costoPromedio: productos.costoPromedio })
-    .from(productos)
-    .where(eq(productos.id, productoId));
+    .select({ averageCost: products.averageCost })
+    .from(products)
+    .where(eq(products.id, productId));
 
-  const costoPromedioActual = prod?.costoPromedio ?? 0;
-  const denominador = stockActual + cantidadNueva;
+  const currentAverageCost = prod?.averageCost ?? 0;
+  const denominator = currentStock + newQuantity;
 
-  // Sin stock previo ni cantidad válida: el promedio es el costo nuevo.
-  if (denominador <= 0) return costoNuevo;
+  if (denominator <= 0) return newCost;
 
-  return (stockActual * costoPromedioActual + cantidadNueva * costoNuevo) / denominador;
+  return (currentStock * currentAverageCost + newQuantity * newCost) / denominator;
 }
 
-export interface ResumenDia {
-  efectivo: number;
-  transferencia: number;
+export interface DailySummary {
+  cash: number;
+  transfer: number;
   total: number;
-  utilidad: number;
+  profit: number;
 }
 
-/**
- * Resumen de ventas (no anuladas) de un día. `fecha` puede ser cualquier ISO del
- * día; se compara por `date()` de SQLite sobre el texto ISO almacenado.
- */
-export async function resumenDelDia(fecha: string): Promise<ResumenDia> {
-  const importe = sql<number>`${ventas.precioAplicado} * ${ventas.cantidad}`;
+export async function getDailySummary(date: string): Promise<DailySummary> {
+  const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
   const rows = await db
     .select({
-      metodoPago: ventas.metodoPago,
-      importe: sql<number>`COALESCE(SUM(${importe}), 0)`,
-      utilidad: sql<number>`COALESCE(SUM(${ventas.utilidad}), 0)`,
+      paymentMethod: sales.paymentMethod,
+      revenue: sql<number>`COALESCE(SUM(${revenue}), 0)`,
+      profit: sql<number>`COALESCE(SUM(${sales.profit}), 0)`,
     })
-    .from(ventas)
-    .where(and(eq(ventas.anulada, false), sql`date(${ventas.fecha}) = date(${fecha})`))
-    .groupBy(ventas.metodoPago);
+    .from(sales)
+    .where(and(eq(sales.cancelled, false), sql`date(${sales.date}) = date(${date})`))
+    .groupBy(sales.paymentMethod);
 
-  const resumen: ResumenDia = { efectivo: 0, transferencia: 0, total: 0, utilidad: 0 };
+  const summary: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
   for (const row of rows) {
-    if (row.metodoPago === 'efectivo') resumen.efectivo += row.importe;
-    else if (row.metodoPago === 'transferencia') resumen.transferencia += row.importe;
-    resumen.total += row.importe;
-    resumen.utilidad += row.utilidad;
+    if (row.paymentMethod === 'efectivo') summary.cash += row.revenue;
+    else if (row.paymentMethod === 'transferencia') summary.transfer += row.revenue;
+    summary.total += row.revenue;
+    summary.profit += row.profit;
   }
-  return resumen;
+  return summary;
 }
 
-/**
- * Cuenta productos activos cuyo stock derivado está bajo su umbral (el del
- * producto si está configurado, si no el umbral general). O(N) sobre el catálogo;
- * T-07 lo optimizará.
- */
-export async function contarStockBajo(): Promise<number> {
-  const umbralGeneral = Number(
-    (await getConfig(CONFIG_KEYS.umbralStockGeneral)) ?? 5,
+export interface ProductDaySummary {
+  productId: number;
+  productName: string;
+  totalQuantity: number;
+  totalRevenue: number;
+  totalProfit: number;
+}
+
+export async function getDailyBreakdown(date: string): Promise<ProductDaySummary[]> {
+  const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
+
+  return db
+    .select({
+      productId: sales.productId,
+      productName: products.name,
+      totalQuantity: sql<number>`COALESCE(SUM(${sales.quantity}), 0)`,
+      totalRevenue: sql<number>`COALESCE(SUM(${revenue}), 0)`,
+      totalProfit: sql<number>`COALESCE(SUM(${sales.profit}), 0)`,
+    })
+    .from(sales)
+    .innerJoin(products, eq(sales.productId, products.id))
+    .where(and(eq(sales.cancelled, false), sql`date(${sales.date}) = date(${date})`))
+    .groupBy(sales.productId)
+    .orderBy(desc(sql`COALESCE(SUM(${revenue}), 0)`));
+}
+
+export async function countLowStock(): Promise<number> {
+  const generalThreshold = Number(
+    (await getConfig(CONFIG_KEYS.generalStockThreshold)) ?? 5,
   );
 
-  const activos = await db
-    .select({ id: productos.id, umbralAlerta: productos.umbralAlerta })
-    .from(productos)
-    .where(eq(productos.activo, true));
+  const activeProducts = await db
+    .select({ id: products.id, lowStockThreshold: products.lowStockThreshold })
+    .from(products)
+    .where(eq(products.active, true));
 
-  let bajo = 0;
-  for (const p of activos) {
-    const stock = await calcularStock(p.id);
-    const umbral = p.umbralAlerta ?? umbralGeneral;
-    if (stock < umbral) bajo += 1;
+  let count = 0;
+  for (const p of activeProducts) {
+    const stock = await calculateStock(p.id);
+    const threshold = p.lowStockThreshold ?? generalThreshold;
+    if (stock < threshold) count += 1;
   }
-  return bajo;
+  return count;
 }

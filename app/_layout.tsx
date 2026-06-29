@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -8,7 +8,6 @@ import { Text, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { db } from '@/db/client';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import migrations from '../drizzle/migrations';
 
 export const unstable_settings = {
@@ -16,7 +15,6 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const { success, error } = useMigrations(db, migrations);
 
   if (error) {
@@ -38,11 +36,11 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="configuracion"
+          name="configuration"
           options={{ presentation: 'modal', title: 'Configuración' }}
         />
       </Stack>

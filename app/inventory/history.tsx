@@ -4,35 +4,35 @@ import { FlatList, View } from 'react-native';
 
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { type EntradaConProducto, listarEntradas } from '@/db/movimientos';
+import { type EntryWithProduct, listEntries } from '@/db/movements';
 
-export default function HistorialEntradasScreen() {
-  const [entradas, setEntradas] = useState<EntradaConProducto[]>([]);
-  const [busqueda, setBusqueda] = useState('');
-  const [fechaDesde, setFechaDesde] = useState('');
-  const [fechaHasta, setFechaHasta] = useState('');
+export default function EntryHistoryScreen() {
+  const [entries, setEntries] = useState<EntryWithProduct[]>([]);
+  const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const cargar = useCallback(() => {
-    let activo = true;
+  const load = useCallback(() => {
+    let active = true;
     (async () => {
-      const data = await listarEntradas({
-        fechaDesde: fechaDesde || undefined,
-        fechaHasta: fechaHasta || undefined,
+      const data = await listEntries({
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
       });
-      if (!activo) return;
-      if (busqueda.trim()) {
-        const lower = busqueda.toLowerCase();
-        setEntradas(data.filter((e) => e.productoNombre.toLowerCase().includes(lower)));
+      if (!active) return;
+      if (search.trim()) {
+        const lower = search.toLowerCase();
+        setEntries(data.filter((e) => e.productName.toLowerCase().includes(lower)));
       } else {
-        setEntradas(data);
+        setEntries(data);
       }
     })();
     return () => {
-      activo = false;
+      active = false;
     };
-  }, [busqueda, fechaDesde, fechaHasta]);
+  }, [search, dateFrom, dateTo]);
 
-  useFocusEffect(cargar);
+  useFocusEffect(load);
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -41,31 +41,31 @@ export default function HistorialEntradasScreen() {
       <View className="p-4 gap-3">
         <Input
           placeholder="Filtrar por producto…"
-          value={busqueda}
-          onChangeText={setBusqueda}
+          value={search}
+          onChangeText={setSearch}
         />
         <View className="flex-row gap-3">
           <View className="flex-1">
             <Input
               label="Desde"
               placeholder="YYYY-MM-DD"
-              value={fechaDesde}
-              onChangeText={setFechaDesde}
+              value={dateFrom}
+              onChangeText={setDateFrom}
             />
           </View>
           <View className="flex-1">
             <Input
               label="Hasta"
               placeholder="YYYY-MM-DD"
-              value={fechaHasta}
-              onChangeText={setFechaHasta}
+              value={dateTo}
+              onChangeText={setDateTo}
             />
           </View>
         </View>
       </View>
 
       <FlatList
-        data={entradas}
+        data={entries}
         keyExtractor={(e) => String(e.id)}
         contentContainerClassName="px-4 pb-8 gap-3"
         ListEmptyComponent={
@@ -76,13 +76,13 @@ export default function HistorialEntradasScreen() {
         renderItem={({ item }) => (
           <View className="rounded-xl bg-white p-4 shadow-sm gap-1">
             <View className="flex-row items-start justify-between">
-              <Text variant="heading">{item.productoNombre}</Text>
-              <Text variant="caption">{item.fecha}</Text>
+              <Text variant="heading">{item.productName}</Text>
+              <Text variant="caption">{item.date}</Text>
             </View>
             <Text variant="body">
-              {item.cantidad} {item.unidadMedida} × ${item.precioCostoUnitario}
+              {item.quantity} {item.unitOfMeasure} × ${item.unitCostPrice}
             </Text>
-            {item.notas ? <Text variant="caption">{item.notas}</Text> : null}
+            {item.notes ? <Text variant="caption">{item.notes}</Text> : null}
           </View>
         )}
       />

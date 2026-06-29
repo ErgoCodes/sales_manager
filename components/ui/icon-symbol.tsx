@@ -23,6 +23,21 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'plus': 'add',
+  'arrow.left.arrow.right.circle.fill': 'swap-horiz',
+  'square.grid.2x2': 'apps',
+  'clock.arrow.circlepath': 'history',
+  'exclamationmark.triangle.fill': 'warning',
+  'archivebox.fill': 'inbox',
+  'creditcard.fill': 'credit-card',
+  'bag.fill': 'shopping-bag',
+  'tag.fill': 'sell',
+  'sparkles': 'auto-awesome',
+  'arrow.up.right': 'arrow-outward',
+  'calendar': 'calendar-today',
+  'magnifyingglass': 'search',
+  'checkmark.circle.fill': 'check-circle',
+  'xmark.circle.fill': 'cancel',
 } as IconMapping;
 
 /**

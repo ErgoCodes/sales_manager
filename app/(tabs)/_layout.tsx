@@ -1,68 +1,132 @@
 import { Tabs, router } from 'expo-router';
 import React from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+
+interface HeaderIconButtonProps {
+  name: Parameters<typeof IconSymbol>[0]['name'];
+  onPress: () => void;
+  accessibilityLabel: string;
+}
+
+function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButtonProps) {
+  return (
+    <Pressable
+      hitSlop={10}
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => ({
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: pressed ? '#E2E8F0' : '#F1F5F9',
+        borderCurve: 'continuous',
+      })}
+    >
+      <IconSymbol name={name} size={20} color={Colors.light.tint} />
+    </Pressable>
+  );
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const tint = Colors[colorScheme ?? 'light'].tint;
+  const tint = Colors.light.tint;
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: tint,
+        tabBarInactiveTintColor: Colors.light.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+        headerStyle: { backgroundColor: '#FFFFFF' },
+        headerShadowVisible: false,
+        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: Colors.light.text },
+        headerTitleAlign: 'left',
+        tabBarStyle: {
+          borderTopColor: Colors.light.border,
+          backgroundColor: '#FFFFFF',
+          paddingTop: 6,
+          height: 64,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Inicio',
           headerShown: true,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          headerTitle: 'Mercado Mónaco',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
           headerRight: () => (
-            <Pressable
-              accessibilityLabel="Configuración"
-              hitSlop={12}
-              style={{ marginRight: 16 }}
-              onPress={() => router.push('/configuracion')}>
-              <IconSymbol size={26} name="gearshape.fill" color={tint} />
-            </Pressable>
+            <View style={{ marginRight: 16 }}>
+              <HeaderIconButton
+                name="gearshape.fill"
+                onPress={() => router.push('/configuration')}
+                accessibilityLabel="Configuración"
+              />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
-        name="inventario"
+        name="inventory"
         options={{
           title: 'Inventario',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="shippingbox.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="ventas"
-        options={{
-          title: 'Ventas',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="cart.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="gastos"
-        options={{
-          title: 'Gastos',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="dollarsign.circle.fill" color={color} />
+          headerShown: true,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="shippingbox.fill" color={color} />,
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', gap: 8, marginRight: 16 }}>
+              <HeaderIconButton
+                name="square.grid.2x2"
+                onPress={() => router.push('/catalog')}
+                accessibilityLabel="Catálogo"
+              />
+              <HeaderIconButton
+                name="clock.arrow.circlepath"
+                onPress={() => router.push('/inventory/history')}
+                accessibilityLabel="Historial de entradas"
+              />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
-        name="reportes"
+        name="sales"
+        options={{
+          title: 'Ventas',
+          headerShown: true,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="cart.fill" color={color} />,
+          headerRight: () => (
+            <View style={{ marginRight: 16 }}>
+              <HeaderIconButton
+                name="clock.arrow.circlepath"
+                onPress={() => router.push('/sales/history')}
+                accessibilityLabel="Historial de ventas"
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="expenses"
+        options={{
+          title: 'Gastos',
+          headerShown: true,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="dollarsign.circle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="reports"
         options={{
           title: 'Reportes',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
+          headerShown: true,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="chart.bar.fill" color={color} />,
         }}
       />
     </Tabs>

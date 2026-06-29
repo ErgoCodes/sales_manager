@@ -9,33 +9,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
-import { CATEGORIA_OPTIONS, UNIDADES_MEDIDA } from '@/constants/catalogo';
-import { actualizarProducto, crearProducto, getProducto } from '@/db/productos';
+import { CATEGORY_OPTIONS, UNITS_OF_MEASURE } from '@/constants/catalog';
+import { createProduct, getProduct, updateProduct } from '@/db/products';
 
-const precioPositivo = (msg: string) =>
+const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
 
 const schema = z.object({
-  nombre: z.string().trim().min(1, 'El nombre no puede estar vacío'),
-  unidadMedida: z.string().min(1, 'Selecciona una unidad'),
-  categoria: z.string().min(1, 'Selecciona una categoría'),
-  umbralAlerta: z
+  name: z.string().trim().min(1, 'El nombre no puede estar vacío'),
+  unitOfMeasure: z.string().min(1, 'Selecciona una unidad'),
+  category: z.string().min(1, 'Selecciona una categoría'),
+  lowStockThreshold: z
     .string()
     .refine((v) => Number(v) > 0, 'Debe ser mayor que 0')
     .refine((v) => Number.isInteger(Number(v)), 'Debe ser un número entero'),
-  precioCosto: precioPositivo('Debe ser mayor que 0'),
-  precioEfectivo: precioPositivo('Debe ser mayor que 0'),
+  costPrice: positivePrice('Debe ser mayor que 0'),
+  cashPrice: positivePrice('Debe ser mayor que 0'),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-function calcTransferencia(efectivo: number): number {
-  return Math.round((efectivo * 1.1) / 5) * 5;
+function calculateTransferPrice(cashPrice: number): number {
+  return Math.round((cashPrice * 1.1) / 5) * 5;
 }
 
-export default function ProductoFormScreen() {
+export default function ProductFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const esNuevo = id === 'nuevo';
+  const isNew = id === 'new';
 
   const {
     control,
@@ -47,61 +47,61 @@ export default function ProductoFormScreen() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      nombre: '',
-      unidadMedida: 'ud',
-      categoria: '',
-      umbralAlerta: '',
-      precioCosto: '',
-      precioEfectivo: '',
+      name: '',
+      unitOfMeasure: 'ud',
+      category: '',
+      lowStockThreshold: '',
+      costPrice: '',
+      cashPrice: '',
     },
   });
 
   useEffect(() => {
-    if (esNuevo) return;
+    if (isNew) return;
     (async () => {
-      const p = await getProducto(Number(id));
+      const p = await getProduct(Number(id));
       if (!p) return;
       reset({
-        nombre: p.nombre,
-        unidadMedida: p.unidadMedida,
-        categoria: p.categoria ?? '',
-        umbralAlerta: p.umbralAlerta != null ? String(p.umbralAlerta) : '',
-        precioCosto: p.precioCosto != null ? String(p.precioCosto) : '',
-        precioEfectivo: p.precioEfectivo != null ? String(p.precioEfectivo) : '',
+        name: p.name,
+        unitOfMeasure: p.unitOfMeasure,
+        category: p.category ?? '',
+        lowStockThreshold: p.lowStockThreshold != null ? String(p.lowStockThreshold) : '',
+        costPrice: p.costPrice != null ? String(p.costPrice) : '',
+        cashPrice: p.cashPrice != null ? String(p.cashPrice) : '',
       });
     })();
-  }, [id, esNuevo, reset]);
+  }, [id, isNew, reset]);
 
-  const costoStr = watch('precioCosto');
-  const efectivoStr = watch('precioEfectivo');
-  const costoNum = Number(costoStr) || 0;
-  const efectivoNum = Number(efectivoStr) || 0;
-  const transferencia = efectivoNum > 0 ? calcTransferencia(efectivoNum) : 0;
-  const sugerido = costoNum > 0 ? Math.round(costoNum * 1.3 * 100) / 100 : 0;
+  const costStr = watch('costPrice');
+  const cashStr = watch('cashPrice');
+  const costNum = Number(costStr) || 0;
+  const cashNum = Number(cashStr) || 0;
+  const transferNum = cashNum > 0 ? calculateTransferPrice(cashNum) : 0;
+  const suggested = costNum > 0 ? Math.round(costNum * 1.3 * 100) / 100 : 0;
 
   const onSubmit = handleSubmit(async (values) => {
-    const ef = Number(values.precioEfectivo);
-    const datos = {
-      nombre: values.nombre.trim(),
-      unidadMedida: values.unidadMedida,
-      categoria: values.categoria,
-      umbralAlerta: Number(values.umbralAlerta),
-      precioCosto: Number(values.precioCosto),
-      precioEfectivo: ef,
-      precioTransferencia: calcTransferencia(ef),
+    const cash = Number(values.cashPrice);
+    const data = {
+      name: values.name.trim(),
+      unitOfMeasure: values.unitOfMeasure,
+      category: values.category,
+      lowStockThreshold: Number(values.lowStockThreshold),
+      costPrice: Number(values.costPrice),
+      cashPrice: cash,
+      transferPrice: calculateTransferPrice(cash),
     };
-    if (esNuevo) await crearProducto(datos);
-    else await actualizarProducto(Number(id), datos);
+    if (isNew) await createProduct(data);
+    else await updateProduct(Number(id), data);
     router.back();
   });
 
   return (
     <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
-      <Stack.Screen options={{ title: esNuevo ? 'Nuevo producto' : 'Editar producto' }} />
+      <Stack.Screen options={{ title: isNew ? 'Nuevo producto' : 'Editar producto' }} />
 
       <Controller
         control={control}
-        name="nombre"
+        name="name"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Nombre"
@@ -109,42 +109,42 @@ export default function ProductoFormScreen() {
             onChangeText={onChange}
             onBlur={onBlur}
             placeholder="Ej. Refresco de cola"
-            error={errors.nombre?.message}
+            error={errors.name?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="unidadMedida"
+        name="unitOfMeasure"
         render={({ field: { onChange, value } }) => (
           <Select
             label="Unidad de medida"
-            options={UNIDADES_MEDIDA}
+            options={UNITS_OF_MEASURE}
             value={value}
             onChange={onChange}
-            error={errors.unidadMedida?.message}
+            error={errors.unitOfMeasure?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="categoria"
+        name="category"
         render={({ field: { onChange, value } }) => (
           <Select
             label="Categoría"
-            options={CATEGORIA_OPTIONS}
+            options={CATEGORY_OPTIONS}
             value={value}
             onChange={onChange}
-            error={errors.categoria?.message}
+            error={errors.category?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="umbralAlerta"
+        name="lowStockThreshold"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Umbral de alerta de stock"
@@ -153,15 +153,14 @@ export default function ProductoFormScreen() {
             onBlur={onBlur}
             keyboardType="numeric"
             placeholder="Ej. 5"
-            error={errors.umbralAlerta?.message}
+            error={errors.lowStockThreshold?.message}
           />
         )}
       />
 
-      {/* Precios */}
       <Controller
         control={control}
-        name="precioCosto"
+        name="costPrice"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Precio de costo"
@@ -170,14 +169,14 @@ export default function ProductoFormScreen() {
             onBlur={onBlur}
             keyboardType="numeric"
             placeholder="Ej. 100"
-            error={errors.precioCosto?.message}
+            error={errors.costPrice?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="precioEfectivo"
+        name="cashPrice"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Precio efectivo"
@@ -186,20 +185,19 @@ export default function ProductoFormScreen() {
             onBlur={onBlur}
             keyboardType="numeric"
             placeholder="Ej. 130"
-            error={errors.precioEfectivo?.message}
+            error={errors.cashPrice?.message}
           />
         )}
       />
 
-      {/* T-05: Sugerencia de precio óptimo (costo + 30%) */}
-      {sugerido > 0 ? (
+      {suggested > 0 ? (
         <View className="flex-row items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
           <Text variant="caption" className="flex-1 text-blue-700">
-            ≈ Sugerido: ${sugerido} (costo + 30%)
+            ≈ Sugerido: ${suggested} (costo + 30%)
           </Text>
           <Pressable
             hitSlop={8}
-            onPress={() => setValue('precioEfectivo', String(sugerido))}>
+            onPress={() => setValue('cashPrice', String(suggested))}>
             <Text variant="label" className="text-blue-600">
               Usar sugerido
             </Text>
@@ -207,29 +205,28 @@ export default function ProductoFormScreen() {
         </View>
       ) : null}
 
-      {/* Resumen de los tres precios antes de guardar */}
       <View className="rounded-xl bg-white p-4 shadow-sm gap-2">
         <Text variant="label">Resumen de precios</Text>
         <View className="flex-row justify-between">
           <Text variant="body">Costo</Text>
-          <Text variant="body">{costoNum > 0 ? `$${costoNum}` : '—'}</Text>
+          <Text variant="body">{costNum > 0 ? `$${costNum}` : '—'}</Text>
         </View>
         <View className="flex-row justify-between">
           <Text variant="body">Efectivo</Text>
-          <Text variant="body">{efectivoNum > 0 ? `$${efectivoNum}` : '—'}</Text>
+          <Text variant="body">{cashNum > 0 ? `$${cashNum}` : '—'}</Text>
         </View>
         <View className="flex-row justify-between">
           <Text variant="body" className="font-semibold">
             Transferencia
           </Text>
           <Text variant="body" className="font-semibold">
-            {transferencia > 0 ? `$${transferencia}` : '—'}
+            {transferNum > 0 ? `$${transferNum}` : '—'}
           </Text>
         </View>
       </View>
 
       <Button
-        label={isSubmitting ? 'Guardando…' : esNuevo ? 'Crear producto' : 'Guardar cambios'}
+        label={isSubmitting ? 'Guardando…' : isNew ? 'Crear producto' : 'Guardar cambios'}
         onPress={onSubmit}
         disabled={isSubmitting}
       />

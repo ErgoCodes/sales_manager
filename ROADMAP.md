@@ -184,17 +184,17 @@
 
 > El inventario es la pantalla operativa diaria de Yamile.
 
-- [ ] Pantalla de inventario (`app/inventario/index.tsx`)
-  - Lista todos los productos con stock actual (calculado), costo promedio, valor por producto (`stock × costo_promedio`)
-  - Total del valor del inventario al pie
-- [ ] Indicador visual (rojo/ícono) para productos bajo umbral
-- [ ] Umbrales por defecto: bebidas enlatadas ≤24, granos ≤6, resto ≤5 (respetando umbral por producto si está configurado)
-- [ ] Filtro rápido "Solo stock bajo"
-- [ ] Stock se recalcula en tiempo real sin recargar manualmente
+- [x] Pantalla de inventario (reescrita en `app/(tabs)/inventario.tsx` — reemplaza landing)
+  - Lista todos los productos con stock actual, costo promedio, valor por producto, total del inventario al pie
+  - Catálogo e Historial accesibles vía menú ≡ en header; FAB "+ Entrada" abajo-derecha
+- [x] Indicador visual (fondo `bg-red-50` + badge "⚠ bajo umbral") para productos bajo umbral
+- [x] Umbrales por categoría: Bebidas ≤24, Granos ≤6; resto usa umbral del producto o general (`getUmbralProducto` en `constants/catalogo.ts`)
+- [x] Filtro rápido "Solo stock bajo" (toggle en JS)
+- [x] Stock se recalcula al hacer focus (`useFocusEffect`) sin recargar manualmente
 
 **Depende de:** T-06
 
-**Acepta si:** stock correcto, valor total coincide con suma, producto bajo umbral diferenciado visualmente, umbral personalizado respetado.
+**Acepta si:** stock correcto, valor total coincide con suma, producto bajo umbral diferenciado visualmente, umbral personalizado respetado. *(tsc + lint + bundle OK; runtime pendiente Expo Go)*
 
 ---
 
@@ -220,24 +220,24 @@
 
 > Pantalla principal de uso diario. Diseño decide si la app se usa o se abandona.
 
-- [ ] Pantalla de captura en lote (`app/ventas/nueva-sesion.tsx`)
-  - Buscador de producto siempre visible arriba
-  - Lista de ventas de la sesión en curso abajo
-  - Total acumulado en vivo: efectivo / transferencia / total
-- [ ] Flujo sin cambiar de pantalla: producto → cantidad → [Efectivo | Transferencia] → cae a lista → foco vuelve al buscador
-- [ ] Al elegir método de pago:
-  - Efectivo → precio base
-  - Transferencia → `precio_base × 1.10` redondeado
-  - Capturar `costo_promedio` vigente como `costo_al_vender`
+- [x] Pantalla de captura en lote (`app/ventas/nueva-sesion.tsx`)
+  - Buscador de producto siempre visible arriba (ProductPicker reutilizado)
+  - Lista de ventas de la sesión en curso abajo (FlatList virtualizada)
+  - Total acumulado en vivo: efectivo / transferencia / total (Zustand `useCartStore`)
+- [x] Flujo sin cambiar de pantalla: producto → cantidad → [Efectivo | Transferencia] → cae a lista → foco vuelve al buscador
+- [x] Al elegir método de pago:
+  - Efectivo → precio base (`precioEfectivo`)
+  - Transferencia → `precioTransferencia` (ya calculado en T-04)
+  - Capturar `costo_promedio` vigente como `costo_al_vender` (re-leído en transacción)
   - Calcular `utilidad = (precio_aplicado - costo_al_vender) × cantidad`
-- [ ] Botón quitar línea antes de guardar sesión (corrección inmediata)
-- [ ] Campo fecha de sesión (default hoy, editable — para registrar día pasado)
-- [ ] Botón "Guardar sesión": descuenta stock de cada producto, persiste todas las ventas con fecha elegida
-- [ ] Validación: advertir (sin bloquear) si venta dejaría stock negativo
+- [x] Botón quitar línea antes de guardar sesión (✕ en cada ítem del carrito)
+- [x] Campo fecha de sesión (default hoy, editable — para registrar día pasado)
+- [x] Botón "Guardar sesión": inserta ventas en transacción SQLite, stock derivado baja automáticamente
+- [x] Validación: advertir (sin bloquear) si venta dejaría stock negativo (`verificarStockSesion`)
 
 **Depende de:** T-06, T-07
 
-**Acepta si:** 30+ ventas seguidas sin volver al menú, total efectivo/transferencia correcto en vivo, stock baja al guardar, fecha pasada funciona.
+**Acepta si:** 30+ ventas seguidas sin volver al menú, total efectivo/transferencia correcto en vivo, stock baja al guardar, fecha pasada funciona. *(tsc + lint + bundle OK; runtime pendiente Expo Go)*
 
 ---
 
@@ -245,14 +245,14 @@
 
 > Botón especial en pantalla de venta. Utilidad siempre 0.
 
-- [ ] Toggle visible "¿Venta a trabajador?" en pantalla de registro
-- [ ] Al activar: precio aplicado cambia a `precio_costo`, utilidad muestra 0
-- [ ] Método de pago sigue siendo seleccionable (efectivo o transferencia)
-- [ ] Venta a trabajador queda etiquetada (`metodo_pago = 'costo'`) en historial
+- [x] Toggle visible "¿Venta a trabajador?" en pantalla de registro (checkbox en quick entry area)
+- [x] Al activar: precio aplicado cambia a `costPrice` o `averageCost`, utilidad = 0
+- [x] Al activar toggle, botones Efectivo/Transfer se reemplazan por botón único "A costo"
+- [x] Venta a trabajador queda etiquetada (`paymentMethod = 'costo'`) con badge naranja "C" en historial
 
 **Depende de:** T-09
 
-**Acepta si:** precio cambia a costo al activar, utilidad=0, diferenciado en historial.
+**Acepta si:** precio cambia a costo al activar, utilidad=0, diferenciado en historial. *(tsc + lint + bundle OK; runtime pendiente Expo Go)*
 
 ---
 
@@ -260,18 +260,16 @@
 
 > El problema principal que Yamile quiere resolver.
 
-- [ ] Widget prominente en pantalla de inicio con resumen del día en curso
-  - Total efectivo del día
-  - Total transferencia del día
-  - Total general del día
-  - Utilidad total del día
-- [ ] Opción de ver desglose por producto del día
-- [ ] Selector de fecha para ver resumen de cualquier día pasado
-- [ ] Historial de ventas (`app/ventas/historial.tsx`): buscador por fecha y producto (base para T-22)
+- [x] Widget prominente en pantalla de inicio con resumen del día en curso
+  - Total efectivo, transferencia, general y utilidad del día
+  - "Ver desglose →" navega al tab Ventas
+- [x] Opción de ver desglose por producto del día (`getDailyBreakdown()` en tab Ventas)
+- [x] Selector de fecha para ver resumen de cualquier día pasado (Input de fecha en tab Ventas)
+- [x] Historial de ventas (`app/sales/history.tsx`): buscador por fecha y producto (base para T-22)
 
 **Depende de:** T-09
 
-**Acepta si:** totales correctos y actualizados al registrar venta, resumen del día visible al abrir app, consulta de días anteriores funciona.
+**Acepta si:** totales correctos y actualizados al registrar venta, resumen del día visible al abrir app, consulta de días anteriores funciona. *(tsc + lint + bundle OK; runtime pendiente Expo Go)*
 
 ---
 

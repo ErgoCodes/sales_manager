@@ -10,35 +10,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   ProductPicker,
-  type ProductoSeleccionado,
+  type SelectedProduct,
 } from '@/components/ui/product-picker';
 import { Text } from '@/components/ui/text';
-import { registrarEntrada } from '@/db/movimientos';
-import { actualizarProducto } from '@/db/productos';
+import { registerEntry } from '@/db/movements';
+import { updateProduct } from '@/db/products';
 
-const precioPositivo = (msg: string) =>
+const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
 
 const schema = z.object({
-  cantidad: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
-  precioCostoUnitario: precioPositivo('El costo es obligatorio y debe ser mayor que 0'),
-  fecha: z.string().min(1, 'La fecha es obligatoria'),
-  notas: z.string().optional(),
-  // Campos opcionales para actualizar precios del catálogo
-  nuevoPrecioCosto: z.string().optional(),
-  nuevoPrecioEfectivo: z.string().optional(),
+  quantity: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
+  unitCostPrice: positivePrice('El costo es obligatorio y debe ser mayor que 0'),
+  date: z.string().min(1, 'La fecha es obligatoria'),
+  notes: z.string().optional(),
+  newCostPrice: z.string().optional(),
+  newCashPrice: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-function calcTransferencia(efectivo: number): number {
-  return Math.round((efectivo * 1.1) / 5) * 5;
+function calculateTransferPrice(cashPrice: number): number {
+  return Math.round((cashPrice * 1.1) / 5) * 5;
 }
 
-export default function EntradaScreen() {
-  const [producto, setProducto] = useState<ProductoSeleccionado | null>(null);
-  const [productoError, setProductoError] = useState('');
-  const [actualizarPrecios, setActualizarPrecios] = useState(false);
+export default function StockEntryScreen() {
+  const [product, setProduct] = useState<SelectedProduct | null>(null);
+  const [productError, setProductError] = useState('');
+  const [updatePrices, setUpdatePrices] = useState(false);
 
   const {
     control,
@@ -48,53 +47,53 @@ export default function EntradaScreen() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      cantidad: '',
-      precioCostoUnitario: '',
-      fecha: format(new Date(), 'yyyy-MM-dd'),
-      notas: '',
-      nuevoPrecioCosto: '',
-      nuevoPrecioEfectivo: '',
+      quantity: '',
+      unitCostPrice: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      notes: '',
+      newCostPrice: '',
+      newCashPrice: '',
     },
   });
 
-  function onProductoSeleccionado(p: ProductoSeleccionado) {
-    setProducto(p);
-    setProductoError('');
-    if (p.precioCosto != null) {
-      setValue('precioCostoUnitario', String(p.precioCosto));
+  function onProductSelected(p: SelectedProduct) {
+    setProduct(p);
+    setProductError('');
+    if (p.costPrice != null) {
+      setValue('unitCostPrice', String(p.costPrice));
     }
-    if (actualizarPrecios) {
-      if (p.precioCosto != null) setValue('nuevoPrecioCosto', String(p.precioCosto));
-      if (p.precioEfectivo != null) setValue('nuevoPrecioEfectivo', String(p.precioEfectivo));
+    if (updatePrices) {
+      if (p.costPrice != null) setValue('newCostPrice', String(p.costPrice));
+      if (p.cashPrice != null) setValue('newCashPrice', String(p.cashPrice));
     }
   }
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!producto) {
-      setProductoError('Selecciona un producto');
+    if (!product) {
+      setProductError('Selecciona un producto');
       return;
     }
 
-    await registrarEntrada({
-      productoId: producto.id,
-      cantidad: Number(values.cantidad),
-      precioCostoUnitario: Number(values.precioCostoUnitario),
-      fecha: values.fecha,
-      notas: values.notas || null,
+    await registerEntry({
+      productId: product.id,
+      quantity: Number(values.quantity),
+      unitCostPrice: Number(values.unitCostPrice),
+      date: values.date,
+      notes: values.notes || null,
     });
 
-    if (actualizarPrecios) {
-      const costo = values.nuevoPrecioCosto ? Number(values.nuevoPrecioCosto) : undefined;
-      const efectivo = values.nuevoPrecioEfectivo ? Number(values.nuevoPrecioEfectivo) : undefined;
-      if (costo && costo > 0 && efectivo && efectivo > 0) {
-        await actualizarProducto(producto.id, {
-          nombre: producto.nombre,
-          unidadMedida: producto.unidadMedida,
-          categoria: null,
-          umbralAlerta: null,
-          precioCosto: costo,
-          precioEfectivo: efectivo,
-          precioTransferencia: calcTransferencia(efectivo),
+    if (updatePrices) {
+      const cost = values.newCostPrice ? Number(values.newCostPrice) : undefined;
+      const cash = values.newCashPrice ? Number(values.newCashPrice) : undefined;
+      if (cost && cost > 0 && cash && cash > 0) {
+        await updateProduct(product.id, {
+          name: product.name,
+          unitOfMeasure: product.unitOfMeasure,
+          category: null,
+          lowStockThreshold: null,
+          costPrice: cost,
+          cashPrice: cash,
+          transferPrice: calculateTransferPrice(cash),
         });
       }
     }
@@ -108,41 +107,40 @@ export default function EntradaScreen() {
 
       <ProductPicker
         label="Producto"
-        value={producto}
-        onChange={onProductoSeleccionado}
-        error={productoError}
+        value={product}
+        onChange={onProductSelected}
+        error={productError}
       />
 
-      {/* Precios actuales del producto seleccionado */}
-      {producto ? (
+      {product ? (
         <View className="rounded-xl bg-white p-3 shadow-sm gap-1">
           <Text variant="label">Precios actuales</Text>
           <Text variant="caption">
-            Costo: ${producto.precioCosto ?? '—'} · Efectivo: ${producto.precioEfectivo ?? '—'} ·
-            Transferencia: ${producto.precioTransferencia ?? '—'}
+            Costo: ${product.costPrice ?? '—'} · Efectivo: ${product.cashPrice ?? '—'} ·
+            Transferencia: ${product.transferPrice ?? '—'}
           </Text>
         </View>
       ) : null}
 
       <Controller
         control={control}
-        name="cantidad"
+        name="quantity"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label={`Cantidad${producto ? ` (${producto.unidadMedida})` : ''}`}
+            label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ''}`}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
             keyboardType="numeric"
             placeholder="Ej. 10"
-            error={errors.cantidad?.message}
+            error={errors.quantity?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="precioCostoUnitario"
+        name="unitCostPrice"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Precio costo unitario"
@@ -151,14 +149,14 @@ export default function EntradaScreen() {
             onBlur={onBlur}
             keyboardType="numeric"
             placeholder="Obligatorio"
-            error={errors.precioCostoUnitario?.message}
+            error={errors.unitCostPrice?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="fecha"
+        name="date"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Fecha (YYYY-MM-DD)"
@@ -166,14 +164,14 @@ export default function EntradaScreen() {
             onChangeText={onChange}
             onBlur={onBlur}
             placeholder="2026-06-27"
-            error={errors.fecha?.message}
+            error={errors.date?.message}
           />
         )}
       />
 
       <Controller
         control={control}
-        name="notas"
+        name="notes"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Notas (opcional)"
@@ -186,21 +184,20 @@ export default function EntradaScreen() {
         )}
       />
 
-      {/* Toggle para actualizar precios del catálogo */}
       <Pressable
-        onPress={() => setActualizarPrecios((v) => !v)}
+        onPress={() => setUpdatePrices((v) => !v)}
         hitSlop={8}
         className="flex-row items-center gap-2">
-        <Text variant="label" className={actualizarPrecios ? 'text-blue-600' : 'text-gray-500'}>
-          {actualizarPrecios ? '☑' : '☐'} Actualizar precios del catálogo
+        <Text variant="label" className={updatePrices ? 'text-blue-600' : 'text-gray-500'}>
+          {updatePrices ? '☑' : '☐'} Actualizar precios del catálogo
         </Text>
       </Pressable>
 
-      {actualizarPrecios ? (
+      {updatePrices ? (
         <View className="gap-3 rounded-xl bg-blue-50 p-3">
           <Controller
             control={control}
-            name="nuevoPrecioCosto"
+            name="newCostPrice"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Nuevo precio costo"
@@ -213,7 +210,7 @@ export default function EntradaScreen() {
           />
           <Controller
             control={control}
-            name="nuevoPrecioEfectivo"
+            name="newCashPrice"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Nuevo precio efectivo"
