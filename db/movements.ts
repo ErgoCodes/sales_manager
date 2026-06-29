@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from './client';
 import { recalculateAverageCost } from './queries';
@@ -34,6 +34,35 @@ export async function registerEntry(data: EntryData): Promise<void> {
     .update(products)
     .set({ averageCost: newAverageCost })
     .where(eq(products.id, data.productId));
+}
+
+interface OutflowData {
+  productId: number;
+  /** 'merma' | 'retiro_owner' | 'ajuste' */
+  type: string;
+  /** Para 'ajuste' puede ser negativo (la fórmula de stock lo suma). */
+  quantity: number;
+  unitCostPrice: number;
+  date: string;
+  notes?: string | null;
+}
+
+/**
+ * Registra una salida de almacén que no es venta (T-13): merma, retiro del
+ * dueño o ajuste de inventario. A diferencia de una entrada, NO recalcula el
+ * costo promedio (el promedio ponderado solo cambia con entradas), lo que deja
+ * el costo congelado para valorar la pérdida en reportes (T-19).
+ */
+export async function registerOutflow(data: OutflowData): Promise<void> {
+  await db.insert(warehouseMovements).values({
+    productId: data.productId,
+    type: data.type,
+    quantity: data.quantity,
+    date: data.date,
+    unitCostPrice: data.unitCostPrice,
+    salePrice: null,
+    notes: data.notes ?? null,
+  });
 }
 
 export interface EntryWithProduct {
@@ -78,4 +107,79 @@ export async function listEntries(opts: ListOptions = {}): Promise<EntryWithProd
     .orderBy(desc(warehouseMovements.date));
 
   return rows;
+}
+
+export interface MovementWithProduct {
+  id: number;
+  productId: number;
+  productName: string;
+  unitOfMeasure: string;
+  type: string;
+  quantity: number;
+  unitCostPrice: number;
+  date: string;
+  notes: string | null;
+}
+
+interface ListMovementsOptions {
+  types?: string[];
+  productId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+/** Lista movimientos de almacén (filtrable por tipo, p. ej. las salidas T-13). */
+export async function listMovements(
+  opts: ListMovementsOptions = {},
+): Promise<MovementWithProduct[]> {
+  const conditions = [];
+  if (opts.types && opts.types.length > 0)
+    conditions.push(inArray(warehouseMovements.type, opts.types));
+  if (opts.productId) conditions.push(eq(warehouseMovements.productId, opts.productId));
+  if (opts.dateFrom)
+    conditions.push(sql`date(${warehouseMovements.date}) >= date(${opts.dateFrom})`);
+  if (opts.dateTo)
+    conditions.push(sql`date(${warehouseMovements.date}) <= date(${opts.dateTo})`);
+
+  return db
+    .select({
+      id: warehouseMovements.id,
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      type: warehouseMovements.type,
+      quantity: warehouseMovements.quantity,
+      unitCostPrice: warehouseMovements.unitCostPrice,
+      date: warehouseMovements.date,
+      notes: warehouseMovements.notes,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(warehouseMovements.date));
+}
+
+/**
+ * Valor de las salidas que cuentan como pérdida (merma + retiro del dueño)
+ * en un rango de fechas: SUM(|cantidad| × costo unitario). El 'ajuste' se
+ * excluye porque es una corrección de conteo, no una pérdida.
+ */
+export async function sumLossOutflowsValue(
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<number> {
+  const conditions = [inArray(warehouseMovements.type, ['merma', 'retiro_owner'])];
+  if (dateFrom)
+    conditions.push(sql`date(${warehouseMovements.date}) >= date(${dateFrom})`);
+  if (dateTo)
+    conditions.push(sql`date(${warehouseMovements.date}) <= date(${dateTo})`);
+
+  const [row] = await db
+    .select({
+      total: sql<number>`COALESCE(SUM(ABS(${warehouseMovements.quantity}) * ${warehouseMovements.unitCostPrice}), 0)`,
+    })
+    .from(warehouseMovements)
+    .where(and(...conditions));
+
+  return row?.total ?? 0;
 }

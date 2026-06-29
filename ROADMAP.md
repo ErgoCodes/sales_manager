@@ -294,16 +294,17 @@
 
 > Salidas de inventario sin ingreso. Incluye ajuste de inventario físico.
 
-- [ ] Pantalla nueva salida no-venta (`app/gastos/salida.tsx`)
-  - Selector de producto, cantidad, tipo (`retiro_owner` / `merma` / `ajuste`), fecha, notas
-- [ ] Al confirmar: descontar del stock (movimiento con tipo correspondiente)
-- [ ] `retiro_owner` y `merma` → pérdida contable (no ingreso)
-- [ ] `ajuste` → cuadra sistema con conteo físico (puede ser positivo o negativo)
-- [ ] Historial de pérdidas filtrable por tipo y fecha
+- [x] Pantalla nueva salida no-venta (`app/expenses/outflow.tsx`)
+  - Selector de producto (`ProductPicker`), cantidad, tipo (`retiro_owner` / `merma` / `ajuste`), costo unitario, fecha, notas
+- [x] Al confirmar: insertar movimiento con tipo correspondiente (`registerOutflow` en `db/movements.ts`); stock derivado baja solo. No recalcula costo promedio (queda congelado para valorar la pérdida en T-19)
+- [x] `retiro_owner` y `merma` → pérdida contable valorada `|cantidad| × costo unitario` (`sumLossOutflowsValue`)
+- [x] `ajuste` → cuadra sistema con conteo físico (toggle Aumentar/Disminuir → cantidad con signo)
+- [x] Advertencia (sin bloquear) si la salida dejaría stock negativo (`calculateStock`)
+- [x] Historial de pérdidas/gastos combinado en el tab Gastos (`listMovements`); filtros por tipo/fecha pendientes para T-19
 
 **Depende de:** T-07
 
-**Acepta si:** retiro Owner descuenta stock en tiempo real, merma registrada con tipo correcto, ajuste corrige en ambas direcciones.
+**Acepta si:** retiro Owner descuenta stock en tiempo real, merma registrada con tipo correcto, ajuste corrige en ambas direcciones. *(tsc + lint + bundle Android OK; runtime pendiente Expo Go)*
 
 ---
 
@@ -311,17 +312,17 @@
 
 > Gastos periódicos que reducen la utilidad real.
 
-- [ ] Pantalla nuevo gasto (`app/gastos/nuevo.tsx`)
-  - Tipo: salario / multa / onat
-  - Concepto (texto libre)
+- [x] Pantalla nuevo gasto (`app/expenses/new.tsx`)
+  - Tipo: salario / multa / onat (`Select`)
+  - Concepto (texto libre, opcional)
   - Monto, fecha
-- [ ] ONAT: monto manual que Yamile introduce cuando paga (no % automático por venta)
-- [ ] Historial de gastos filtrable por tipo y fecha
-- [ ] Gastos se suman en reportes como partida negativa
+- [x] ONAT: monto manual que Yamile introduce cuando paga (no % automático por venta)
+- [x] Historial de gastos en el tab Gastos (`listExpenses`); filtros por tipo/fecha pendientes para T-19
+- [x] Capa de datos `db/expenses.ts` (registerExpense/listExpenses/sumExpenses) + total del mes en el tab; reporte de pérdidas formal en T-19
 
 **Depende de:** T-01
 
-**Acepta si:** los tres tipos registrables, ONAT no descuenta automáticamente, aparecen en reportes como pérdida.
+**Acepta si:** los tres tipos registrables, ONAT no descuenta automáticamente, aparecen en el total del mes. *(tsc + lint + bundle Android OK; runtime pendiente Expo Go)*
 
 ---
 
