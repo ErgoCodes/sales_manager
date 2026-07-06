@@ -10,11 +10,15 @@ import { Colors, Semantic, Shadows } from '@/constants/theme';
 import { getProductThreshold } from '@/constants/catalog';
 import { CONFIG_KEYS, getConfig } from '@/db/config';
 import { listProducts, type ProductWithStock } from '@/db/products';
+import { getLastSaleDates } from '@/db/queries';
+import { isNearExpiration, isStagnant } from '@/lib/product-status';
 
 interface ProductWithValue extends ProductWithStock {
   value: number;
   threshold: number;
   isLow: boolean;
+  isStagnant: boolean;
+  isNearExpiration: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -79,15 +83,16 @@ function FilterChip({ label, active, onPress, count, accent = Colors.light.tint 
 export default function InventoryScreen() {
   const [products, setProducts] = useState<ProductWithValue[]>([]);
   const [totalInventory, setTotalInventory] = useState(0);
-  const [filter, setFilter] = useState<'all' | 'low'>('all');
+  const [filter, setFilter] = useState<'all' | 'low' | 'stagnant'>('all');
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       (async () => {
-        const [list, thresholdStr] = await Promise.all([
+        const [list, thresholdStr, lastSaleDates] = await Promise.all([
           listProducts(),
           getConfig(CONFIG_KEYS.generalStockThreshold),
+          getLastSaleDates(),
         ]);
         if (!active) return;
         const generalThreshold = Number(thresholdStr ?? 5);
@@ -96,7 +101,14 @@ export default function InventoryScreen() {
           const val = p.stock * (p.averageCost ?? 0);
           total += val;
           const threshold = getProductThreshold(p, generalThreshold);
-          return { ...p, value: val, threshold, isLow: p.stock < threshold };
+          return {
+            ...p,
+            value: val,
+            threshold,
+            isLow: p.stock < threshold,
+            isStagnant: isStagnant({ stock: p.stock, lastSaleDate: lastSaleDates.get(p.id) ?? null }),
+            isNearExpiration: isNearExpiration({ expirationDate: p.expirationDate }),
+          };
         });
         setProducts(withValue);
         setTotalInventory(total);
@@ -108,7 +120,13 @@ export default function InventoryScreen() {
   );
 
   const lowCount = products.filter((p) => p.isLow).length;
-  const filteredList = filter === 'low' ? products.filter((p) => p.isLow) : products;
+  const stagnantCount = products.filter((p) => p.isStagnant || p.isNearExpiration).length;
+  const filteredList =
+    filter === 'low'
+      ? products.filter((p) => p.isLow)
+      : filter === 'stagnant'
+        ? products.filter((p) => p.isStagnant || p.isNearExpiration)
+        : products;
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.light.background }}>
@@ -125,6 +143,13 @@ export default function InventoryScreen() {
           count={lowCount}
           accent={Semantic.danger}
           onPress={() => setFilter('low')}
+        />
+        <FilterChip
+          label="Estancados"
+          active={filter === 'stagnant'}
+          count={stagnantCount}
+          accent={Semantic.warning}
+          onPress={() => setFilter('stagnant')}
         />
       </View>
 
@@ -205,23 +230,29 @@ export default function InventoryScreen() {
         }
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(index * 30).duration(280)}>
-            <View
-              style={{
-                flexDirection: 'row',
-                backgroundColor: item.isLow ? '#FFFBFB' : '#FFFFFF',
-                borderRadius: 18,
-                padding: 14,
-                gap: 12,
-                borderCurve: 'continuous',
-                boxShadow: Shadows.sm,
-                borderLeftWidth: item.isLow ? 4 : 0,
-                borderLeftColor: Semantic.danger,
-              }}
+            <Pressable
+              onPress={() => router.push(`/catalog/${item.id}`)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
             >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  backgroundColor: item.isLow ? '#FFFBFB' : '#FFFFFF',
+                  borderRadius: 18,
+                  padding: 14,
+                  gap: 12,
+                  borderCurve: 'continuous',
+                  boxShadow: Shadows.sm,
+                  borderLeftWidth: item.isLow ? 4 : 0,
+                  borderLeftColor: Semantic.danger,
+                }}
+              >
               <View style={{ flex: 1, gap: 6 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A' }}>{item.name}</Text>
                   {item.isLow ? <Badge label="Stock bajo" tone="danger" dot /> : null}
+                  {item.isStagnant ? <Badge label="Estancado" tone="warning" dot /> : null}
+                  {item.isNearExpiration ? <Badge label="Por vencer" tone="warning" dot /> : null}
                 </View>
                 {item.category ? <Badge label={item.category} tone="neutral" /> : null}
                 <View style={{ flexDirection: 'row', gap: 14, marginTop: 4 }}>
@@ -268,7 +299,8 @@ export default function InventoryScreen() {
                   </Text>
                 ) : null}
               </View>
-            </View>
+              </View>
+            </Pressable>
           </Animated.View>
         )}
       />

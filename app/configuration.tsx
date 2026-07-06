@@ -19,6 +19,7 @@ const schema = z.object({
     (v) => Number.isInteger(Number(v)),
     'Debe ser un número entero',
   ),
+  stagnantDiscountPercent: nonNegativeNumber('Debe ser un número ≥ 0'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -33,7 +34,12 @@ export default function ConfigurationScreen() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { businessName: '', cashDiscountPercent: '10', generalStockThreshold: '5' },
+    defaultValues: {
+      businessName: '',
+      cashDiscountPercent: '10',
+      generalStockThreshold: '5',
+      stagnantDiscountPercent: '15',
+    },
   });
 
   useEffect(() => {
@@ -43,6 +49,7 @@ export default function ConfigurationScreen() {
         businessName: cfg[CONFIG_KEYS.businessName],
         cashDiscountPercent: cfg[CONFIG_KEYS.cashDiscountPercent],
         generalStockThreshold: cfg[CONFIG_KEYS.generalStockThreshold],
+        stagnantDiscountPercent: cfg[CONFIG_KEYS.stagnantDiscountPercent],
       });
     })();
   }, [reset]);
@@ -52,6 +59,7 @@ export default function ConfigurationScreen() {
       setConfig(CONFIG_KEYS.businessName, values.businessName.trim()),
       setConfig(CONFIG_KEYS.cashDiscountPercent, String(Number(values.cashDiscountPercent))),
       setConfig(CONFIG_KEYS.generalStockThreshold, String(Number(values.generalStockThreshold))),
+      setConfig(CONFIG_KEYS.stagnantDiscountPercent, String(Number(values.stagnantDiscountPercent))),
     ]);
     setSaved(true);
   });
@@ -110,6 +118,25 @@ export default function ConfigurationScreen() {
             keyboardType="numeric"
             placeholder="5"
             error={errors.generalStockThreshold?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="stagnantDiscountPercent"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <Input
+            label="% descuento por producto estancado/vencimiento"
+            value={String(value ?? '')}
+            onChangeText={(t) => {
+              onChange(t);
+              setSaved(false);
+            }}
+            onBlur={onBlur}
+            keyboardType="numeric"
+            placeholder="15"
+            error={errors.stagnantDiscountPercent?.message}
           />
         )}
       />

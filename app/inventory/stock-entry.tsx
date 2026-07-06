@@ -15,6 +15,7 @@ import {
 import { Text } from '@/components/ui/text';
 import { registerEntry } from '@/db/movements';
 import { updateProduct } from '@/db/products';
+import { calculateTransferPrice } from '@/lib/pricing';
 
 const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
@@ -29,10 +30,6 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
-
-function calculateTransferPrice(cashPrice: number): number {
-  return Math.round((cashPrice * 1.1) / 5) * 5;
-}
 
 export default function StockEntryScreen() {
   const [product, setProduct] = useState<SelectedProduct | null>(null);

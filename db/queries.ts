@@ -130,6 +130,31 @@ export async function getDailyBreakdown(date: string): Promise<ProductDaySummary
     .orderBy(desc(sql`COALESCE(SUM(${revenue}), 0)`));
 }
 
+export async function getLastSaleDate(productId: number): Promise<string | null> {
+  const [row] = await db
+    .select({ lastDate: sql<string>`MAX(${sales.date})` })
+    .from(sales)
+    .where(and(eq(sales.productId, productId), eq(sales.cancelled, false)));
+  return row?.lastDate ?? null;
+}
+
+export async function getLastSaleDates(): Promise<Map<number, string>> {
+  const rows = await db
+    .select({
+      productId: sales.productId,
+      lastDate: sql<string>`MAX(${sales.date})`,
+    })
+    .from(sales)
+    .where(eq(sales.cancelled, false))
+    .groupBy(sales.productId);
+
+  const map = new Map<number, string>();
+  for (const row of rows) {
+    if (row.lastDate) map.set(row.productId, row.lastDate);
+  }
+  return map;
+}
+
 export async function countLowStock(): Promise<number> {
   const generalThreshold = Number(
     (await getConfig(CONFIG_KEYS.generalStockThreshold)) ?? 5,

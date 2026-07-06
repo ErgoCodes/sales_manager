@@ -202,15 +202,16 @@
 
 > Detectar el picadillo de la historia.
 
-- [ ] Agregar campo opcional `fecha_vencimiento` al formulario de producto/entrada
-- [ ] Lógica "producto estancado": sin venta en últimos 7 días O movimiento lento vs. stock actual
-- [ ] Alerta visible en pantalla de inventario: productos próximos a vencer (<7 días) o estancados
-- [ ] Al tocar producto estancado: mostrar opción "Sugerir rebaja" con botón de aprobación de Yamile
-- [ ] Si Yamile aprueba: registrar nuevo `precio_efectivo`, recalcular `precio_transferencia` automáticamente
+- [x] Agregar campo opcional `fecha_vencimiento` al formulario de producto (`app/catalog/[id].tsx`)
+- [x] Lógica "producto estancado": sin venta en últimos 7 días con stock > 0 (`lib/product-status.ts`; criterio de "movimiento lento" no implementado — fuera de alcance, no cubierto por el criterio de aceptación)
+- [x] Alerta visible en pantalla de inventario: badges "Estancado"/"Por vencer" + filtro "Estancados" (`app/(tabs)/inventory.tsx`)
+- [x] Al tocar producto estancado/por vencer: banner "Sugerir rebaja" en su formulario de edición (fila de inventario ahora navega a `/catalog/[id]`)
+- [x] Al aprobar (tocar "Sugerir rebaja" + Guardar): nuevo `precio_efectivo`, recalcula `precio_transferencia` automáticamente vía el submit existente — nada se aplica solo
+- [x] % de rebaja sugerida configurable en Configuración (`descuento_estancado_pct`, default 15%)
 
 **Depende de:** T-07
 
-**Acepta si:** sin ventas en 7d → marcado estancado, vencimiento próximo destacado, rebaja no se aplica sola.
+**Acepta si:** sin ventas en 7d → marcado estancado, vencimiento próximo destacado, rebaja no se aplica sola. *(tsc + lint + bundle Android OK; runtime pendiente Expo Go)*
 
 ---
 

@@ -7,12 +7,14 @@ export const CONFIG_KEYS = {
   businessName: 'nombre_negocio',
   cashDiscountPercent: 'descuento_efectivo_pct',
   generalStockThreshold: 'umbral_stock_general',
+  stagnantDiscountPercent: 'descuento_estancado_pct',
 } as const;
 
 export const CONFIG_DEFAULTS: Record<string, string> = {
   [CONFIG_KEYS.businessName]: '',
   [CONFIG_KEYS.cashDiscountPercent]: '10',
   [CONFIG_KEYS.generalStockThreshold]: '5',
+  [CONFIG_KEYS.stagnantDiscountPercent]: '15',
 };
 
 export async function getConfig(key: string): Promise<string | null> {

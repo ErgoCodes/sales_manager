@@ -15,6 +15,7 @@ export type ProductData = Pick<
   | 'costPrice'
   | 'cashPrice'
   | 'transferPrice'
+  | 'expirationDate'
 >;
 
 interface ListOptions {

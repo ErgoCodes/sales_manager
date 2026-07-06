@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, View } from 'react-native';
 import { z } from 'zod';
@@ -10,7 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
 import { CATEGORY_OPTIONS, UNITS_OF_MEASURE } from '@/constants/catalog';
+import { CONFIG_KEYS, getConfig } from '@/db/config';
 import { createProduct, getProduct, updateProduct } from '@/db/products';
+import { calculateStock, getLastSaleDate } from '@/db/queries';
+import { isNearExpiration, isStagnant } from '@/lib/product-status';
+import { calculateTransferPrice } from '@/lib/pricing';
 
 const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
@@ -25,13 +29,13 @@ const schema = z.object({
     .refine((v) => Number.isInteger(Number(v)), 'Debe ser un número entero'),
   costPrice: positivePrice('Debe ser mayor que 0'),
   cashPrice: positivePrice('Debe ser mayor que 0'),
+  expirationDate: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Formato de fecha inválido (YYYY-MM-DD)'),
 });
 
 type FormValues = z.infer<typeof schema>;
-
-function calculateTransferPrice(cashPrice: number): number {
-  return Math.round((cashPrice * 1.1) / 5) * 5;
-}
 
 export default function ProductFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,8 +57,12 @@ export default function ProductFormScreen() {
       lowStockThreshold: '',
       costPrice: '',
       cashPrice: '',
+      expirationDate: '',
     },
   });
+
+  const [stagnantInfo, setStagnantInfo] = useState<{ stagnant: boolean; nearExpiration: boolean } | null>(null);
+  const [discountPct, setDiscountPct] = useState(15);
 
   useEffect(() => {
     if (isNew) return;
@@ -68,6 +76,18 @@ export default function ProductFormScreen() {
         lowStockThreshold: p.lowStockThreshold != null ? String(p.lowStockThreshold) : '',
         costPrice: p.costPrice != null ? String(p.costPrice) : '',
         cashPrice: p.cashPrice != null ? String(p.cashPrice) : '',
+        expirationDate: p.expirationDate ?? '',
+      });
+
+      const [stock, lastSaleDate, pctStr] = await Promise.all([
+        calculateStock(Number(id)),
+        getLastSaleDate(Number(id)),
+        getConfig(CONFIG_KEYS.stagnantDiscountPercent),
+      ]);
+      setDiscountPct(Number(pctStr ?? 15));
+      setStagnantInfo({
+        stagnant: isStagnant({ stock, lastSaleDate }),
+        nearExpiration: isNearExpiration({ expirationDate: p.expirationDate }),
       });
     })();
   }, [id, isNew, reset]);
@@ -78,6 +98,7 @@ export default function ProductFormScreen() {
   const cashNum = Number(cashStr) || 0;
   const transferNum = cashNum > 0 ? calculateTransferPrice(cashNum) : 0;
   const suggested = costNum > 0 ? Math.round(costNum * 1.3 * 100) / 100 : 0;
+  const suggestedRebaja = cashNum > 0 ? Math.round(cashNum * (1 - discountPct / 100)) : 0;
 
   const onSubmit = handleSubmit(async (values) => {
     const cash = Number(values.cashPrice);
@@ -89,6 +110,7 @@ export default function ProductFormScreen() {
       costPrice: Number(values.costPrice),
       cashPrice: cash,
       transferPrice: calculateTransferPrice(cash),
+      expirationDate: values.expirationDate?.trim() || null,
     };
     if (isNew) await createProduct(data);
     else await updateProduct(Number(id), data);
@@ -190,6 +212,21 @@ export default function ProductFormScreen() {
         )}
       />
 
+      <Controller
+        control={control}
+        name="expirationDate"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <Input
+            label="Fecha de vencimiento (opcional)"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder="YYYY-MM-DD"
+            error={errors.expirationDate?.message}
+          />
+        )}
+      />
+
       {suggested > 0 ? (
         <View className="flex-row items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
           <Text variant="caption" className="flex-1 text-blue-700">
@@ -200,6 +237,26 @@ export default function ProductFormScreen() {
             onPress={() => setValue('cashPrice', String(suggested))}>
             <Text variant="label" className="text-blue-600">
               Usar sugerido
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {!isNew && stagnantInfo && (stagnantInfo.stagnant || stagnantInfo.nearExpiration) && cashNum > 0 ? (
+        <View className="flex-row items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
+          <Text variant="caption" className="flex-1 text-amber-700">
+            {stagnantInfo.stagnant && stagnantInfo.nearExpiration
+              ? 'Producto estancado y próximo a vencer.'
+              : stagnantInfo.stagnant
+                ? 'Producto estancado (sin ventas en 7 días).'
+                : 'Producto próximo a vencer.'}{' '}
+            Sugerencia: ${suggestedRebaja} (−{discountPct}%)
+          </Text>
+          <Pressable
+            hitSlop={8}
+            onPress={() => setValue('cashPrice', String(suggestedRebaja))}>
+            <Text variant="label" className="text-amber-700">
+              Sugerir rebaja
             </Text>
           </Pressable>
         </View>
