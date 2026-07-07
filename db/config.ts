@@ -8,6 +8,10 @@ export const CONFIG_KEYS = {
   cashDiscountPercent: 'descuento_efectivo_pct',
   generalStockThreshold: 'umbral_stock_general',
   stagnantDiscountPercent: 'descuento_estancado_pct',
+  // Flag one-shot: '1' cuando ya se programó el recordatorio semanal (T-17).
+  weeklyReminderScheduled: 'recordatorio_semanal_programado',
+  // Fecha 'yyyy-MM-dd' del último respaldo exportado (T-21).
+  lastBackup: 'ultimo_respaldo',
 } as const;
 
 export const CONFIG_DEFAULTS: Record<string, string> = {
