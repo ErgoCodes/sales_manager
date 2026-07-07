@@ -6,11 +6,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { getTypeLabel } from '@/constants/expenses';
-import { Colors, Semantic, Shadows } from '@/constants/theme';
+import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
 import { listExpenses, sumExpenses } from '@/db/expenses';
 import { listMovements, sumLossOutflowsValue } from '@/db/movements';
+import { formatCurrency } from '@/lib/format';
 
 const OUTFLOW_FILTER = ['merma', 'retiro_owner', 'ajuste'];
 
@@ -30,10 +32,6 @@ interface LedgerRow {
   typeValue: string;
   amount: number;
   detail: string;
-}
-
-function formatCurrency(value: number): string {
-  return `$${value.toLocaleString('es-CU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function ExpensesScreen() {
@@ -99,32 +97,12 @@ export default function ExpensesScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={{ gap: 14, marginBottom: 4 }}>
-            <View
-              style={{
-                backgroundColor: '#0F766E',
-                borderRadius: 20,
-                padding: 18,
-                borderCurve: 'continuous',
-                boxShadow: Shadows.hero,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  position: 'absolute',
-                  right: -30,
-                  top: -30,
-                  width: 120,
-                  height: 120,
-                  borderRadius: 60,
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                }}
-              />
+            <HeroCard padding={18}>
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: FontSize.xs,
                   fontWeight: '700',
-                  color: 'rgba(255,255,255,0.75)',
+                  color: Overlay.text,
                   letterSpacing: 1,
                   textTransform: 'uppercase',
                 }}
@@ -134,9 +112,9 @@ export default function ExpensesScreen() {
               <Text
                 selectable
                 style={{
-                  fontSize: 32,
+                  fontSize: FontSize['3xl'],
                   fontWeight: '800',
-                  color: '#FFFFFF',
+                  color: Colors.light.surface,
                   letterSpacing: -0.8,
                   marginTop: 6,
                   fontVariant: ['tabular-nums'],
@@ -144,10 +122,10 @@ export default function ExpensesScreen() {
               >
                 {formatCurrency(monthTotal)}
               </Text>
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+              <Text style={{ fontSize: FontSize.sm, color: Overlay.text, marginTop: 4 }}>
                 Gastos + mermas y retiros valorados
               </Text>
-            </View>
+            </HeroCard>
 
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <ActionButton
@@ -178,8 +156,8 @@ export default function ExpensesScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 18,
+                backgroundColor: Colors.light.surface,
+                borderRadius: Radius.lg,
                 padding: 14,
                 gap: 12,
                 borderCurve: 'continuous',
@@ -187,17 +165,17 @@ export default function ExpensesScreen() {
               }}
             >
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A' }}>{item.title}</Text>
+                <Text style={{ fontSize: FontSize.lg, fontWeight: '700', color: Colors.light.text }}>{item.title}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <Badge label={getTypeLabel(item.typeValue)} tone={TONE_BY_TYPE[item.typeValue] ?? 'neutral'} />
-                  <Text style={{ fontSize: 12, color: '#94A3B8' }}>{item.date}</Text>
+                  <Text style={{ fontSize: FontSize.sm, color: Colors.light.tabIconDefault }}>{item.date}</Text>
                 </View>
               </View>
               <Text
                 style={{
-                  fontSize: 16,
+                  fontSize: FontSize.lg,
                   fontWeight: '800',
-                  color: '#0F172A',
+                  color: Colors.light.text,
                   letterSpacing: -0.4,
                   fontVariant: ['tabular-nums'],
                 }}
@@ -229,8 +207,8 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
+        backgroundColor: Colors.light.surface,
+        borderRadius: Radius.lg,
         paddingVertical: 14,
         borderCurve: 'continuous',
         boxShadow: Shadows.sm,
@@ -250,7 +228,7 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
       >
         <IconSymbol name={icon} size={17} color={accent} />
       </View>
-      <Text style={{ fontSize: 14, fontWeight: '700', color: '#334155' }}>{label}</Text>
+      <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: Semantic.textDark }}>{label}</Text>
     </Pressable>
   );
 }
