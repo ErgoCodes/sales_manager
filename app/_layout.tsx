@@ -1,13 +1,16 @@
 import '../global.css';
 
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import 'react-native-reanimated';
+import { Uniwind } from 'uniwind';
 
 import { db } from '@/db/client';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import migrations from '../drizzle/migrations';
 
 export const unstable_settings = {
@@ -16,6 +19,13 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
+  const scheme = useColorScheme();
+
+  // Keep uniwind's className theme following the device (syncs with the
+  // Appearance API, so the inline useAppColors() layer stays in agreement).
+  useEffect(() => {
+    Uniwind.setTheme('system');
+  }, []);
 
   if (error) {
     return (
@@ -36,7 +46,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={DefaultTheme}>
+    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
