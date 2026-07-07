@@ -17,6 +17,7 @@ import {
   type SelectedProduct,
 } from '@/components/ui/product-picker';
 import { Text } from '@/components/ui/text';
+import { Colors } from '@/constants/theme';
 import { registerSalesSession, verifySessionStock } from '@/db/sales';
 import { useCartStore } from '@/store';
 
@@ -200,7 +201,7 @@ export default function NewSessionScreen() {
                 keyboardType="numeric"
                 placeholder="1"
                 selectTextOnFocus
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={Colors.light.tabIconDefault}
               />
             </View>
 

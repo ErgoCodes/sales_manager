@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, Text, View, type PressableProps } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors, Semantic } from '@/constants/theme';
 
 type Variant = 'default' | 'soft' | 'outline' | 'ghost' | 'destructive';
 type Size = 'sm' | 'md' | 'lg';
@@ -36,11 +37,11 @@ const sizeStyles: Record<Size, { container: string; label: string; iconSize: num
 };
 
 const iconColors: Record<Variant, string> = {
-  default: '#FFFFFF',
-  soft: '#0F766E',
-  outline: '#0F766E',
-  ghost: '#334155',
-  destructive: '#FFFFFF',
+  default: Colors.light.surface,
+  soft: Colors.light.tint,
+  outline: Colors.light.tint,
+  ghost: Semantic.textDark,
+  destructive: Colors.light.surface,
 };
 
 export function Button({

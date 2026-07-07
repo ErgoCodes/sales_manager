@@ -15,7 +15,7 @@ interface BadgeProps extends ViewProps {
 const toneColors: Record<BadgeTone, { bg: string; fg: string }> = {
   success: { bg: Semantic.cashSoft, fg: Semantic.cash },
   info: { bg: Semantic.transferSoft, fg: Semantic.transfer },
-  warning: { bg: Semantic.warningSoft, fg: '#92400E' },
+  warning: { bg: Semantic.warningSoft, fg: Semantic.warningDark },
   danger: { bg: Semantic.dangerSoft, fg: Semantic.danger },
   neutral: { bg: Semantic.neutralSoft, fg: Semantic.neutral },
   cost: { bg: Semantic.costSoft, fg: Semantic.cost },
