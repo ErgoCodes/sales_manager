@@ -82,7 +82,7 @@ export default function ReportsScreen() {
         title="Semanal y mensual"
         subtitle="Totales por período para compartir"
         delay={60}
-        disabled
+        onPress={() => router.push('/reports/period')}
       />
       <ReportCard
         icon="sparkles"
