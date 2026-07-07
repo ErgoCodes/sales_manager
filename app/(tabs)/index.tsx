@@ -7,7 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatCard } from '@/components/ui/stat-card';
-import { Colors, Semantic, Shadows, Radius, FontSize, Overlay, Spacing } from '@/constants/theme';
+import { Colors, Semantic, Shadows, Radius, FontSize, Overlay } from '@/constants/theme';
 import { countLowStock, getDailySummary, type DailySummary } from '@/db/queries';
 import { formatCurrency } from '@/lib/format';
 
