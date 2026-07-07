@@ -259,7 +259,11 @@ export default function ProductFormScreen() {
         </View>
       ) : null}
 
-      {!isNew && stagnantInfo && (stagnantInfo.stagnant || stagnantInfo.nearExpiration) && cashNum > 0 ? (
+      {!isNew &&
+      !rebajaApplied &&
+      stagnantInfo &&
+      (stagnantInfo.stagnant || stagnantInfo.nearExpiration) &&
+      cashNum > 0 ? (
         <View className="flex-row items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
           <Text variant="caption" className="flex-1 text-amber-700">
             {stagnantInfo.stagnant && stagnantInfo.nearExpiration
