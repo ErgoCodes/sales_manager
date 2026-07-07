@@ -1,7 +1,8 @@
 import { Text, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Shadows } from '@/constants/theme';
+import { Shadows } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 interface StatCardProps {
   label: string;
@@ -12,12 +13,14 @@ interface StatCardProps {
   caption?: string;
 }
 
-export function StatCard({ label, value, accent = Colors.light.text, icon, iconBg, caption }: StatCardProps) {
+export function StatCard({ label, value, accent, icon, iconBg, caption }: StatCardProps) {
+  const c = useAppColors();
+  const resolvedAccent = accent ?? c.text;
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: Colors.light.surface,
+        backgroundColor: c.surface,
         borderRadius: 20,
         padding: 14,
         gap: 10,
@@ -26,7 +29,7 @@ export function StatCard({ label, value, accent = Colors.light.text, icon, iconB
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.light.textMuted, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: c.textMuted, letterSpacing: 0.3, textTransform: 'uppercase' }}>
           {label}
         </Text>
         {icon ? (
@@ -35,12 +38,12 @@ export function StatCard({ label, value, accent = Colors.light.text, icon, iconB
               width: 30,
               height: 30,
               borderRadius: 10,
-              backgroundColor: iconBg ?? `${accent}15`,
+              backgroundColor: iconBg ?? `${resolvedAccent}15`,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <IconSymbol name={icon} size={18} color={accent} />
+            <IconSymbol name={icon} size={18} color={resolvedAccent} />
           </View>
         ) : null}
       </View>
@@ -49,7 +52,7 @@ export function StatCard({ label, value, accent = Colors.light.text, icon, iconB
         style={{
           fontSize: 22,
           fontWeight: '700',
-          color: accent,
+          color: resolvedAccent,
           letterSpacing: -0.5,
           fontVariant: ['tabular-nums'],
         }}
@@ -57,7 +60,7 @@ export function StatCard({ label, value, accent = Colors.light.text, icon, iconB
         {value}
       </Text>
       {caption ? (
-        <Text style={{ fontSize: 11, color: Colors.light.tabIconDefault }}>{caption}</Text>
+        <Text style={{ fontSize: 11, color: c.tabIconDefault }}>{caption}</Text>
       ) : null}
     </View>
   );

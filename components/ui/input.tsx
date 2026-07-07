@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { TextInput, View, Text, type TextInputProps } from 'react-native';
 
-import { Colors, Semantic } from '@/constants/theme';
+import { Semantic } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -10,15 +11,16 @@ interface InputProps extends TextInputProps {
 }
 
 export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: InputProps) {
+  const c = useAppColors();
   const [focused, setFocused] = useState(false);
-  const borderColor = error ? Semantic.danger : focused ? Colors.light.tint : Colors.light.border;
+  const borderColor = error ? Semantic.danger : focused ? c.tint : c.border;
   return (
     <View style={{ gap: 6 }}>
       {label ? (
-        <Text style={{ fontSize: 13, fontWeight: '600', color: Semantic.textDark, letterSpacing: 0.1 }}>{label}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: c.text, letterSpacing: 0.1 }}>{label}</Text>
       ) : null}
       <TextInput
-        placeholderTextColor={Colors.light.tabIconDefault}
+        placeholderTextColor={c.tabIconDefault}
         onFocus={(e) => {
           setFocused(true);
           onFocus?.(e);
@@ -35,8 +37,8 @@ export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: 
             paddingHorizontal: 14,
             paddingVertical: 12,
             fontSize: 15,
-            color: Colors.light.text,
-            backgroundColor: Colors.light.surface,
+            color: c.text,
+            backgroundColor: c.surface,
             borderCurve: 'continuous',
           },
           style as object,
@@ -46,7 +48,7 @@ export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: 
       {error ? (
         <Text style={{ fontSize: 12, color: Semantic.danger }}>{error}</Text>
       ) : hint ? (
-        <Text style={{ fontSize: 12, color: Colors.light.tabIconDefault }}>{hint}</Text>
+        <Text style={{ fontSize: 12, color: c.tabIconDefault }}>{hint}</Text>
       ) : null}
     </View>
   );

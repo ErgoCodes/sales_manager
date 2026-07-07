@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Semantic, Radius } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 interface EmptyStateProps {
   icon: Parameters<typeof IconSymbol>[0]['name'];
@@ -12,6 +13,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ icon, title, description, action, badge }: EmptyStateProps) {
+  const c = useAppColors();
   return (
     <View
       style={{
@@ -27,14 +29,14 @@ export function EmptyState({ icon, title, description, action, badge }: EmptySta
           width: 72,
           height: 72,
           borderRadius: 24,
-          backgroundColor: Colors.light.surfaceMuted,
+          backgroundColor: c.surfaceMuted,
           alignItems: 'center',
           justifyContent: 'center',
           borderCurve: 'continuous',
           marginBottom: 4,
         }}
       >
-        <IconSymbol name={icon} size={36} color={Colors.light.tabIconDefault} />
+        <IconSymbol name={icon} size={36} color={c.tabIconDefault} />
       </View>
       {badge ? (
         <View
@@ -50,9 +52,9 @@ export function EmptyState({ icon, title, description, action, badge }: EmptySta
           </Text>
         </View>
       ) : null}
-      <Text style={{ fontSize: 18, fontWeight: '700', color: Colors.light.text, textAlign: 'center' }}>{title}</Text>
+      <Text style={{ fontSize: 18, fontWeight: '700', color: c.text, textAlign: 'center' }}>{title}</Text>
       {description ? (
-        <Text style={{ fontSize: 14, color: Colors.light.textMuted, textAlign: 'center', maxWidth: 280, lineHeight: 20 }}>
+        <Text style={{ fontSize: 14, color: c.textMuted, textAlign: 'center', maxWidth: 280, lineHeight: 20 }}>
           {description}
         </Text>
       ) : null}

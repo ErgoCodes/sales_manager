@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 interface HeaderIconButtonProps {
   name: Parameters<typeof IconSymbol>[0]['name'];
@@ -13,6 +13,7 @@ interface HeaderIconButtonProps {
 }
 
 function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButtonProps) {
+  const c = useAppColors();
   return (
     <Pressable
       hitSlop={10}
@@ -24,32 +25,32 @@ function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButto
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: pressed ? Colors.light.border : Colors.light.surfaceMuted,
+        backgroundColor: pressed ? c.border : c.surfaceMuted,
         borderCurve: 'continuous',
       })}
     >
-      <IconSymbol name={name} size={20} color={Colors.light.tint} />
+      <IconSymbol name={name} size={20} color={c.tint} />
     </Pressable>
   );
 }
 
 export default function TabLayout() {
-  const tint = Colors.light.tint;
+  const c = useAppColors();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: tint,
-        tabBarInactiveTintColor: Colors.light.tabIconDefault,
+        tabBarActiveTintColor: c.tint,
+        tabBarInactiveTintColor: c.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
-        headerStyle: { backgroundColor: Colors.light.surface },
+        headerStyle: { backgroundColor: c.surface },
         headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: Colors.light.text },
+        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: c.text },
         headerTitleAlign: 'left',
         tabBarStyle: {
-          borderTopColor: Colors.light.border,
-          backgroundColor: Colors.light.surface,
+          borderTopColor: c.border,
+          backgroundColor: c.surface,
           paddingTop: 6,
           height: 64,
         },

@@ -12,6 +12,7 @@ import { getProductThreshold } from '@/constants/catalog';
 import { CONFIG_KEYS, getConfig } from '@/db/config';
 import { listProducts, type ProductWithStock } from '@/db/products';
 import { getLastSaleDates } from '@/db/queries';
+import { useAppColors } from '@/hooks/use-app-colors';
 import { formatCurrency } from '@/lib/format';
 import { isNearExpiration, isStagnant } from '@/lib/product-status';
 
@@ -31,7 +32,9 @@ interface FilterChipProps {
   accent?: string;
 }
 
-function FilterChip({ label, active, onPress, count, accent = Colors.light.tint }: FilterChipProps) {
+function FilterChip({ label, active, onPress, count, accent }: FilterChipProps) {
+  const c = useAppColors();
+  const chipAccent = accent ?? c.tint;
   return (
     <Pressable
       onPress={onPress}
@@ -42,13 +45,13 @@ function FilterChip({ label, active, onPress, count, accent = Colors.light.tint 
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: Radius.full,
-        backgroundColor: active ? accent : Colors.light.surface,
+        backgroundColor: active ? chipAccent : c.surface,
         borderWidth: 1,
-        borderColor: active ? accent : Colors.light.border,
+        borderColor: active ? chipAccent : c.border,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Text style={{ fontSize: FontSize.md, fontWeight: '600', color: active ? Colors.light.surface : Semantic.textDark }}>
+      <Text style={{ fontSize: FontSize.md, fontWeight: '600', color: active ? Colors.light.surface : c.text }}>
         {label}
       </Text>
       {count !== undefined ? (
@@ -57,7 +60,7 @@ function FilterChip({ label, active, onPress, count, accent = Colors.light.tint 
             paddingHorizontal: 6,
             paddingVertical: 1,
             borderRadius: Radius.full,
-            backgroundColor: active ? Overlay.strong : Colors.light.surfaceMuted,
+            backgroundColor: active ? Overlay.strong : c.surfaceMuted,
             minWidth: 20,
             alignItems: 'center',
           }}
@@ -66,7 +69,7 @@ function FilterChip({ label, active, onPress, count, accent = Colors.light.tint 
             style={{
               fontSize: FontSize.xs,
               fontWeight: '700',
-              color: active ? Colors.light.surface : Colors.light.textMuted,
+              color: active ? Colors.light.surface : c.textMuted,
               fontVariant: ['tabular-nums'],
             }}
           >
@@ -79,6 +82,7 @@ function FilterChip({ label, active, onPress, count, accent = Colors.light.tint 
 }
 
 export default function InventoryScreen() {
+  const c = useAppColors();
   const [products, setProducts] = useState<ProductWithValue[]>([]);
   const [totalInventory, setTotalInventory] = useState(0);
   const [filter, setFilter] = useState<'all' | 'low' | 'stagnant'>('all');
@@ -127,7 +131,7 @@ export default function InventoryScreen() {
         : products;
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.light.background }}>
+    <View style={{ flex: 1, backgroundColor: c.background }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, flexDirection: 'row', gap: 8 }}>
         <FilterChip
           label="Todos"
@@ -214,7 +218,7 @@ export default function InventoryScreen() {
               <View
                 style={{
                   flexDirection: 'row',
-                  backgroundColor: item.isLow ? Semantic.lowStockBg : Colors.light.surface,
+                  backgroundColor: item.isLow ? c.lowStockBg : c.surface,
                   borderRadius: Radius.lg,
                   padding: 14,
                   gap: 12,
@@ -226,22 +230,22 @@ export default function InventoryScreen() {
               >
               <View style={{ flex: 1, gap: 6 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <Text style={{ fontSize: FontSize.lg, fontWeight: '700', color: Colors.light.text }}>{item.name}</Text>
+                  <Text style={{ fontSize: FontSize.lg, fontWeight: '700', color: c.text }}>{item.name}</Text>
                   {item.isLow ? <Badge label="Stock bajo" tone="danger" dot /> : null}
                   {item.isStagnant ? <Badge label="Estancado" tone="warning" dot /> : null}
                   {item.isNearExpiration ? <Badge label="Por vencer" tone="warning" dot /> : null}
                 </View>
                 {item.category ? <Badge label={item.category} tone="neutral" /> : null}
                 <View style={{ flexDirection: 'row', gap: 14, marginTop: 4 }}>
-                  <Text style={{ fontSize: FontSize.sm, color: Colors.light.textMuted }}>
+                  <Text style={{ fontSize: FontSize.sm, color: c.textMuted }}>
                     Costo prom:{' '}
-                    <Text style={{ fontWeight: '600', color: Semantic.textDark, fontVariant: ['tabular-nums'] }}>
+                    <Text style={{ fontWeight: '600', color: c.text, fontVariant: ['tabular-nums'] }}>
                       {formatCurrency(item.averageCost ?? 0)}
                     </Text>
                   </Text>
-                  <Text style={{ fontSize: FontSize.sm, color: Colors.light.textMuted }}>
+                  <Text style={{ fontSize: FontSize.sm, color: c.textMuted }}>
                     Valor:{' '}
-                    <Text style={{ fontWeight: '600', color: Semantic.textDark, fontVariant: ['tabular-nums'] }}>
+                    <Text style={{ fontWeight: '600', color: c.text, fontVariant: ['tabular-nums'] }}>
                       {formatCurrency(item.value)}
                     </Text>
                   </Text>
@@ -252,7 +256,7 @@ export default function InventoryScreen() {
                   style={{
                     fontSize: FontSize['2xl'],
                     fontWeight: '800',
-                    color: item.isLow ? Semantic.danger : Colors.light.text,
+                    color: item.isLow ? Semantic.danger : c.text,
                     letterSpacing: -0.5,
                     fontVariant: ['tabular-nums'],
                   }}
@@ -262,7 +266,7 @@ export default function InventoryScreen() {
                 <Text
                   style={{
                     fontSize: FontSize.xs,
-                    color: Colors.light.tabIconDefault,
+                    color: c.tabIconDefault,
                     fontWeight: '600',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,

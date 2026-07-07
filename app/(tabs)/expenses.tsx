@@ -12,6 +12,7 @@ import { getTypeLabel } from '@/constants/expenses';
 import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
 import { listExpenses, sumExpenses } from '@/db/expenses';
 import { listMovements, sumLossOutflowsValue } from '@/db/movements';
+import { useAppColors } from '@/hooks/use-app-colors';
 import { formatCurrency } from '@/lib/format';
 
 const OUTFLOW_FILTER = ['merma', 'retiro_owner', 'ajuste'];
@@ -35,6 +36,7 @@ interface LedgerRow {
 }
 
 export default function ExpensesScreen() {
+  const c = useAppColors();
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [monthTotal, setMonthTotal] = useState(0);
 
@@ -89,7 +91,7 @@ export default function ExpensesScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.light.background }}>
+    <View style={{ flex: 1, backgroundColor: c.background }}>
       <FlatList
         data={rows}
         keyExtractor={(r) => r.key}
@@ -156,7 +158,7 @@ export default function ExpensesScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: Colors.light.surface,
+                backgroundColor: c.surface,
                 borderRadius: Radius.lg,
                 padding: 14,
                 gap: 12,
@@ -165,17 +167,17 @@ export default function ExpensesScreen() {
               }}
             >
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={{ fontSize: FontSize.lg, fontWeight: '700', color: Colors.light.text }}>{item.title}</Text>
+                <Text style={{ fontSize: FontSize.lg, fontWeight: '700', color: c.text }}>{item.title}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <Badge label={getTypeLabel(item.typeValue)} tone={TONE_BY_TYPE[item.typeValue] ?? 'neutral'} />
-                  <Text style={{ fontSize: FontSize.sm, color: Colors.light.tabIconDefault }}>{item.date}</Text>
+                  <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}>{item.date}</Text>
                 </View>
               </View>
               <Text
                 style={{
                   fontSize: FontSize.lg,
                   fontWeight: '800',
-                  color: Colors.light.text,
+                  color: c.text,
                   letterSpacing: -0.4,
                   fontVariant: ['tabular-nums'],
                 }}
@@ -198,6 +200,7 @@ interface ActionButtonProps {
 }
 
 function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
+  const c = useAppColors();
   return (
     <Pressable
       onPress={onPress}
@@ -207,7 +210,7 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        backgroundColor: Colors.light.surface,
+        backgroundColor: c.surface,
         borderRadius: Radius.lg,
         paddingVertical: 14,
         borderCurve: 'continuous',
@@ -228,7 +231,7 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
       >
         <IconSymbol name={icon} size={17} color={accent} />
       </View>
-      <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: Semantic.textDark }}>{label}</Text>
+      <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: c.text }}>{label}</Text>
     </Pressable>
   );
 }

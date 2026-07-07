@@ -10,6 +10,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatCard } from '@/components/ui/stat-card';
 import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
 import { countLowStock, getDailySummary, type DailySummary } from '@/db/queries';
+import { useAppColors } from '@/hooks/use-app-colors';
 import { formatCurrency } from '@/lib/format';
 
 const EMPTY_SUMMARY: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
@@ -25,12 +26,13 @@ interface QuickActionProps {
 }
 
 function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
+  const c = useAppColors();
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        backgroundColor: Colors.light.surface,
+        backgroundColor: c.surface,
         borderRadius: Radius.xl,
         paddingVertical: 14,
         alignItems: 'center',
@@ -53,7 +55,7 @@ function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
       >
         <IconSymbol name={icon} size={20} color={accent} />
       </View>
-      <Text style={{ fontSize: FontSize.sm, fontWeight: '600', color: Colors.light.text, textAlign: 'center' }}>
+      <Text style={{ fontSize: FontSize.sm, fontWeight: '600', color: c.text, textAlign: 'center' }}>
         {label}
       </Text>
     </Pressable>
@@ -61,6 +63,7 @@ function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
 }
 
 export default function HomeScreen() {
+  const c = useAppColors();
   const [summary, setSummary] = useState<DailySummary>(EMPTY_SUMMARY);
   const [lowStockCount, setLowStockCount] = useState(0);
 
@@ -86,17 +89,17 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: Colors.light.background }}
+      style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16 }}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
       {/* Greeting */}
       <Animated.View entering={FadeInDown.duration(380).springify()}>
-        <Text style={{ fontSize: FontSize.md, color: Colors.light.tabIconDefault, fontWeight: '500', letterSpacing: 0.3 }}>
+        <Text style={{ fontSize: FontSize.md, color: c.tabIconDefault, fontWeight: '500', letterSpacing: 0.3 }}>
           {todayCap}
         </Text>
-        <Text style={{ fontSize: FontSize['2xl'], fontWeight: '700', color: Colors.light.text, marginTop: 2 }}>
+        <Text style={{ fontSize: FontSize['2xl'], fontWeight: '700', color: c.text, marginTop: 2 }}>
           Resumen del día
         </Text>
       </Animated.View>
@@ -202,7 +205,7 @@ export default function HomeScreen() {
           style={{
             fontSize: FontSize.xs,
             fontWeight: '700',
-            color: Colors.light.textMuted,
+            color: c.textMuted,
             letterSpacing: 1,
             textTransform: 'uppercase',
             marginLeft: 4,
@@ -279,7 +282,7 @@ export default function HomeScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 10,
-              backgroundColor: Colors.light.surface,
+              backgroundColor: c.surface,
               borderRadius: Radius.xl,
               padding: 14,
               borderCurve: 'continuous',
@@ -298,7 +301,7 @@ export default function HomeScreen() {
             >
               <IconSymbol name="checkmark.circle.fill" size={20} color={Semantic.cash} />
             </View>
-            <Text style={{ fontSize: FontSize.md, color: Semantic.neutral, fontWeight: '500', flex: 1 }}>
+            <Text style={{ fontSize: FontSize.md, color: c.textMuted, fontWeight: '500', flex: 1 }}>
               Inventario en orden — sin alertas
             </Text>
           </View>

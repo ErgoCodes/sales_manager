@@ -10,13 +10,14 @@ import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatCard } from '@/components/ui/stat-card';
 import { Colors, Semantic, Shadows, Radius, FontSize, Overlay } from '@/constants/theme';
-import { formatCurrency } from '@/lib/format';
 import {
   getDailyBreakdown,
   getDailySummary,
   type DailySummary,
   type ProductDaySummary,
 } from '@/db/queries';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { formatCurrency } from '@/lib/format';
 
 
 
@@ -36,13 +37,14 @@ interface DateBarProps {
 }
 
 function DateBar({ date, onChange }: DateBarProps) {
+  const c = useAppColors();
   const isToday = date === format(new Date(), 'yyyy-MM-dd');
   return (
     <View
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.light.surface,
+        backgroundColor: c.surface,
         borderRadius: Radius.lg,
         padding: 6,
         gap: 4,
@@ -59,14 +61,14 @@ function DateBar({ date, onChange }: DateBarProps) {
           borderRadius: Radius.md,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: pressed ? Colors.light.surfaceMuted : 'transparent',
+          backgroundColor: pressed ? c.surfaceMuted : 'transparent',
         })}
       >
-        <IconSymbol name="chevron.right" size={18} color={Semantic.neutral} style={{ transform: [{ rotate: '180deg' }] }} />
+        <IconSymbol name="chevron.right" size={18} color={c.textMuted} style={{ transform: [{ rotate: '180deg' }] }} />
       </Pressable>
       <View style={{ flex: 1, alignItems: 'center', gap: 1 }}>
-        <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: Colors.light.text }}>{formatDateHuman(date)}</Text>
-        <Text style={{ fontSize: FontSize.xs, color: Colors.light.tabIconDefault, fontVariant: ['tabular-nums'] }}>
+        <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: c.text }}>{formatDateHuman(date)}</Text>
+        <Text style={{ fontSize: FontSize.xs, color: c.tabIconDefault, fontVariant: ['tabular-nums'] }}>
           {date} {isToday ? '· Hoy' : ''}
         </Text>
       </View>
@@ -79,16 +81,17 @@ function DateBar({ date, onChange }: DateBarProps) {
           borderRadius: 12,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: pressed ? Colors.light.surfaceMuted : 'transparent',
+          backgroundColor: pressed ? c.surfaceMuted : 'transparent',
         })}
       >
-        <IconSymbol name="chevron.right" size={18} color={Semantic.neutral} />
+        <IconSymbol name="chevron.right" size={18} color={c.textMuted} />
       </Pressable>
     </View>
   );
 }
 
 export default function SalesScreen() {
+  const c = useAppColors();
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [summary, setSummary] = useState<DailySummary>({
     cash: 0,
@@ -120,7 +123,7 @@ export default function SalesScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.light.background }}>
+    <View style={{ flex: 1, backgroundColor: c.background }}>
       <FlatList
         data={breakdown}
         keyExtractor={(item) => String(item.productId)}
@@ -211,14 +214,14 @@ export default function SalesScreen() {
                   style={{
                     fontSize: 11,
                     fontWeight: '700',
-                    color: Colors.light.textMuted,
+                    color: c.textMuted,
                     letterSpacing: 1,
                     textTransform: 'uppercase',
                   }}
                 >
                   Productos vendidos
                 </Text>
-                <Text style={{ fontSize: FontSize.sm, color: Colors.light.tabIconDefault, fontVariant: ['tabular-nums'] }}>
+                <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault, fontVariant: ['tabular-nums'] }}>
                   {breakdown.length} · {totalUnits} unidades
                 </Text>
               </Animated.View>
@@ -239,7 +242,7 @@ export default function SalesScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: Colors.light.surface,
+                backgroundColor: c.surface,
                 borderRadius: Radius.lg,
                 padding: 14,
                 gap: 12,
@@ -252,18 +255,18 @@ export default function SalesScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 14,
-                  backgroundColor: Colors.light.surfaceMuted,
+                  backgroundColor: c.surfaceMuted,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <IconSymbol name="bag.fill" size={18} color={Colors.light.tint} />
+                <IconSymbol name="bag.fill" size={18} color={c.tint} />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ fontSize: FontSize.base, fontWeight: '600', color: Colors.light.text }} numberOfLines={1}>
+                <Text style={{ fontSize: FontSize.base, fontWeight: '600', color: c.text }} numberOfLines={1}>
                   {item.productName}
                 </Text>
-                <Text style={{ fontSize: FontSize.sm, color: Colors.light.tabIconDefault, fontVariant: ['tabular-nums'] }}>
+                <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault, fontVariant: ['tabular-nums'] }}>
                   {item.totalQuantity} vendidos
                 </Text>
               </View>
@@ -272,7 +275,7 @@ export default function SalesScreen() {
                   style={{
                     fontSize: 15,
                     fontWeight: '700',
-                    color: Colors.light.text,
+                    color: c.text,
                     fontVariant: ['tabular-nums'],
                   }}
                 >
