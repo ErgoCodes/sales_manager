@@ -349,15 +349,15 @@
 
 > Diseñado para mostrarse en pantalla al jefe.
 
-- [ ] Pantalla reporte diario (`app/reportes/diario.tsx`) con selector de fecha
-- [ ] Tabla de ventas del día: nombre, cantidad, método de pago, importe, `costo_al_vender`, utilidad real
-- [ ] Resumen al tope: total efectivo / total transferencia / total general / utilidad total
-- [ ] Sección de inventario actual: productos con stock y alertas de stock bajo
-- [ ] Diseño limpio y legible en pantalla sin exportar
+- [x] Pantalla reporte diario (`app/reports/daily.tsx`) con selector de fecha (`DateBar` compartido)
+- [x] Tabla de ventas del día: fila por producto expandible al detalle por venta (método, importe, `costo_al_vender`, utilidad)
+- [x] Resumen al tope: total efectivo / total transferencia / total general / utilidad total (hero + StatCards)
+- [x] Sección de inventario actual: valor total + alertas de stock bajo (reutiliza receta de umbrales del tab Inventario)
+- [x] Diseño limpio y legible en pantalla sin exportar; tab Reportes convertido en hub de tarjetas
 
 **Depende de:** T-11, T-13
 
-**Acepta si:** totales correctos, estado de inventario al momento de ver el reporte, legible directamente en el móvil.
+**Acepta si:** totales correctos, estado de inventario al momento de ver el reporte, legible directamente en el móvil. *(tsc + lint OK; runtime pendiente Expo Go)*
 
 ---
 
