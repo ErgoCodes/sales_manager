@@ -89,7 +89,7 @@ export default function ReportsScreen() {
         title="Rankings"
         subtitle="Más vendidos y más rentables"
         delay={120}
-        disabled
+        onPress={() => router.push('/reports/rankings')}
       />
       <ReportCard
         icon="creditcard.fill"
