@@ -5,12 +5,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Semantic, Shadows } from '@/constants/theme';
+import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
 import { getProductThreshold } from '@/constants/catalog';
 import { CONFIG_KEYS, getConfig } from '@/db/config';
 import { listProducts, type ProductWithStock } from '@/db/products';
 import { getLastSaleDates } from '@/db/queries';
+import { formatCurrency } from '@/lib/format';
 import { isNearExpiration, isStagnant } from '@/lib/product-status';
 
 interface ProductWithValue extends ProductWithStock {
@@ -19,10 +21,6 @@ interface ProductWithValue extends ProductWithStock {
   isLow: boolean;
   isStagnant: boolean;
   isNearExpiration: boolean;
-}
-
-function formatCurrency(value: number): string {
-  return `$${value.toLocaleString('es-CU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 interface FilterChipProps {
@@ -43,14 +41,14 @@ function FilterChip({ label, active, onPress, count, accent = Colors.light.tint 
         gap: 6,
         paddingHorizontal: 14,
         paddingVertical: 8,
-        borderRadius: 999,
-        backgroundColor: active ? accent : '#FFFFFF',
+        borderRadius: Radius.full,
+        backgroundColor: active ? accent : Colors.light.surface,
         borderWidth: 1,
         borderColor: active ? accent : Colors.light.border,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Text style={{ fontSize: 13, fontWeight: '600', color: active ? '#FFFFFF' : '#334155' }}>
+      <Text style={{ fontSize: FontSize.md, fontWeight: '600', color: active ? Colors.light.surface : Semantic.textDark }}>
         {label}
       </Text>
       {count !== undefined ? (
@@ -58,17 +56,17 @@ function FilterChip({ label, active, onPress, count, accent = Colors.light.tint 
           style={{
             paddingHorizontal: 6,
             paddingVertical: 1,
-            borderRadius: 999,
-            backgroundColor: active ? 'rgba(255,255,255,0.25)' : Colors.light.surfaceMuted,
+            borderRadius: Radius.full,
+            backgroundColor: active ? Overlay.strong : Colors.light.surfaceMuted,
             minWidth: 20,
             alignItems: 'center',
           }}
         >
           <Text
             style={{
-              fontSize: 11,
+              fontSize: FontSize.xs,
               fontWeight: '700',
-              color: active ? '#FFFFFF' : '#64748B',
+              color: active ? Colors.light.surface : Colors.light.textMuted,
               fontVariant: ['tabular-nums'],
             }}
           >
@@ -176,33 +174,12 @@ export default function InventoryScreen() {
         }
         ListFooterComponent={
           products.length > 0 ? (
-            <View
-              style={{
-                marginTop: 14,
-                backgroundColor: '#0F766E',
-                borderRadius: 20,
-                padding: 18,
-                borderCurve: 'continuous',
-                boxShadow: Shadows.hero,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  position: 'absolute',
-                  right: -30,
-                  top: -30,
-                  width: 120,
-                  height: 120,
-                  borderRadius: 60,
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                }}
-              />
+            <HeroCard padding={18} style={{ marginTop: 14 }}>
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: FontSize.xs,
                   fontWeight: '700',
-                  color: 'rgba(255,255,255,0.75)',
+                  color: Overlay.text,
                   letterSpacing: 1,
                   textTransform: 'uppercase',
                 }}
@@ -212,9 +189,9 @@ export default function InventoryScreen() {
               <Text
                 selectable
                 style={{
-                  fontSize: 32,
+                  fontSize: FontSize['3xl'],
                   fontWeight: '800',
-                  color: '#FFFFFF',
+                  color: Colors.light.surface,
                   letterSpacing: -0.8,
                   marginTop: 6,
                   fontVariant: ['tabular-nums'],
@@ -222,10 +199,10 @@ export default function InventoryScreen() {
               >
                 {formatCurrency(totalInventory)}
               </Text>
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+              <Text style={{ fontSize: FontSize.sm, color: Overlay.text, marginTop: 4 }}>
                 {products.length} producto{products.length !== 1 ? 's' : ''} en stock
               </Text>
-            </View>
+            </HeroCard>
           ) : null
         }
         renderItem={({ item, index }) => (
@@ -237,8 +214,8 @@ export default function InventoryScreen() {
               <View
                 style={{
                   flexDirection: 'row',
-                  backgroundColor: item.isLow ? '#FFFBFB' : '#FFFFFF',
-                  borderRadius: 18,
+                  backgroundColor: item.isLow ? Semantic.lowStockBg : Colors.light.surface,
+                  borderRadius: Radius.lg,
                   padding: 14,
                   gap: 12,
                   borderCurve: 'continuous',
@@ -249,22 +226,22 @@ export default function InventoryScreen() {
               >
               <View style={{ flex: 1, gap: 6 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A' }}>{item.name}</Text>
+                  <Text style={{ fontSize: FontSize.lg, fontWeight: '700', color: Colors.light.text }}>{item.name}</Text>
                   {item.isLow ? <Badge label="Stock bajo" tone="danger" dot /> : null}
                   {item.isStagnant ? <Badge label="Estancado" tone="warning" dot /> : null}
                   {item.isNearExpiration ? <Badge label="Por vencer" tone="warning" dot /> : null}
                 </View>
                 {item.category ? <Badge label={item.category} tone="neutral" /> : null}
                 <View style={{ flexDirection: 'row', gap: 14, marginTop: 4 }}>
-                  <Text style={{ fontSize: 12, color: '#64748B' }}>
+                  <Text style={{ fontSize: FontSize.sm, color: Colors.light.textMuted }}>
                     Costo prom:{' '}
-                    <Text style={{ fontWeight: '600', color: '#334155', fontVariant: ['tabular-nums'] }}>
+                    <Text style={{ fontWeight: '600', color: Semantic.textDark, fontVariant: ['tabular-nums'] }}>
                       {formatCurrency(item.averageCost ?? 0)}
                     </Text>
                   </Text>
-                  <Text style={{ fontSize: 12, color: '#64748B' }}>
+                  <Text style={{ fontSize: FontSize.sm, color: Colors.light.textMuted }}>
                     Valor:{' '}
-                    <Text style={{ fontWeight: '600', color: '#334155', fontVariant: ['tabular-nums'] }}>
+                    <Text style={{ fontWeight: '600', color: Semantic.textDark, fontVariant: ['tabular-nums'] }}>
                       {formatCurrency(item.value)}
                     </Text>
                   </Text>
@@ -273,9 +250,9 @@ export default function InventoryScreen() {
               <View style={{ alignItems: 'flex-end', justifyContent: 'center', minWidth: 64 }}>
                 <Text
                   style={{
-                    fontSize: 22,
+                    fontSize: FontSize['2xl'],
                     fontWeight: '800',
-                    color: item.isLow ? Semantic.danger : '#0F172A',
+                    color: item.isLow ? Semantic.danger : Colors.light.text,
                     letterSpacing: -0.5,
                     fontVariant: ['tabular-nums'],
                   }}
@@ -284,8 +261,8 @@ export default function InventoryScreen() {
                 </Text>
                 <Text
                   style={{
-                    fontSize: 11,
-                    color: '#94A3B8',
+                    fontSize: FontSize.xs,
+                    color: Colors.light.tabIconDefault,
                     fontWeight: '600',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
@@ -313,7 +290,7 @@ export default function InventoryScreen() {
           right: 20,
           width: 60,
           height: 60,
-          borderRadius: 20,
+          borderRadius: Radius.xl,
           backgroundColor: Colors.light.tint,
           alignItems: 'center',
           justifyContent: 'center',
@@ -323,7 +300,7 @@ export default function InventoryScreen() {
           transform: [{ scale: pressed ? 0.96 : 1 }],
         })}
       >
-        <IconSymbol name="plus" size={28} color="#FFFFFF" />
+        <IconSymbol name="plus" size={28} color={Colors.light.surface} />
       </Pressable>
     </View>
   );
