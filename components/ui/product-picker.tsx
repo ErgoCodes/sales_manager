@@ -67,14 +67,14 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
         error={error}
       />
       {isOpen && options.length > 0 ? (
-        <View className="rounded-lg border border-gray-200 bg-white shadow-md max-h-48">
+        <View className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-md max-h-48">
           <FlatList
             data={options}
             keyExtractor={(p) => String(p.id)}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <Pressable
-                className="px-3 py-2.5 border-b border-gray-100 active:bg-gray-50"
+                className="px-3 py-2.5 border-b border-gray-100 dark:border-slate-800 active:bg-gray-50 dark:active:bg-slate-800"
                 onPress={() => handleSelect(item)}>
                 <Text variant="body">{item.name}</Text>
                 <Text variant="caption">
@@ -87,7 +87,7 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
         </View>
       ) : null}
       {isOpen && options.length === 0 && search.trim() ? (
-        <View className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+        <View className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5">
           <Text variant="caption">No se encontraron productos.</Text>
         </View>
       ) : null}
