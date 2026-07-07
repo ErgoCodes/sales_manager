@@ -50,6 +50,40 @@ export const Semantic = {
   lowStockBg: '#FFFBFB',
 };
 
+/**
+ * Dark-mode overrides for the scheme-dependent semantic tokens.
+ * Accents are brightened for contrast on dark surfaces; the pale "soft"
+ * backgrounds become deep tints; strong text tones flip light.
+ * Keys not present here fall back to the light `Semantic` values.
+ */
+export const SemanticDark: Partial<typeof Semantic> = {
+  cash: '#34D399',
+  transfer: '#818CF8',
+  cost: '#FBBF24',
+  danger: '#F87171',
+  warning: '#FBBF24',
+  neutral: '#94A3B8',
+  cashSoft: '#064E3B',
+  transferSoft: '#312E81',
+  costSoft: '#78350F',
+  dangerSoft: '#7F1D1D',
+  warningSoft: '#78350F',
+  neutralSoft: '#1F2937',
+  textDark: '#CBD5E1',
+  tealSoft: '#134E4A',
+  dangerDark: '#FCA5A5',
+  warningDark: '#FCD34D',
+  lowStockBg: '#2A1618',
+};
+
+export type ColorScheme = 'light' | 'dark';
+
+/** Flattened per-scheme palette: base colors + semantic tokens in one object. */
+export const Palette: Record<ColorScheme, typeof Colors.light & typeof Semantic> = {
+  light: { ...Colors.light, ...Semantic },
+  dark: { ...Colors.dark, ...Semantic, ...SemanticDark },
+};
+
 export const Shadows = {
   sm: '0 1px 2px rgba(15,23,42,0.05)',
   md: '0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.04)',
