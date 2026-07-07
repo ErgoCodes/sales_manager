@@ -278,14 +278,14 @@
 
 > Descuento puntual sin modificar precio base del catálogo.
 
-- [ ] Campo opcional `% descuento` en pantalla de registro de venta
-- [ ] Al introducir porcentaje, precio final se recalcula en pantalla antes de confirmar
-- [ ] Descuento guardado como campo separado en `ventas.descuento_pct`
-- [ ] Precio base del catálogo no se modifica
+- [x] Campo opcional `% descuento` en pantalla de registro de venta (bloque expandible "Descuento" en `app/sales/new-session.tsx`)
+- [x] Al introducir porcentaje, precio final se recalcula en pantalla antes de confirmar
+- [x] Descuento guardado como campo separado en `ventas.descuento_pct`
+- [x] Precio base del catálogo no se modifica
 
 **Depende de:** T-09, T-10
 
-**Acepta si:** descuento no cambia catálogo, queda registrado en historial, precio final correcto.
+**Acepta si:** descuento no cambia catálogo, queda registrado en historial (badge "−N%" en `app/sales/history.tsx`), precio final correcto. *(tsc + lint + bundle OK; runtime pendiente Expo Go)*
 
 ---
 
@@ -331,14 +331,15 @@
 
 > Al aprobar rebaja de T-08, registrar automáticamente la pérdida potencial.
 
-- [ ] Al aprobar rebaja desde T-08: insertar gasto tipo `rebaja_liquidacion` automáticamente
-  - Campos: producto, `diferencia_precio × stock_disponible`, fecha
-- [ ] Mostrar en historial de gastos con producto y monto de pérdida potencial
-- [ ] Ventas posteriores al precio rebajado usan nuevo precio; pérdida ya contabilizada al aprobar
+- [x] Al aprobar rebaja desde T-08: insertar gasto tipo `rebaja_liquidacion` automáticamente (en el submit de `app/catalog/[id].tsx`, tras aceptar el banner "Sugerir rebaja")
+  - Campos: producto (concepto), `(precio_previo − precio_nuevo) × stock_actual`, fecha de hoy
+- [x] Tipo `rebaja_liquidacion` añadido a `constants/expenses.ts`; aparece en el historial del tab Gastos con concepto y monto
+- [x] El banner de sugerencia se oculta tras aceptar la rebaja (`rebajaApplied`); ventas posteriores leen el catálogo con el precio ya rebajado
+- [x] La pérdida se contabiliza una sola vez, al guardar con rebaja aceptada
 
 **Depende de:** T-08, T-14
 
-**Acepta si:** rebaja aprobada → gasto aparece solo, ventas siguientes usan precio rebajado, reporte de pérdidas incluye rebajas como partida separada.
+**Acepta si:** rebaja aprobada → gasto aparece solo, ventas siguientes usan precio rebajado, reporte de pérdidas (T-19) podrá incluir rebajas como partida separada. *(tsc + lint OK; runtime pendiente Expo Go)*
 
 ---
 
