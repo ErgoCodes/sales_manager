@@ -6,6 +6,7 @@ import { FlatList, Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { EmptyState } from '@/components/ui/empty-state';
+import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatCard } from '@/components/ui/stat-card';
 import { Colors, Semantic, Shadows, Radius, FontSize, Overlay } from '@/constants/theme';
@@ -133,31 +134,10 @@ export default function SalesScreen() {
 
             {/* HERO */}
             <Animated.View entering={FadeInDown.delay(60).duration(360).springify()}>
-              <View
-                style={{
-                  backgroundColor: Colors.light.tint,
-                  borderRadius: Radius.xl,
-                  padding: 20,
-                  gap: 6,
-                  borderCurve: 'continuous',
-                  boxShadow: Shadows.hero,
-                  overflow: 'hidden',
-                }}
-              >
-                <View
-                  style={{
-                    position: 'absolute',
-                    right: -50,
-                    top: -20,
-                    width: 140,
-                    height: 140,
-                    borderRadius: 70,
-                    backgroundColor: Overlay.light,
-                  }}
-                />
+              <HeroCard padding={20}>
                 <Text
                   style={{
-                    fontSize: 11,
+                    fontSize: FontSize.xs,
                     fontWeight: '700',
                     color: Overlay.text,
                     letterSpacing: 1,
@@ -184,7 +164,7 @@ export default function SalesScreen() {
                   <Text style={{ fontSize: FontSize.md, color: Overlay.textStrong }}>Utilidad</Text>
                   <Text
                     style={{
-                      fontSize: 13,
+                      fontSize: FontSize.md,
                       fontWeight: '700',
                       color: Colors.light.surface,
                       fontVariant: ['tabular-nums'],
@@ -193,7 +173,7 @@ export default function SalesScreen() {
                     {formatCurrency(summary.profit)}
                   </Text>
                 </View>
-              </View>
+              </HeroCard>
             </Animated.View>
 
             {/* Mini stats row */}

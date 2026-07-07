@@ -5,9 +5,10 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatCard } from '@/components/ui/stat-card';
-import { Colors, Semantic, Shadows, Radius, FontSize, Overlay } from '@/constants/theme';
+import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
 import { countLowStock, getDailySummary, type DailySummary } from '@/db/queries';
 import { formatCurrency } from '@/lib/format';
 
@@ -102,43 +103,7 @@ export default function HomeScreen() {
 
       {/* HERO Card */}
       <Animated.View entering={FadeInDown.delay(60).duration(380).springify()}>
-        <Pressable
-          onPress={() => router.push('/(tabs)/sales')}
-          style={({ pressed }) => ({
-            backgroundColor: Colors.light.tint,
-            borderRadius: Radius.xl,
-            padding: 22,
-            gap: 6,
-            borderCurve: 'continuous',
-            boxShadow: Shadows.hero,
-            opacity: pressed ? 0.92 : 1,
-            overflow: 'hidden',
-          })}
-        >
-          {/* Decorative orb */}
-          <View
-            style={{
-              position: 'absolute',
-              right: -40,
-              top: -40,
-              width: 160,
-              height: 160,
-              borderRadius: 80,
-              backgroundColor: Overlay.light,
-            }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              right: 30,
-              bottom: -50,
-              width: 110,
-              height: 110,
-              borderRadius: 55,
-              backgroundColor: Overlay.subtle,
-            }}
-          />
-
+        <HeroCard onPress={() => router.push('/(tabs)/sales')} padding={22}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text
               style={{
@@ -207,7 +172,7 @@ export default function HomeScreen() {
               {formatCurrency(summary.profit)}
             </Text>
           </View>
-        </Pressable>
+        </HeroCard>
       </Animated.View>
 
       {/* Stats grid */}
