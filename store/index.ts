@@ -9,6 +9,7 @@ export interface CartItem {
   quantity: number;
   paymentMethod: 'efectivo' | 'transferencia' | 'costo';
   appliedPrice: number;
+  discountPercent: number;
   costAtSale: number;
   profit: number;
 }

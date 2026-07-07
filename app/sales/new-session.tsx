@@ -35,13 +35,28 @@ export default function NewSessionScreen() {
   const [product, setProduct] = useState<SelectedProduct | null>(null);
   const [quantity, setQuantity] = useState('');
   const [workerSale, setWorkerSale] = useState(false);
+  const [discountExpanded, setDiscountExpanded] = useState(false);
+  const [discountPercent, setDiscountPercent] = useState('');
   const [saving, setSaving] = useState(false);
 
   const quantityRef = useRef<TextInput>(null);
+  const discountPercentNum = discountPercent === '' ? 0 : Number(discountPercent);
+
+  function handleDiscountChange(text: string) {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    if (cleaned === '') {
+      setDiscountPercent('');
+      return;
+    }
+    setDiscountPercent(String(Math.min(100, Number(cleaned))));
+  }
 
   function onProductSelected(p: SelectedProduct) {
     setProduct(p);
     setQuantity('1');
+    setWorkerSale(false);
+    setDiscountExpanded(false);
+    setDiscountPercent('');
     setTimeout(() => quantityRef.current?.focus(), 100);
   }
 
@@ -50,16 +65,19 @@ export default function NewSessionScreen() {
     const qty = Number(quantity);
     if (!qty || qty <= 0) return;
 
+    const effectiveDiscount = paymentMethod === 'costo' ? 0 : discountPercentNum;
+
     let appliedPrice: number;
     let profit: number;
     if (paymentMethod === 'costo') {
       appliedPrice = product.costPrice ?? product.averageCost;
       profit = 0;
     } else {
-      appliedPrice =
+      const basePrice =
         paymentMethod === 'efectivo'
           ? (product.cashPrice ?? 0)
           : (product.transferPrice ?? 0);
+      appliedPrice = basePrice * (1 - effectiveDiscount / 100);
       profit = (appliedPrice - product.averageCost) * qty;
     }
 
@@ -70,6 +88,7 @@ export default function NewSessionScreen() {
       quantity: qty,
       paymentMethod,
       appliedPrice,
+      discountPercent: effectiveDiscount,
       costAtSale: product.averageCost,
       profit,
     });
@@ -77,6 +96,8 @@ export default function NewSessionScreen() {
     setProduct(null);
     setQuantity('');
     setWorkerSale(false);
+    setDiscountExpanded(false);
+    setDiscountPercent('');
   }
 
   async function saveSession() {
@@ -150,6 +171,9 @@ export default function NewSessionScreen() {
                 onPress={() => {
                   setProduct(null);
                   setQuantity('');
+                  setWorkerSale(false);
+                  setDiscountExpanded(false);
+                  setDiscountPercent('');
                 }}
                 hitSlop={12}
               >
@@ -181,7 +205,16 @@ export default function NewSessionScreen() {
             </View>
 
             <Pressable
-              onPress={() => setWorkerSale((v) => !v)}
+              onPress={() => {
+                setWorkerSale((v) => {
+                  const next = !v;
+                  if (next) {
+                    setDiscountExpanded(false);
+                    setDiscountPercent('');
+                  }
+                  return next;
+                });
+              }}
               hitSlop={8}
               className="flex-row items-center gap-2"
             >
@@ -189,6 +222,31 @@ export default function NewSessionScreen() {
                 {workerSale ? '☑' : '☐'} Venta a trabajador (costo)
               </Text>
             </Pressable>
+
+            {!workerSale ? (
+              <Pressable
+                onPress={() => setDiscountExpanded((v) => !v)}
+                hitSlop={8}
+                className="flex-row items-center gap-2"
+              >
+                <Text
+                  variant="label"
+                  className={discountExpanded ? 'text-purple-600' : 'text-gray-500'}
+                >
+                  {discountExpanded ? '☑' : '☐'} Descuento
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {!workerSale && discountExpanded ? (
+              <Input
+                label="% descuento"
+                value={discountPercent}
+                onChangeText={handleDiscountChange}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+            ) : null}
 
             {workerSale ? (
               <Pressable
@@ -206,7 +264,10 @@ export default function NewSessionScreen() {
                   onPress={() => addToCart('efectivo')}
                 >
                   <Text className="text-white font-semibold text-sm">
-                    Efectivo ${product.cashPrice ?? 0}
+                    Efectivo $
+                    {discountPercentNum > 0
+                      ? ((product.cashPrice ?? 0) * (1 - discountPercentNum / 100)).toFixed(2)
+                      : (product.cashPrice ?? 0)}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -214,7 +275,10 @@ export default function NewSessionScreen() {
                   onPress={() => addToCart('transferencia')}
                 >
                   <Text className="text-white font-semibold text-sm">
-                    Transfer ${product.transferPrice ?? 0}
+                    Transfer $
+                    {discountPercentNum > 0
+                      ? ((product.transferPrice ?? 0) * (1 - discountPercentNum / 100)).toFixed(2)
+                      : (product.transferPrice ?? 0)}
                   </Text>
                 </Pressable>
               </View>
@@ -244,6 +308,13 @@ export default function NewSessionScreen() {
                 {formatAmount(item.quantity * item.appliedPrice)}
               </Text>
             </View>
+            {item.discountPercent > 0 ? (
+              <View className="rounded-full px-2 py-0.5 mr-2 bg-purple-100">
+                <Text variant="caption" className="text-purple-700">
+                  -{Math.round(item.discountPercent)}%
+                </Text>
+              </View>
+            ) : null}
             <View
               className={`rounded-full px-2 py-0.5 mr-3 ${
                 item.paymentMethod === 'efectivo'

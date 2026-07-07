@@ -91,6 +91,13 @@ export default function SalesHistoryScreen() {
                       {badge.label}
                     </Text>
                   </View>
+                  {item.discountPercent > 0 ? (
+                    <View className="rounded-full px-2 py-0.5 bg-purple-100">
+                      <Text variant="caption" className="text-purple-700">
+                        -{Math.round(item.discountPercent)}%
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
                 <Text variant="caption">{item.date}</Text>
               </View>

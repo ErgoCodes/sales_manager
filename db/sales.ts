@@ -63,7 +63,7 @@ export function registerSalesSession(items: CartItem[], date: string): number {
           costAtSale,
           profit,
           date,
-          discountPercent: 0,
+          discountPercent: item.discountPercent,
           cancelled: false,
         })
         .run();
@@ -82,6 +82,7 @@ export interface SaleWithProduct {
   unitOfMeasure: string;
   quantity: number;
   appliedPrice: number;
+  discountPercent: number;
   paymentMethod: string;
   costAtSale: number;
   profit: number;
@@ -111,6 +112,7 @@ export async function listSales(opts: ListSalesOptions = {}): Promise<SaleWithPr
       unitOfMeasure: products.unitOfMeasure,
       quantity: sales.quantity,
       appliedPrice: sales.appliedPrice,
+      discountPercent: sales.discountPercent,
       paymentMethod: sales.paymentMethod,
       costAtSale: sales.costAtSale,
       profit: sales.profit,
