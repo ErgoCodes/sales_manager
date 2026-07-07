@@ -7,11 +7,12 @@ export const OUTFLOW_TYPES = [
 
 export type OutflowType = (typeof OUTFLOW_TYPES)[number]['value'];
 
-/** Gastos periódicos que reducen la utilidad real (T-14). */
+/** Gastos periódicos que reducen la utilidad real (T-14, T-15). */
 export const EXPENSE_TYPES = [
   { label: 'Salario', value: 'salario' },
   { label: 'Multa', value: 'multa' },
   { label: 'ONAT', value: 'onat' },
+  { label: 'Rebaja de liquidación', value: 'rebaja_liquidacion' },
 ] as const;
 
 export type ExpenseType = (typeof EXPENSE_TYPES)[number]['value'];

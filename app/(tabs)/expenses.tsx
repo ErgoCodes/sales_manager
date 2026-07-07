@@ -24,6 +24,7 @@ const TONE_BY_TYPE: Record<string, BadgeTone> = {
   salario: 'info',
   multa: 'danger',
   onat: 'cost',
+  rebaja_liquidacion: 'warning',
 };
 
 interface LedgerRow {
