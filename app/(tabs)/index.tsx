@@ -7,17 +7,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatCard } from '@/components/ui/stat-card';
-import { Colors, Semantic, Shadows } from '@/constants/theme';
+import { Colors, Semantic, Shadows, Radius, FontSize, Overlay, Spacing } from '@/constants/theme';
 import { countLowStock, getDailySummary, type DailySummary } from '@/db/queries';
+import { formatCurrency } from '@/lib/format';
 
 const EMPTY_SUMMARY: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
 
-function formatCurrency(value: number, opts?: { compact?: boolean }): string {
-  if (opts?.compact) {
-    return `$${value.toLocaleString('es-CU', { maximumFractionDigits: 0 })}`;
-  }
-  return `$${value.toLocaleString('es-CU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+
 
 interface QuickActionProps {
   icon: Parameters<typeof IconSymbol>[0]['name'];
@@ -33,8 +29,8 @@ function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 18,
+        backgroundColor: Colors.light.surface,
+        borderRadius: Radius.xl,
         paddingVertical: 14,
         alignItems: 'center',
         gap: 8,
@@ -47,7 +43,7 @@ function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
         style={{
           width: 40,
           height: 40,
-          borderRadius: 14,
+          borderRadius: Radius.md,
           backgroundColor: bg,
           alignItems: 'center',
           justifyContent: 'center',
@@ -56,7 +52,7 @@ function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
       >
         <IconSymbol name={icon} size={20} color={accent} />
       </View>
-      <Text style={{ fontSize: 12, fontWeight: '600', color: '#0F172A', textAlign: 'center' }}>
+      <Text style={{ fontSize: FontSize.sm, fontWeight: '600', color: Colors.light.text, textAlign: 'center' }}>
         {label}
       </Text>
     </Pressable>
@@ -96,10 +92,10 @@ export default function HomeScreen() {
     >
       {/* Greeting */}
       <Animated.View entering={FadeInDown.duration(380).springify()}>
-        <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500', letterSpacing: 0.3 }}>
+        <Text style={{ fontSize: FontSize.md, color: Colors.light.tabIconDefault, fontWeight: '500', letterSpacing: 0.3 }}>
           {todayCap}
         </Text>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: '#0F172A', marginTop: 2 }}>
+        <Text style={{ fontSize: FontSize['2xl'], fontWeight: '700', color: Colors.light.text, marginTop: 2 }}>
           Resumen del día
         </Text>
       </Animated.View>
@@ -110,7 +106,7 @@ export default function HomeScreen() {
           onPress={() => router.push('/(tabs)/sales')}
           style={({ pressed }) => ({
             backgroundColor: Colors.light.tint,
-            borderRadius: 26,
+            borderRadius: Radius.xl,
             padding: 22,
             gap: 6,
             borderCurve: 'continuous',
@@ -128,7 +124,7 @@ export default function HomeScreen() {
               width: 160,
               height: 160,
               borderRadius: 80,
-              backgroundColor: 'rgba(255,255,255,0.08)',
+              backgroundColor: Overlay.light,
             }}
           />
           <View
@@ -139,17 +135,17 @@ export default function HomeScreen() {
               width: 110,
               height: 110,
               borderRadius: 55,
-              backgroundColor: 'rgba(255,255,255,0.06)',
+              backgroundColor: Overlay.subtle,
             }}
           />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text
               style={{
-                fontSize: 11,
+                fontSize: FontSize.xs,
                 fontWeight: '700',
                 letterSpacing: 1,
-                color: 'rgba(255,255,255,0.75)',
+                color: Overlay.text,
                 textTransform: 'uppercase',
               }}
             >
@@ -160,23 +156,23 @@ export default function HomeScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
-                backgroundColor: 'rgba(255,255,255,0.15)',
+                backgroundColor: Overlay.medium,
                 paddingHorizontal: 10,
                 paddingVertical: 4,
                 borderRadius: 999,
               }}
             >
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#FFFFFF' }}>Ver desglose</Text>
-              <IconSymbol name="arrow.up.right" size={11} color="#FFFFFF" />
+              <Text style={{ fontSize: FontSize.xs, fontWeight: '600', color: Colors.light.surface }}>Ver desglose</Text>
+              <IconSymbol name="arrow.up.right" size={11} color={Colors.light.surface} />
             </View>
           </View>
 
           <Text
             selectable
             style={{
-              fontSize: 40,
+              fontSize: FontSize['4xl'],
               fontWeight: '800',
-              color: '#FFFFFF',
+              color: Colors.light.surface,
               letterSpacing: -1.2,
               marginTop: 6,
               fontVariant: ['tabular-nums'],
@@ -193,18 +189,18 @@ export default function HomeScreen() {
               marginTop: 8,
               paddingTop: 12,
               borderTopWidth: 1,
-              borderTopColor: 'rgba(255,255,255,0.15)',
+              borderTopColor: Overlay.medium,
             }}
           >
-            <IconSymbol name="sparkles" size={14} color="rgba(255,255,255,0.85)" />
-            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '500' }}>
+            <IconSymbol name="sparkles" size={14} color={Overlay.textStrong} />
+            <Text style={{ fontSize: FontSize.md, color: Overlay.textStrong, fontWeight: '500' }}>
               Utilidad
             </Text>
             <Text
               style={{
-                fontSize: 13,
+                fontSize: FontSize.md,
                 fontWeight: '700',
-                color: '#FFFFFF',
+                color: Colors.light.surface,
                 fontVariant: ['tabular-nums'],
               }}
             >
@@ -239,9 +235,9 @@ export default function HomeScreen() {
       <Animated.View entering={FadeInDown.delay(180).duration(380).springify()} style={{ gap: 10 }}>
         <Text
           style={{
-            fontSize: 11,
+            fontSize: FontSize.xs,
             fontWeight: '700',
-            color: '#64748B',
+            color: Colors.light.textMuted,
             letterSpacing: 1,
             textTransform: 'uppercase',
             marginLeft: 4,
@@ -269,7 +265,7 @@ export default function HomeScreen() {
             label="Catálogo"
             onPress={() => router.push('/catalog')}
             accent={Colors.light.tint}
-            bg="#CCFBF1"
+            bg={Semantic.tealSoft}
           />
         </View>
       </Animated.View>
@@ -284,7 +280,7 @@ export default function HomeScreen() {
               alignItems: 'center',
               gap: 12,
               backgroundColor: Semantic.dangerSoft,
-              borderRadius: 18,
+              borderRadius: Radius.xl,
               padding: 14,
               borderCurve: 'continuous',
               opacity: pressed ? 0.85 : 1,
@@ -294,19 +290,19 @@ export default function HomeScreen() {
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 12,
+                borderRadius: Radius.md,
                 backgroundColor: Semantic.danger,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <IconSymbol name="exclamationmark.triangle.fill" size={20} color="#FFFFFF" />
+              <IconSymbol name="exclamationmark.triangle.fill" size={20} color={Colors.light.surface} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#7F1D1D' }}>
+              <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: Semantic.dangerDark }}>
                 Stock bajo en {lowStockCount} producto{lowStockCount > 1 ? 's' : ''}
               </Text>
-              <Text style={{ fontSize: 12, color: '#991B1B', marginTop: 2 }}>
+              <Text style={{ fontSize: FontSize.sm, color: Semantic.dangerDark, marginTop: 2 }}>
                 Toca para revisar el inventario
               </Text>
             </View>
@@ -318,8 +314,8 @@ export default function HomeScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 10,
-              backgroundColor: '#FFFFFF',
-              borderRadius: 18,
+              backgroundColor: Colors.light.surface,
+              borderRadius: Radius.xl,
               padding: 14,
               borderCurve: 'continuous',
               boxShadow: Shadows.sm,
@@ -329,7 +325,7 @@ export default function HomeScreen() {
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 12,
+                borderRadius: Radius.md,
                 backgroundColor: Semantic.cashSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -337,7 +333,7 @@ export default function HomeScreen() {
             >
               <IconSymbol name="checkmark.circle.fill" size={20} color={Semantic.cash} />
             </View>
-            <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500', flex: 1 }}>
+            <Text style={{ fontSize: FontSize.md, color: Semantic.neutral, fontWeight: '500', flex: 1 }}>
               Inventario en orden — sin alertas
             </Text>
           </View>

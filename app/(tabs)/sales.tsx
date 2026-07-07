@@ -7,7 +7,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Semantic, Shadows } from '@/constants/theme';
+import { StatCard } from '@/components/ui/stat-card';
+import { Colors, Semantic, Shadows, Radius, FontSize, Overlay } from '@/constants/theme';
+import { formatCurrency } from '@/lib/format';
 import {
   getDailyBreakdown,
   getDailySummary,
@@ -15,9 +17,7 @@ import {
   type ProductDaySummary,
 } from '@/db/queries';
 
-function formatCurrency(value: number): string {
-  return `$${value.toLocaleString('es-CU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+
 
 function formatDateHuman(iso: string): string {
   try {
@@ -41,8 +41,8 @@ function DateBar({ date, onChange }: DateBarProps) {
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
+        backgroundColor: Colors.light.surface,
+        borderRadius: Radius.lg,
         padding: 6,
         gap: 4,
         borderCurve: 'continuous',
@@ -55,17 +55,17 @@ function DateBar({ date, onChange }: DateBarProps) {
         style={({ pressed }) => ({
           width: 36,
           height: 36,
-          borderRadius: 12,
+          borderRadius: Radius.md,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: pressed ? Colors.light.surfaceMuted : 'transparent',
         })}
       >
-        <IconSymbol name="chevron.right" size={18} color="#475569" style={{ transform: [{ rotate: '180deg' }] }} />
+        <IconSymbol name="chevron.right" size={18} color={Semantic.neutral} style={{ transform: [{ rotate: '180deg' }] }} />
       </Pressable>
       <View style={{ flex: 1, alignItems: 'center', gap: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A' }}>{formatDateHuman(date)}</Text>
-        <Text style={{ fontSize: 11, color: '#94A3B8', fontVariant: ['tabular-nums'] }}>
+        <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: Colors.light.text }}>{formatDateHuman(date)}</Text>
+        <Text style={{ fontSize: FontSize.xs, color: Colors.light.tabIconDefault, fontVariant: ['tabular-nums'] }}>
           {date} {isToday ? '· Hoy' : ''}
         </Text>
       </View>
@@ -81,7 +81,7 @@ function DateBar({ date, onChange }: DateBarProps) {
           backgroundColor: pressed ? Colors.light.surfaceMuted : 'transparent',
         })}
       >
-        <IconSymbol name="chevron.right" size={18} color="#475569" />
+        <IconSymbol name="chevron.right" size={18} color={Semantic.neutral} />
       </Pressable>
     </View>
   );
@@ -136,7 +136,7 @@ export default function SalesScreen() {
               <View
                 style={{
                   backgroundColor: Colors.light.tint,
-                  borderRadius: 22,
+                  borderRadius: Radius.xl,
                   padding: 20,
                   gap: 6,
                   borderCurve: 'continuous',
@@ -152,14 +152,14 @@ export default function SalesScreen() {
                     width: 140,
                     height: 140,
                     borderRadius: 70,
-                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    backgroundColor: Overlay.light,
                   }}
                 />
                 <Text
                   style={{
                     fontSize: 11,
                     fontWeight: '700',
-                    color: 'rgba(255,255,255,0.75)',
+                    color: Overlay.text,
                     letterSpacing: 1,
                     textTransform: 'uppercase',
                   }}
@@ -171,7 +171,7 @@ export default function SalesScreen() {
                   style={{
                     fontSize: 36,
                     fontWeight: '800',
-                    color: '#FFFFFF',
+                    color: Colors.light.surface,
                     letterSpacing: -1,
                     marginTop: 4,
                     fontVariant: ['tabular-nums'],
@@ -180,13 +180,13 @@ export default function SalesScreen() {
                   {formatCurrency(summary.total)}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                  <IconSymbol name="sparkles" size={13} color="rgba(255,255,255,0.85)" />
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>Utilidad</Text>
+                  <IconSymbol name="sparkles" size={13} color={Overlay.textStrong} />
+                  <Text style={{ fontSize: FontSize.md, color: Overlay.textStrong }}>Utilidad</Text>
                   <Text
                     style={{
                       fontSize: 13,
                       fontWeight: '700',
-                      color: '#FFFFFF',
+                      color: Colors.light.surface,
                       fontVariant: ['tabular-nums'],
                     }}
                   >
@@ -201,19 +201,19 @@ export default function SalesScreen() {
               entering={FadeInDown.delay(120).duration(360).springify()}
               style={{ flexDirection: 'row', gap: 10 }}
             >
-              <MiniStat
+              <StatCard
                 icon="dollarsign.circle.fill"
                 label="Efectivo"
                 value={formatCurrency(summary.cash)}
                 accent={Semantic.cash}
-                bg={Semantic.cashSoft}
+                iconBg={Semantic.cashSoft}
               />
-              <MiniStat
+              <StatCard
                 icon="arrow.left.arrow.right.circle.fill"
                 label="Transferencia"
                 value={formatCurrency(summary.transfer)}
                 accent={Semantic.transfer}
-                bg={Semantic.transferSoft}
+                iconBg={Semantic.transferSoft}
               />
             </Animated.View>
 
@@ -231,14 +231,14 @@ export default function SalesScreen() {
                   style={{
                     fontSize: 11,
                     fontWeight: '700',
-                    color: '#64748B',
+                    color: Colors.light.textMuted,
                     letterSpacing: 1,
                     textTransform: 'uppercase',
                   }}
                 >
                   Productos vendidos
                 </Text>
-                <Text style={{ fontSize: 12, color: '#94A3B8', fontVariant: ['tabular-nums'] }}>
+                <Text style={{ fontSize: FontSize.sm, color: Colors.light.tabIconDefault, fontVariant: ['tabular-nums'] }}>
                   {breakdown.length} · {totalUnits} unidades
                 </Text>
               </Animated.View>
@@ -259,8 +259,8 @@ export default function SalesScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
+                backgroundColor: Colors.light.surface,
+                borderRadius: Radius.lg,
                 padding: 14,
                 gap: 12,
                 borderCurve: 'continuous',
@@ -280,10 +280,10 @@ export default function SalesScreen() {
                 <IconSymbol name="bag.fill" size={18} color={Colors.light.tint} />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#0F172A' }} numberOfLines={1}>
+                <Text style={{ fontSize: FontSize.base, fontWeight: '600', color: Colors.light.text }} numberOfLines={1}>
                   {item.productName}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#94A3B8', fontVariant: ['tabular-nums'] }}>
+                <Text style={{ fontSize: FontSize.sm, color: Colors.light.tabIconDefault, fontVariant: ['tabular-nums'] }}>
                   {item.totalQuantity} vendidos
                 </Text>
               </View>
@@ -292,7 +292,7 @@ export default function SalesScreen() {
                   style={{
                     fontSize: 15,
                     fontWeight: '700',
-                    color: '#0F172A',
+                    color: Colors.light.text,
                     fontVariant: ['tabular-nums'],
                   }}
                 >
@@ -322,7 +322,7 @@ export default function SalesScreen() {
           right: 20,
           height: 56,
           paddingHorizontal: 22,
-          borderRadius: 20,
+          borderRadius: Radius.xl,
           backgroundColor: Colors.light.tint,
           flexDirection: 'row',
           alignItems: 'center',
@@ -333,62 +333,10 @@ export default function SalesScreen() {
           transform: [{ scale: pressed ? 0.97 : 1 }],
         })}
       >
-        <IconSymbol name="plus" size={22} color="#FFFFFF" />
-        <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700' }}>Vender</Text>
+        <IconSymbol name="plus" size={22} color={Colors.light.surface} />
+        <Text style={{ color: Colors.light.surface, fontSize: 15, fontWeight: '700' }}>Vender</Text>
       </Pressable>
     </View>
   );
 }
 
-interface MiniStatProps {
-  icon: Parameters<typeof IconSymbol>[0]['name'];
-  label: string;
-  value: string;
-  accent: string;
-  bg: string;
-}
-
-function MiniStat({ icon, label, value, accent, bg }: MiniStatProps) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 12,
-        gap: 6,
-        borderCurve: 'continuous',
-        boxShadow: Shadows.sm,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 8,
-            backgroundColor: bg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <IconSymbol name={icon} size={15} color={accent} />
-        </View>
-        <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-          {label}
-        </Text>
-      </View>
-      <Text
-        style={{
-          fontSize: 17,
-          fontWeight: '800',
-          color: accent,
-          letterSpacing: -0.3,
-          fontVariant: ['tabular-nums'],
-        }}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
