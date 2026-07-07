@@ -65,7 +65,7 @@ export default function ConfigurationScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
       <Controller
         control={control}
         name="businessName"

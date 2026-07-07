@@ -15,3 +15,5 @@ export function useAppColors(): (typeof Palette)[ColorScheme] & { scheme: ColorS
   const scheme: ColorScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   return { ...Palette[scheme], scheme };
 }
+
+

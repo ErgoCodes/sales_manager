@@ -109,7 +109,7 @@ export default function OutflowScreen() {
   const isAdjustment = type === 'ajuste';
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
       <Stack.Screen options={{ title: 'Salida de almacén' }} />
 
       <Select
@@ -127,7 +127,7 @@ export default function OutflowScreen() {
       />
 
       {product ? (
-        <View className="rounded-xl bg-white p-3 shadow-sm gap-1">
+        <View className="rounded-xl bg-white dark:bg-slate-900 p-3 shadow-sm gap-1">
           <Text variant="label">Costo promedio actual</Text>
           <Text variant="caption">
             ${product.averageCost > 0 ? product.averageCost : (product.costPrice ?? '—')} ·{' '}
@@ -152,9 +152,9 @@ export default function OutflowScreen() {
                   key={opt.value}
                   onPress={() => setDirection(opt.value)}
                   className={`rounded-full border px-3.5 py-2 ${
-                    selected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
+                    selected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900'
                   }`}>
-                  <Text className={selected ? 'text-white font-medium' : 'text-gray-700'}>
+                  <Text className={selected ? 'text-white font-medium' : 'text-gray-700 dark:text-slate-200'}>
                     {opt.label}
                   </Text>
                 </Pressable>

@@ -35,7 +35,7 @@ export default function EntryHistoryScreen() {
   useFocusEffect(load);
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-slate-950">
       <Stack.Screen options={{ title: 'Historial de entradas' }} />
 
       <View className="p-4 gap-3">
@@ -74,7 +74,7 @@ export default function EntryHistoryScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <View className="rounded-xl bg-white p-4 shadow-sm gap-1">
+          <View className="rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-1">
             <View className="flex-row items-start justify-between">
               <Text variant="heading">{item.productName}</Text>
               <Text variant="caption">{item.date}</Text>

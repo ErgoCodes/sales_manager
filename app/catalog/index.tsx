@@ -46,7 +46,7 @@ export default function CatalogScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-slate-950">
       <Stack.Screen options={{ title: 'Catálogo' }} />
 
       <View className="p-4 gap-3">
@@ -54,7 +54,7 @@ export default function CatalogScreen() {
         <Select options={CATEGORY_FILTER} value={category} onChange={setCategory} />
         <View className="flex-row items-center justify-between">
           <Pressable onPress={() => setIncludeArchived((v) => !v)} hitSlop={8}>
-            <Text variant="label" className={includeArchived ? 'text-blue-600' : 'text-gray-500'}>
+            <Text variant="label" className={includeArchived ? 'text-blue-600' : 'text-gray-500 dark:text-slate-400'}>
               {includeArchived ? '☑ Mostrando archivados' : '☐ Mostrar archivados'}
             </Text>
           </Pressable>
@@ -73,7 +73,7 @@ export default function CatalogScreen() {
         }
         renderItem={({ item }) => (
           <View
-            className={`rounded-xl bg-white p-4 shadow-sm gap-2 ${item.active ? '' : 'opacity-60'}`}>
+            className={`rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-2 ${item.active ? '' : 'opacity-60'}`}>
             <View className="flex-row items-start justify-between">
               <View className="flex-1 gap-0.5">
                 <Text variant="heading">{item.name}</Text>
@@ -81,7 +81,7 @@ export default function CatalogScreen() {
                   {item.category ?? 'Sin categoría'} · umbral {item.lowStockThreshold ?? '—'}
                 </Text>
               </View>
-              <Text variant="label" className="text-gray-700">
+              <Text variant="label" className="text-gray-700 dark:text-slate-200">
                 {item.stock} {item.unitOfMeasure}
               </Text>
             </View>

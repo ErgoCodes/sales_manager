@@ -99,7 +99,7 @@ export default function StockEntryScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
       <Stack.Screen options={{ title: 'Registrar entrada' }} />
 
       <ProductPicker
@@ -110,7 +110,7 @@ export default function StockEntryScreen() {
       />
 
       {product ? (
-        <View className="rounded-xl bg-white p-3 shadow-sm gap-1">
+        <View className="rounded-xl bg-white dark:bg-slate-900 p-3 shadow-sm gap-1">
           <Text variant="label">Precios actuales</Text>
           <Text variant="caption">
             Costo: ${product.costPrice ?? '—'} · Efectivo: ${product.cashPrice ?? '—'} ·
@@ -185,7 +185,7 @@ export default function StockEntryScreen() {
         onPress={() => setUpdatePrices((v) => !v)}
         hitSlop={8}
         className="flex-row items-center gap-2">
-        <Text variant="label" className={updatePrices ? 'text-blue-600' : 'text-gray-500'}>
+        <Text variant="label" className={updatePrices ? 'text-blue-600' : 'text-gray-500 dark:text-slate-400'}>
           {updatePrices ? '☑' : '☐'} Actualizar precios del catálogo
         </Text>
       </Pressable>

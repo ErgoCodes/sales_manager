@@ -145,7 +145,7 @@ export default function NewSessionScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-gray-50"
+      className="flex-1 bg-gray-50 dark:bg-slate-950"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Stack.Screen options={{ title: 'Nueva sesión' }} />
@@ -165,7 +165,7 @@ export default function NewSessionScreen() {
         />
 
         {product ? (
-          <View className="rounded-xl bg-white p-3 shadow-sm gap-2">
+          <View className="rounded-xl bg-white dark:bg-slate-900 p-3 shadow-sm gap-2">
             <View className="flex-row justify-between items-center">
               <Text variant="heading">{product.name}</Text>
               <Pressable
@@ -178,7 +178,7 @@ export default function NewSessionScreen() {
                 }}
                 hitSlop={12}
               >
-                <Text variant="body" className="text-gray-400">
+                <Text variant="body" className="text-gray-400 dark:text-slate-500">
                   ✕
                 </Text>
               </Pressable>
@@ -190,12 +190,12 @@ export default function NewSessionScreen() {
             </Text>
 
             <View className="gap-1">
-              <Text className="text-sm font-medium text-gray-700">
+              <Text className="text-sm font-medium text-gray-700 dark:text-slate-200">
                 Cantidad ({product.unitOfMeasure})
               </Text>
               <TextInput
                 ref={quantityRef}
-                className="border border-gray-300 rounded-lg px-3 py-2.5 text-base text-gray-900 bg-white"
+                className="border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2.5 text-base text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-900"
                 value={quantity}
                 onChangeText={setQuantity}
                 keyboardType="numeric"
@@ -219,7 +219,7 @@ export default function NewSessionScreen() {
               hitSlop={8}
               className="flex-row items-center gap-2"
             >
-              <Text variant="label" className={workerSale ? 'text-orange-600' : 'text-gray-500'}>
+              <Text variant="label" className={workerSale ? 'text-orange-600' : 'text-gray-500 dark:text-slate-400'}>
                 {workerSale ? '☑' : '☐'} Venta a trabajador (costo)
               </Text>
             </Pressable>
@@ -232,7 +232,7 @@ export default function NewSessionScreen() {
               >
                 <Text
                   variant="label"
-                  className={discountExpanded ? 'text-purple-600' : 'text-gray-500'}
+                  className={discountExpanded ? 'text-purple-600' : 'text-gray-500 dark:text-slate-400'}
                 >
                   {discountExpanded ? '☑' : '☐'} Descuento
                 </Text>
@@ -301,7 +301,7 @@ export default function NewSessionScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <View className="flex-row items-center rounded-xl bg-white px-4 py-3 shadow-sm">
+          <View className="flex-row items-center rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-sm">
             <View className="flex-1 gap-0.5">
               <Text variant="body">{item.name}</Text>
               <Text variant="caption">
@@ -345,7 +345,7 @@ export default function NewSessionScreen() {
         )}
       />
 
-      <View className="bg-white border-t border-gray-200 px-4 py-3 gap-2">
+      <View className="bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 px-4 py-3 gap-2">
         <View className="flex-row justify-between flex-wrap gap-1">
           <Text variant="label" className="text-green-700">
             Efectivo: ${formatAmount(totalCash())}

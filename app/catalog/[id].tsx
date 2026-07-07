@@ -118,7 +118,7 @@ export default function ProductFormScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 gap-4">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
       <Stack.Screen options={{ title: isNew ? 'Nuevo producto' : 'Editar producto' }} />
 
       <Controller
@@ -262,7 +262,7 @@ export default function ProductFormScreen() {
         </View>
       ) : null}
 
-      <View className="rounded-xl bg-white p-4 shadow-sm gap-2">
+      <View className="rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-2">
         <Text variant="label">Resumen de precios</Text>
         <View className="flex-row justify-between">
           <Text variant="body">Costo</Text>

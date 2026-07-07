@@ -41,7 +41,7 @@ export default function SalesHistoryScreen() {
   useFocusEffect(load);
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-slate-950">
       <Stack.Screen options={{ title: 'Historial de ventas' }} />
 
       <View className="p-4 gap-3">
@@ -82,7 +82,7 @@ export default function SalesHistoryScreen() {
         renderItem={({ item }) => {
           const badge = BADGE_COLORS[item.paymentMethod] ?? BADGE_COLORS.efectivo;
           return (
-            <View className="rounded-xl bg-white p-4 shadow-sm gap-1">
+            <View className="rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-1">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1 flex-row items-center gap-2">
                   <Text variant="heading">{item.productName}</Text>
