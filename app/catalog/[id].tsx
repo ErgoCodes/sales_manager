@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -11,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
 import { CATEGORY_OPTIONS, UNITS_OF_MEASURE } from '@/constants/catalog';
 import { CONFIG_KEYS, getConfig } from '@/db/config';
+import { registerExpense } from '@/db/expenses';
 import { createProduct, getProduct, updateProduct } from '@/db/products';
 import { calculateStock, getLastSaleDate } from '@/db/queries';
 import { isNearExpiration, isStagnant } from '@/lib/product-status';
@@ -118,6 +120,17 @@ export default function ProductFormScreen() {
     };
     if (isNew) await createProduct(data);
     else await updateProduct(Number(id), data);
+
+    if (!isNew && rebajaApplied && priceBeforeRebaja > cash && currentStock > 0) {
+      const potentialLoss = (priceBeforeRebaja - cash) * currentStock;
+      await registerExpense({
+        type: 'rebaja_liquidacion',
+        concept: values.name.trim(),
+        amount: potentialLoss,
+        date: format(new Date(), 'yyyy-MM-dd'),
+      });
+    }
+
     router.back();
   });
 
