@@ -63,6 +63,9 @@ export default function ProductFormScreen() {
 
   const [stagnantInfo, setStagnantInfo] = useState<{ stagnant: boolean; nearExpiration: boolean } | null>(null);
   const [discountPct, setDiscountPct] = useState(15);
+  const [currentStock, setCurrentStock] = useState(0);
+  const [rebajaApplied, setRebajaApplied] = useState(false);
+  const [priceBeforeRebaja, setPriceBeforeRebaja] = useState(0);
 
   useEffect(() => {
     if (isNew) return;
@@ -84,6 +87,7 @@ export default function ProductFormScreen() {
         getLastSaleDate(Number(id)),
         getConfig(CONFIG_KEYS.stagnantDiscountPercent),
       ]);
+      setCurrentStock(stock);
       setDiscountPct(Number(pctStr ?? 15));
       setStagnantInfo({
         stagnant: isStagnant({ stock, lastSaleDate }),
@@ -254,7 +258,11 @@ export default function ProductFormScreen() {
           </Text>
           <Pressable
             hitSlop={8}
-            onPress={() => setValue('cashPrice', String(suggestedRebaja))}>
+            onPress={() => {
+              setPriceBeforeRebaja(cashNum);
+              setRebajaApplied(true);
+              setValue('cashPrice', String(suggestedRebaja));
+            }}>
             <Text variant="label" className="text-amber-700">
               Sugerir rebaja
             </Text>
