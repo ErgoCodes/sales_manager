@@ -24,7 +24,7 @@ function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButto
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: pressed ? '#E2E8F0' : '#F1F5F9',
+        backgroundColor: pressed ? Colors.light.border : Colors.light.surfaceMuted,
         borderCurve: 'continuous',
       })}
     >
@@ -43,13 +43,13 @@ export default function TabLayout() {
         tabBarInactiveTintColor: Colors.light.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
-        headerStyle: { backgroundColor: '#FFFFFF' },
+        headerStyle: { backgroundColor: Colors.light.surface },
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: '700', fontSize: 18, color: Colors.light.text },
         headerTitleAlign: 'left',
         tabBarStyle: {
           borderTopColor: Colors.light.border,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: Colors.light.surface,
           paddingTop: 6,
           height: 64,
         },

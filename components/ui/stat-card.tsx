@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Shadows } from '@/constants/theme';
+import { Colors, Shadows } from '@/constants/theme';
 
 interface StatCardProps {
   label: string;
@@ -12,12 +12,12 @@ interface StatCardProps {
   caption?: string;
 }
 
-export function StatCard({ label, value, accent = '#0F172A', icon, iconBg, caption }: StatCardProps) {
+export function StatCard({ label, value, accent = Colors.light.text, icon, iconBg, caption }: StatCardProps) {
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: Colors.light.surface,
         borderRadius: 20,
         padding: 14,
         gap: 10,
@@ -26,7 +26,7 @@ export function StatCard({ label, value, accent = '#0F172A', icon, iconBg, capti
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B', letterSpacing: 0.3, textTransform: 'uppercase' }}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.light.textMuted, letterSpacing: 0.3, textTransform: 'uppercase' }}>
           {label}
         </Text>
         {icon ? (
@@ -57,7 +57,7 @@ export function StatCard({ label, value, accent = '#0F172A', icon, iconBg, capti
         {value}
       </Text>
       {caption ? (
-        <Text style={{ fontSize: 11, color: '#94A3B8' }}>{caption}</Text>
+        <Text style={{ fontSize: 11, color: Colors.light.tabIconDefault }}>{caption}</Text>
       ) : null}
     </View>
   );

@@ -10,10 +10,10 @@ interface CardProps extends ViewProps {
 }
 
 const variantClasses: Record<Variant, string> = {
-  default: 'bg-white',
-  tinted: 'bg-teal-50',
-  outline: 'bg-white border border-slate-200',
-  flat: 'bg-slate-50',
+  default: 'bg-surface',
+  tinted: 'bg-primary-soft',
+  outline: 'bg-surface border border-border',
+  flat: 'bg-surface-muted',
 };
 
 export function Card({
@@ -27,7 +27,7 @@ export function Card({
   const shadow = variant === 'default' ? Shadows.md : undefined;
   return (
     <View
-      className={`rounded-2xl ${variantClasses[variant]} ${padded ? 'p-4' : ''} ${className}`}
+      className={`rounded-card ${variantClasses[variant]} ${padded ? 'p-4' : ''} ${className}`}
       style={[{ borderCurve: 'continuous' }, shadow ? { boxShadow: shadow } : null, style]}
       {...props}
     >

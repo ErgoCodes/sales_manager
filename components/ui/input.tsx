@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { TextInput, View, Text, type TextInputProps } from 'react-native';
 
+import { Colors, Semantic } from '@/constants/theme';
+
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
@@ -9,14 +11,14 @@ interface InputProps extends TextInputProps {
 
 export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: InputProps) {
   const [focused, setFocused] = useState(false);
-  const borderColor = error ? '#DC2626' : focused ? '#0F766E' : '#E2E8F0';
+  const borderColor = error ? Semantic.danger : focused ? Colors.light.tint : Colors.light.border;
   return (
     <View style={{ gap: 6 }}>
       {label ? (
-        <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155', letterSpacing: 0.1 }}>{label}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: Semantic.textDark, letterSpacing: 0.1 }}>{label}</Text>
       ) : null}
       <TextInput
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor={Colors.light.tabIconDefault}
         onFocus={(e) => {
           setFocused(true);
           onFocus?.(e);
@@ -33,8 +35,8 @@ export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: 
             paddingHorizontal: 14,
             paddingVertical: 12,
             fontSize: 15,
-            color: '#0F172A',
-            backgroundColor: '#FFFFFF',
+            color: Colors.light.text,
+            backgroundColor: Colors.light.surface,
             borderCurve: 'continuous',
           },
           style as object,
@@ -42,9 +44,9 @@ export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: 
         {...props}
       />
       {error ? (
-        <Text style={{ fontSize: 12, color: '#DC2626' }}>{error}</Text>
+        <Text style={{ fontSize: 12, color: Semantic.danger }}>{error}</Text>
       ) : hint ? (
-        <Text style={{ fontSize: 12, color: '#94A3B8' }}>{hint}</Text>
+        <Text style={{ fontSize: 12, color: Colors.light.tabIconDefault }}>{hint}</Text>
       ) : null}
     </View>
   );

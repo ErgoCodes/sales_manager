@@ -43,6 +43,11 @@ export const Semantic = {
   warningSoft: '#FEF3C7',
   neutral: '#475569',
   neutralSoft: '#F1F5F9',
+  textDark: '#334155',
+  tealSoft: '#CCFBF1',
+  dangerDark: '#991B1B',
+  warningDark: '#92400E',
+  lowStockBg: '#FFFBFB',
 };
 
 export const Shadows = {
@@ -51,6 +56,50 @@ export const Shadows = {
   lg: '0 8px 16px rgba(15,23,42,0.10), 0 2px 4px rgba(15,23,42,0.06)',
   hero: '0 12px 24px rgba(15,118,110,0.25), 0 4px 8px rgba(15,118,110,0.15)',
 };
+
+/** Spacing scale — multiples of 4 */
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 32,
+  '4xl': 40,
+} as const;
+
+/** Border radius scale */
+export const Radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  full: 999,
+} as const;
+
+/** Font size scale */
+export const FontSize = {
+  xs: 11,
+  sm: 12,
+  md: 13,
+  base: 14,
+  lg: 16,
+  xl: 18,
+  '2xl': 22,
+  '3xl': 28,
+  '4xl': 40,
+} as const;
+
+/** Overlay / hero-card decorative alphas */
+export const Overlay = {
+  subtle: 'rgba(255,255,255,0.06)',
+  light: 'rgba(255,255,255,0.08)',
+  medium: 'rgba(255,255,255,0.15)',
+  strong: 'rgba(255,255,255,0.25)',
+  text: 'rgba(255,255,255,0.75)',
+  textStrong: 'rgba(255,255,255,0.85)',
+} as const;
 
 export const Fonts = Platform.select({
   ios: {

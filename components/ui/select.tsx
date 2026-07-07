@@ -26,7 +26,7 @@ export function Select({ label, options, value, onChange, error }: SelectProps) 
               key={opt.value}
               onPress={() => onChange(opt.value)}
               className={`rounded-full border px-3.5 py-2 ${
-                selected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
+                selected ? 'border-primary bg-primary' : 'border-gray-300 bg-white'
               }`}>
               <Text className={selected ? 'text-white font-medium' : 'text-gray-700'}>
                 {opt.label}
