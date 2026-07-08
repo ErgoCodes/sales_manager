@@ -17,6 +17,7 @@ import {
   ProductPicker,
   type SelectedProduct,
 } from '@/components/ui/product-picker';
+import { Snackbar } from '@/components/ui/snackbar';
 import { Text } from '@/components/ui/text';
 import { Colors, Radius, Shadows } from '@/constants/theme';
 import { registerSalesSession, verifySessionStock } from '@/db/sales';
@@ -43,6 +44,7 @@ export default function NewSessionScreen() {
   const [discountPercent, setDiscountPercent] = useState('');
   const [amountReceived, setAmountReceived] = useState('');
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const quantityRef = useRef<TextInput>(null);
   const discountPercentNum = discountPercent === '' ? 0 : Number(discountPercent);
@@ -107,6 +109,14 @@ export default function NewSessionScreen() {
 
   async function saveSession() {
     if (items.length === 0) return;
+
+    if (cashDue > 0 && (receivedNum === null || receivedNum < cashDue)) {
+      setErrorMessage(
+        `El monto recibido en efectivo ($${amountReceived === '' ? '0' : amountReceived}) es menor al subtotal en efectivo ($${formatAmount(cashDue)}).`,
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -495,12 +505,18 @@ export default function NewSessionScreen() {
         ) : null}
 
         <Button
-          label={saving ? 'Guardando…' : `Guardar sesión (${items.length})`}
+          label={saving ? 'Guardando…' : `Guardar venta (${items.length})`}
           onPress={saveSession}
           disabled={items.length === 0 || saving}
           size="lg"
         />
       </View>
+
+      <Snackbar
+        visible={errorMessage !== null}
+        message={errorMessage ?? ''}
+        onDismiss={() => setErrorMessage(null)}
+      />
     </KeyboardAvoidingView>
   );
 }
