@@ -114,14 +114,14 @@ export const Radius = {
 
 /** Font size scale */
 export const FontSize = {
-  xs: 12,
-  sm: 13,
-  md: 14,
-  base: 15,
-  lg: 17,
-  xl: 19,
-  '2xl': 23,
-  '3xl': 29,
+  xs: 13,
+  sm: 14,
+  md: 15,
+  base: 16,
+  lg: 18,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 30,
   '4xl': 42,
 } as const;
 
