@@ -82,21 +82,21 @@ export default function ReportsScreen() {
         title="Semanal y mensual"
         subtitle="Totales por período para compartir"
         delay={60}
-        disabled
+        onPress={() => router.push('/reports/period')}
       />
       <ReportCard
         icon="sparkles"
         title="Rankings"
         subtitle="Más vendidos y más rentables"
         delay={120}
-        disabled
+        onPress={() => router.push('/reports/rankings')}
       />
       <ReportCard
         icon="creditcard.fill"
         title="Pérdidas y gastos"
         subtitle="Desglose por categoría"
         delay={180}
-        disabled
+        onPress={() => router.push('/reports/losses')}
       />
     </ScrollView>
   );
