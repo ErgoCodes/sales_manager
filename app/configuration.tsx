@@ -1,13 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { CONFIG_KEYS, getAllConfig, setConfig } from '@/db/config';
+import { CONFIG_KEYS, getAllConfig, getConfig, setConfig } from '@/db/config';
+import { BackupCancelledError, exportBackup, pickAndValidateBackupFile, restoreBackup } from '@/lib/backup';
 
 const nonNegativeNumber = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) >= 0, msg);
@@ -26,6 +30,9 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ConfigurationScreen() {
   const [saved, setSaved] = useState(false);
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const {
     control,
@@ -54,6 +61,12 @@ export default function ConfigurationScreen() {
     })();
   }, [reset]);
 
+  useEffect(() => {
+    (async () => {
+      setLastBackup(await getConfig(CONFIG_KEYS.lastBackup));
+    })();
+  }, []);
+
   const onSubmit = handleSubmit(async (values) => {
     await Promise.all([
       setConfig(CONFIG_KEYS.businessName, values.businessName.trim()),
@@ -63,6 +76,55 @@ export default function ConfigurationScreen() {
     ]);
     setSaved(true);
   });
+
+  async function handleExportBackup() {
+    setExporting(true);
+    try {
+      await exportBackup();
+      setLastBackup(await getConfig(CONFIG_KEYS.lastBackup));
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el respaldo.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleRestoreBackup() {
+    let asset;
+    try {
+      asset = await pickAndValidateBackupFile();
+    } catch (error) {
+      if (error instanceof BackupCancelledError) return;
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo leer el archivo seleccionado.');
+      return;
+    }
+
+    Alert.alert(
+      'Restaurar respaldo',
+      'Esta acción reemplazará todos los datos actuales por los del archivo seleccionado y no se puede deshacer. ¿Deseas continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Restaurar',
+          style: 'destructive',
+          onPress: async () => {
+            setRestoring(true);
+            try {
+              await restoreBackup(asset);
+              Alert.alert(
+                'Respaldo restaurado',
+                'Los datos se reemplazaron correctamente. Cierra la aplicación por completo y vuelve a abrirla para continuar.',
+              );
+            } catch (error) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo restaurar el respaldo.');
+            } finally {
+              setRestoring(false);
+            }
+          },
+        },
+      ],
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
@@ -150,6 +212,26 @@ export default function ConfigurationScreen() {
           </Text>
         </View>
       ) : null}
+
+      <Text variant="heading">Respaldo</Text>
+      <Card className="gap-3">
+        <Text variant="caption">
+          Último respaldo:{' '}
+          {lastBackup ? format(parseISO(lastBackup), "d 'de' MMMM 'de' yyyy", { locale: es }) : 'Nunca'}
+        </Text>
+        <Button
+          label={exporting ? 'Exportando…' : 'Exportar respaldo'}
+          variant="soft"
+          onPress={handleExportBackup}
+          disabled={exporting || restoring}
+        />
+        <Button
+          label={restoring ? 'Restaurando…' : 'Restaurar respaldo'}
+          variant="destructive"
+          onPress={handleRestoreBackup}
+          disabled={exporting || restoring}
+        />
+      </Card>
     </ScrollView>
   );
 }
