@@ -17,7 +17,7 @@ import {
   type SelectedProduct,
 } from '@/components/ui/product-picker';
 import { Text } from '@/components/ui/text';
-import { Colors, Radius, Semantic, Shadows } from '@/constants/theme';
+import { Colors, Radius, Shadows } from '@/constants/theme';
 import { registerSalesSession, verifySessionStock } from '@/db/sales';
 import { useCartStore } from '@/store';
 import { useAppColors } from '@/hooks/use-app-colors';

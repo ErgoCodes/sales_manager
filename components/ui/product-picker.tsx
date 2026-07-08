@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { listProducts, type ProductWithStock } from '@/db/products';
 import { useAppColors } from '@/hooks/use-app-colors';
@@ -70,6 +70,9 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
         error={error}
       />
       {isOpen && options.length > 0 ? (
+        // View + map en vez de FlatList: la lista de sugerencias es corta
+        // (acotada por maxHeight) y anidar un VirtualizedList dentro del
+        // ScrollView de la pantalla contenedora dispara el warning de RN.
         <View style={{
           borderRadius: Radius.md,
           borderWidth: 1,
@@ -77,29 +80,26 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
           backgroundColor: c.surface,
           boxShadow: Shadows.md,
           maxHeight: 192,
+          overflow: 'hidden',
         }}>
-          <FlatList
-            data={options}
-            keyExtractor={(p) => String(p.id)}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <Pressable
-                style={({ pressed }) => ({
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderBottomWidth: 1,
-                  borderBottomColor: c.border,
-                  backgroundColor: pressed ? c.surfaceMuted : 'transparent',
-                })}
-                onPress={() => handleSelect(item)}>
-                <Text variant="body">{item.name}</Text>
-                <Text variant="caption">
-                  Stock: {item.stock} {item.unitOfMeasure}
-                  {item.costPrice != null ? ` · Costo: $${item.costPrice}` : ''}
-                </Text>
-              </Pressable>
-            )}
-          />
+          {options.map((item) => (
+            <Pressable
+              key={item.id}
+              style={({ pressed }) => ({
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                borderBottomWidth: 1,
+                borderBottomColor: c.border,
+                backgroundColor: pressed ? c.surfaceMuted : 'transparent',
+              })}
+              onPress={() => handleSelect(item)}>
+              <Text variant="body">{item.name}</Text>
+              <Text variant="caption">
+                Stock: {item.stock} {item.unitOfMeasure}
+                {item.costPrice != null ? ` · Costo: $${item.costPrice}` : ''}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       ) : null}
       {isOpen && options.length === 0 && search.trim() ? (

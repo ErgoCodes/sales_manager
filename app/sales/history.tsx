@@ -15,7 +15,7 @@ import {
   updateSale,
 } from '@/db/sales';
 import { useAppColors } from '@/hooks/use-app-colors';
-import { Colors, Radius, Semantic, Shadows } from '@/constants/theme';
+import { Radius, Shadows } from '@/constants/theme';
 
 function getBadgeStyle(paymentMethod: string, c: any) {
   switch (paymentMethod) {
