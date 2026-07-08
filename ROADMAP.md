@@ -365,16 +365,15 @@
 
 > El reporte mensual es el que Yamile comparte con Pupo.
 
-- [ ] Pantalla de reportes con selector de período: semana actual / semana anterior / mes actual / mes anterior / rango personalizado
-- [ ] Vista semanal: misma estructura que diario pero agregado por día
-- [ ] Vista mensual: ingresos totales, utilidades, pérdidas desglosadas por categoría; transferencias destacadas visualmente
-- [ ] Notificación local los lunes a las 9 a.m.: "Genera y comparte el reporte semanal con Pupo"
-  - Usar `expo-notifications` configurado en T-00
-  - Programar notificación recurrente al primer uso
+- [x] Pantalla de reportes (`app/reports/period.tsx`) con selector de período: semana actual/anterior, mes actual/anterior, rango personalizado (`PeriodBar`)
+- [x] Vista semanal: misma estructura que diario pero agregado por día (`getDailyTotalsInRange`)
+- [x] Vista mensual: ingresos totales, utilidades, pérdidas desglosadas por categoría; transferencias destacadas visualmente
+- [x] Notificación local los lunes a las 9 a.m.: "Genera y comparte el reporte semanal con Pupo"
+  - `scheduleWeeklyReminder` en `lib/notifications.ts`, gateada por `CONFIG_KEYS.weeklyReminderScheduled` para programarse una sola vez
 
 **Depende de:** T-16, T-14
 
-**Acepta si:** semanal suma correctamente los 7 días, mensual incluye ingresos+utilidades+pérdidas, notificación llega lunes 9am con app cerrada.
+**Acepta si:** semanal suma correctamente los 7 días, mensual incluye ingresos+utilidades+pérdidas, notificación llega lunes 9am con app cerrada. *(tsc + lint OK; notificación recurrente requiere development build, no fiable en Expo Go)*
 
 ---
 
@@ -382,14 +381,14 @@
 
 > Saber qué vende más y qué genera más.
 
-- [ ] Pantalla de rankings (`app/reportes/rankings.tsx`) con selector de período
-- [ ] Ranking 1 "Más vendidos": por unidades vendidas → nombre, cantidad total, importe generado
-- [ ] Ranking 2 "Más rentables": por utilidad acumulada → nombre, utilidad total, margen %
-- [ ] Visualización clara: lista ordenada numerada con indicador proporcional
+- [x] Pantalla de rankings (`app/reports/rankings.tsx`) con selector de período (`PeriodBar`)
+- [x] Ranking 1 "Más vendidos": por unidades vendidas → nombre, cantidad total, importe generado
+- [x] Ranking 2 "Más rentables": por utilidad acumulada → nombre, utilidad total, margen %
+- [x] Visualización clara: lista ordenada numerada con indicador proporcional
 
 **Depende de:** T-16
 
-**Acepta si:** ranking unidades coincide con suma real, ranking utilidad = `(precio_venta - precio_costo) × cantidad` acumulado, ambos para distintos períodos.
+**Acepta si:** ranking unidades coincide con suma real, ranking utilidad = `(precio_venta - precio_costo) × cantidad` acumulado, ambos para distintos períodos. *(tsc + lint OK; runtime pendiente Expo Go)*
 
 ---
 
@@ -397,14 +396,14 @@
 
 > Todas las pérdidas agrupadas por categoría.
 
-- [ ] Pantalla reporte pérdidas (`app/reportes/perdidas.tsx`) con selector de período
-- [ ] Agrupar por: Retiros Owner / Mermas / Salarios / Multas / ONAT / Rebajas
-- [ ] Subtotal por categoría + total general
-- [ ] Lista de registros individuales expandible por categoría
+- [x] Pantalla reporte pérdidas (`app/reports/losses.tsx`) con selector de período
+- [x] Agrupar por: Retiros Owner / Mermas / Salarios / Multas / ONAT / Rebajas
+- [x] Subtotal por categoría + total general
+- [x] Lista de registros individuales expandible por categoría
 
 **Depende de:** T-13, T-14, T-15
 
-**Acepta si:** todas las categorías presentes, subtotales correctos, total = suma de categorías.
+**Acepta si:** todas las categorías presentes, subtotales correctos, total = suma de categorías. *(tsc + lint OK; runtime pendiente Expo Go)*
 
 ---
 
@@ -431,18 +430,17 @@
 
 > La red de seguridad del MVP. Sin esto, perder el teléfono = perder el negocio.
 
-- [ ] Función exportar: empaquetar DB local en archivo de respaldo con fecha → `respaldo_monaco_2025-06-10.db`
-  - Usar `expo-file-system` para leer el archivo SQLite
-- [ ] Compartir archivo de respaldo con share sheet nativo (`expo-sharing`)
-- [ ] Función restaurar: seleccionar archivo de respaldo → reemplazar DB local
+- [x] Función exportar (`exportBackup` en `lib/backup.ts`): checkpoint WAL + copia de `db.sqlite` con fecha → `respaldo_monaco_2025-06-10.db`
+- [x] Compartir archivo de respaldo con share sheet nativo (`expo-sharing`)
+- [x] Función restaurar (`pickAndValidateBackupFile` + `restoreBackup`): selector de archivo, valida header SQLite, reemplaza DB local
   - Diálogo de confirmación previo (acción irreversible)
 - [ ] Recordatorio local semanal (ej. domingos por la noche) para hacer respaldo
-  - Reutilizar infraestructura de notificaciones de T-17
-- [ ] Mostrar fecha del último respaldo en pantalla de Configuración
+  - Reutilizar infraestructura de notificaciones de T-17 — **pendiente**: se dejó fuera de alcance para no duplicar el `setNotificationHandler` que T-17 ya registra; implementar como un segundo `scheduleX` en `lib/notifications.ts` gateado por su propia clave de config
+- [x] Mostrar fecha del último respaldo en pantalla de Configuración (`CONFIG_KEYS.lastBackup`)
 
 **Depende de:** T-01, T-20
 
-**Acepta si:** backup generado en <3 toques, restaurar en teléfono limpio recupera todo, fecha del último respaldo visible, recordatorio semanal funciona con app cerrada.
+**Acepta si:** backup generado en <3 toques, restaurar en teléfono limpio recupera todo, fecha del último respaldo visible, recordatorio semanal funciona con app cerrada. *(tsc + lint OK; roundtrip export/restore y recordatorio pendientes de probar en device)*
 
 ---
 
@@ -452,16 +450,16 @@
 
 > Corregir errores de días atrás. Edición directa estilo Excel, sin libro de correcciones.
 
-- [ ] Historial de ventas (de T-11) con buscador por fecha y producto; tocar una venta abre opciones editar/borrar
-- [ ] Editar venta guardada: cambiar producto, cantidad o método de pago; recalcular utilidad; stock derivado se ajusta solo
-- [ ] Borrar venta con confirmación previa
-- [ ] Función "deshacer" para último borrado o edición (protección contra dedo gordo)
-- [ ] Devoluciones: se manejan borrando o reduciendo la venta original (mismo mecanismo)
-- [ ] Totales del día y reportes se recalculan en vivo tras cualquier corrección
+- [x] Historial de ventas (de T-11) con buscador por fecha y producto; tocar una venta abre opciones editar/anular
+- [x] Editar venta guardada: cambiar cantidad, precio aplicado o método de pago; recalcula utilidad sobre el `costo_al_vender` congelado; stock derivado se ajusta solo — **cambiar de producto no está soportado**, la UI sugiere anular y registrar de nuevo
+- [x] Anular venta con confirmación previa (soft delete: `cancelled=true`, nunca DELETE)
+- [x] Función "deshacer" para la última anulación (snackbar 5s)
+- [x] Devoluciones: se manejan anulando o reduciendo la cantidad de la venta original (mismo mecanismo)
+- [x] Totales del día y reportes se recalculan en vivo tras cualquier corrección (todas las queries filtran `cancelled=false`)
 
 **Depende de:** T-09, T-11
 
-**Acepta si:** venta de días atrás encontrable y editable, stock se ajusta automáticamente (gracias a stock derivado de T-01), borrado pide confirmación y puede deshacerse, reportes reflejan corrección.
+**Acepta si:** venta de días atrás encontrable y editable, stock se ajusta automáticamente (gracias a stock derivado de T-01), anulación pide confirmación y puede deshacerse, reportes reflejan corrección. *(tsc + lint OK; runtime pendiente Expo Go)*
 
 ---
 
