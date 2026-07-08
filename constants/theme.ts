@@ -114,15 +114,15 @@ export const Radius = {
 
 /** Font size scale */
 export const FontSize = {
-  xs: 11,
-  sm: 12,
-  md: 13,
-  base: 14,
-  lg: 16,
-  xl: 18,
-  '2xl': 22,
-  '3xl': 28,
-  '4xl': 40,
+  xs: 12,
+  sm: 13,
+  md: 14,
+  base: 15,
+  lg: 17,
+  xl: 19,
+  '2xl': 23,
+  '3xl': 29,
+  '4xl': 42,
 } as const;
 
 /** Overlay / hero-card decorative alphas */
