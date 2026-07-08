@@ -40,6 +40,7 @@ export default function NewSessionScreen() {
   const [workerSale, setWorkerSale] = useState(false);
   const [discountExpanded, setDiscountExpanded] = useState(false);
   const [discountPercent, setDiscountPercent] = useState('');
+  const [amountReceived, setAmountReceived] = useState('');
   const [saving, setSaving] = useState(false);
 
   const quantityRef = useRef<TextInput>(null);
@@ -133,7 +134,12 @@ export default function NewSessionScreen() {
         }
       }
 
-      registerSalesSession(items, date);
+      const received = Number(amountReceived);
+      registerSalesSession(
+        items,
+        date,
+        received > 0 ? { amountReceived: received } : undefined,
+      );
       clear();
       router.back();
     } catch {
@@ -144,6 +150,23 @@ export default function NewSessionScreen() {
   }
 
   const formatAmount = (n: number) => n.toFixed(2);
+
+  // Denominaciones DOP para llenar el monto recibido con un toque.
+  const QUICK_BILLS = [100, 200, 500, 1000, 2000];
+  const cashDue = totalCash();
+  const receivedNum = amountReceived === '' ? null : Number(amountReceived);
+  const changeAmount = receivedNum === null ? null : receivedNum - cashDue;
+
+  function addBill(bill: number) {
+    const current = amountReceived === '' ? 0 : Number(amountReceived);
+    setAmountReceived(String(current + bill));
+  }
+
+  function handleReceivedChange(text: string) {
+    // Solo dígitos y un punto decimal.
+    const cleaned = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+    setAmountReceived(cleaned);
+  }
 
   return (
     <KeyboardAvoidingView
@@ -400,6 +423,76 @@ export default function NewSessionScreen() {
           <Text variant="heading">Total: ${formatAmount(grandTotal())}</Text>
           <Text variant="caption">{items.length} ítem(s)</Text>
         </View>
+
+        {cashDue > 0 ? (
+          <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 }}>
+            <Text variant="label" style={{ color: c.text }}>
+              Cobro en efectivo (${formatAmount(cashDue)})
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TextInput
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: c.border,
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 16,
+                  color: c.text,
+                  backgroundColor: c.surface,
+                }}
+                value={amountReceived}
+                onChangeText={handleReceivedChange}
+                keyboardType="numeric"
+                placeholder="Monto recibido"
+                placeholderTextColor={c.tabIconDefault}
+              />
+              {changeAmount !== null ? (
+                <Text
+                  variant="label"
+                  style={{ color: changeAmount >= 0 ? c.cash : c.danger }}
+                >
+                  {changeAmount >= 0 ? 'Vuelto' : 'Falta'}: ${formatAmount(Math.abs(changeAmount))}
+                </Text>
+              ) : null}
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {QUICK_BILLS.map((bill) => (
+                <Pressable
+                  key={bill}
+                  onPress={() => addBill(bill)}
+                  style={({ pressed }) => ({
+                    borderRadius: 8,
+                    backgroundColor: c.surfaceMuted,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Text variant="label" style={{ color: c.text }}>
+                    +{bill}
+                  </Text>
+                </Pressable>
+              ))}
+              <Pressable
+                onPress={() => setAmountReceived(String(cashDue))}
+                style={({ pressed }) => ({
+                  borderRadius: 8,
+                  backgroundColor: c.cashSoft,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Text variant="label" style={{ color: c.cash }}>
+                  Exacto
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         <Button
           label={saving ? 'Guardando…' : `Guardar sesión (${items.length})`}
           onPress={saveSession}

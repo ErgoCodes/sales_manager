@@ -34,6 +34,17 @@ export const warehouseMovements = sqliteTable(
   }),
 );
 
+// Agrupa las líneas de una misma venta (transacción del cliente) para guardar
+// el cobro en efectivo: cuánto entregó y cuánto vuelto se le devolvió.
+export const saleSessions = sqliteTable('sesiones_venta', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  date: text('fecha').notNull(),
+  cashTotal: real('total_efectivo').notNull(),
+  amountReceived: real('monto_recibido').notNull(),
+  change: real('vuelto').notNull(),
+  createdAt: text('creado_en').notNull(),
+});
+
 export const sales = sqliteTable(
   'ventas',
   {
@@ -49,6 +60,8 @@ export const sales = sqliteTable(
     date: text('fecha').notNull(),
     discountPercent: real('descuento_pct').notNull().default(0),
     cancelled: integer('anulada', { mode: 'boolean' }).notNull().default(false),
+    // Nullable: las ventas sin cobro en efectivo registrado quedan sin sesión.
+    sessionId: integer('sesion_id').references(() => saleSessions.id),
   },
   (table) => ({
     productIdx: index('idx_ventas_producto').on(table.productId),
@@ -77,6 +90,9 @@ export type NewWarehouseMovement = typeof warehouseMovements.$inferInsert;
 
 export type Sale = typeof sales.$inferSelect;
 export type NewSale = typeof sales.$inferInsert;
+
+export type SaleSession = typeof saleSessions.$inferSelect;
+export type NewSaleSession = typeof saleSessions.$inferInsert;
 
 export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;

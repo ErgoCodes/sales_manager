@@ -4,7 +4,7 @@ import type { CartItem } from '@/store';
 
 import { db } from './client';
 import { calculateStock } from './queries';
-import { products, sales } from './schema';
+import { products, saleSessions, sales } from './schema';
 
 export interface StockWarning {
   name: string;
@@ -40,8 +40,41 @@ export async function verifySessionStock(
   return warnings;
 }
 
-export function registerSalesSession(items: CartItem[], date: string): number {
+/**
+ * Registers all cart lines in a single transaction. When `cashPayment` is
+ * provided (the cashier entered how much the customer handed over), a
+ * `saleSessions` row is created snapshotting the cash total, amount received
+ * and change, and every line of this ticket is linked to it via `sessionId`.
+ * Without it, behaviour is unchanged and rows keep `sessionId = null`.
+ */
+export function registerSalesSession(
+  items: CartItem[],
+  date: string,
+  cashPayment?: { amountReceived: number },
+): number {
   return db.transaction((tx) => {
+    let sessionId: number | null = null;
+
+    if (cashPayment && cashPayment.amountReceived > 0) {
+      const cashTotal = items
+        .filter((i) => i.paymentMethod === 'efectivo')
+        .reduce((sum, i) => sum + i.appliedPrice * i.quantity, 0);
+
+      const [session] = tx
+        .insert(saleSessions)
+        .values({
+          date,
+          cashTotal,
+          amountReceived: cashPayment.amountReceived,
+          change: cashPayment.amountReceived - cashTotal,
+          createdAt: new Date().toISOString(),
+        })
+        .returning({ id: saleSessions.id })
+        .all();
+
+      sessionId = session?.id ?? null;
+    }
+
     let inserted = 0;
 
     for (const item of items) {
@@ -65,6 +98,7 @@ export function registerSalesSession(items: CartItem[], date: string): number {
           date,
           discountPercent: item.discountPercent,
           cancelled: false,
+          sessionId,
         })
         .run();
 
@@ -88,6 +122,9 @@ export interface SaleWithProduct {
   profit: number;
   date: string;
   cancelled: boolean;
+  sessionId: number | null;
+  amountReceived: number | null;
+  change: number | null;
 }
 
 interface ListSalesOptions {
@@ -120,9 +157,13 @@ export async function listSales(opts: ListSalesOptions = {}): Promise<SaleWithPr
       profit: sales.profit,
       date: sales.date,
       cancelled: sales.cancelled,
+      sessionId: sales.sessionId,
+      amountReceived: saleSessions.amountReceived,
+      change: saleSessions.change,
     })
     .from(sales)
     .innerJoin(products, eq(sales.productId, products.id))
+    .leftJoin(saleSessions, eq(sales.sessionId, saleSessions.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(sales.date));
 }
@@ -146,6 +187,10 @@ export interface SaleChanges {
 /**
  * Updates an editable sale's fields and recomputes profit using the frozen
  * costAtSale already stored on the row (never recalculated from the catalog).
+ *
+ * Note: the linked saleSessions row (amountReceived/change) is intentionally
+ * NOT recomputed here — it is a historical snapshot of what was collected at
+ * checkout, not a live total. Same applies to cancelSale/restoreSale.
  */
 export async function updateSale(id: number, changes: SaleChanges): Promise<void> {
   const [current] = await db

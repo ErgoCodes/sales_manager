@@ -8,6 +8,13 @@
       "when": 1782567535867,
       "tag": "0000_dark_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783527353973,
+      "tag": "0001_even_ghost_rider",
+      "breakpoints": true
     }
   ]
 }

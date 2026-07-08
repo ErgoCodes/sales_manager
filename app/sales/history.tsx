@@ -126,6 +126,19 @@ export default function SalesHistoryScreen() {
     reload();
   }
 
+  // El recibido/vuelto es un dato de la sesión (transacción del cliente), pero
+  // el historial lista una fila por producto. Para no repetirlo en cada línea
+  // de la misma sesión, marcamos como "ancla" solo la primera fila de cada
+  // sessionId en el orden de la lista; únicamente ahí se muestra el vuelto.
+  const sessionAnchors = new Set<number>();
+  const seenSessions = new Set<number>();
+  for (const s of salesList) {
+    if (s.sessionId != null && s.amountReceived != null && !seenSessions.has(s.sessionId)) {
+      seenSessions.add(s.sessionId);
+      sessionAnchors.add(s.id);
+    }
+  }
+
   function openActions(sale: SaleWithProduct) {
     if (sale.cancelled) {
       Alert.alert('Venta anulada', `${sale.productName} · ${sale.date}`, [
@@ -140,11 +153,19 @@ export default function SalesHistoryScreen() {
       ]);
       return;
     }
-    Alert.alert(sale.productName, `${sale.date} · $${(sale.quantity * sale.appliedPrice).toFixed(2)}`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Editar', onPress: () => openEditor(sale) },
-      { text: 'Anular', style: 'destructive', onPress: () => confirmCancel(sale) },
-    ]);
+    const cashInfo =
+      sale.amountReceived != null && sale.change != null
+        ? `\nRecibido: $${sale.amountReceived.toFixed(2)} · Vuelto: $${sale.change.toFixed(2)}`
+        : '';
+    Alert.alert(
+      sale.productName,
+      `${sale.date} · $${(sale.quantity * sale.appliedPrice).toFixed(2)}${cashInfo}`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Editar', onPress: () => openEditor(sale) },
+        { text: 'Anular', style: 'destructive', onPress: () => confirmCancel(sale) },
+      ],
+    );
   }
 
   return (
@@ -252,6 +273,14 @@ export default function SalesHistoryScreen() {
               <Text variant="caption">
                 Utilidad: ${item.profit.toFixed(2)}
               </Text>
+              {sessionAnchors.has(item.id) &&
+              item.amountReceived != null &&
+              item.change != null ? (
+                <Text variant="caption" style={{ color: c.cash }}>
+                  💵 Recibido ${item.amountReceived.toFixed(2)} · Vuelto $
+                  {item.change.toFixed(2)}
+                </Text>
+              ) : null}
             </Pressable>
           );
         }}
