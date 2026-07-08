@@ -94,10 +94,12 @@ interface ListSalesOptions {
   productId?: number;
   dateFrom?: string;
   dateTo?: string;
+  includeCancelled?: boolean;
 }
 
 export async function listSales(opts: ListSalesOptions = {}): Promise<SaleWithProduct[]> {
-  const conditions = [eq(sales.cancelled, false)];
+  const conditions = [];
+  if (!opts.includeCancelled) conditions.push(eq(sales.cancelled, false));
   if (opts.productId) conditions.push(eq(sales.productId, opts.productId));
   if (opts.dateFrom)
     conditions.push(sql`date(${sales.date}) >= date(${opts.dateFrom})`);
@@ -121,6 +123,53 @@ export async function listSales(opts: ListSalesOptions = {}): Promise<SaleWithPr
     })
     .from(sales)
     .innerJoin(products, eq(sales.productId, products.id))
-    .where(and(...conditions))
+    .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(sales.date));
+}
+
+/** Soft delete: marks a sale as cancelled. Stock and reports adjust automatically. */
+export async function cancelSale(id: number): Promise<void> {
+  await db.update(sales).set({ cancelled: true }).where(eq(sales.id, id));
+}
+
+/** Reverts a cancellation (undo for the "deshacer" snackbar). */
+export async function restoreSale(id: number): Promise<void> {
+  await db.update(sales).set({ cancelled: false }).where(eq(sales.id, id));
+}
+
+export interface SaleChanges {
+  quantity?: number;
+  paymentMethod?: string;
+  appliedPrice?: number;
+}
+
+/**
+ * Updates an editable sale's fields and recomputes profit using the frozen
+ * costAtSale already stored on the row (never recalculated from the catalog).
+ */
+export async function updateSale(id: number, changes: SaleChanges): Promise<void> {
+  const [current] = await db
+    .select({
+      quantity: sales.quantity,
+      appliedPrice: sales.appliedPrice,
+      costAtSale: sales.costAtSale,
+    })
+    .from(sales)
+    .where(eq(sales.id, id));
+
+  if (!current) return;
+
+  const quantity = changes.quantity ?? current.quantity;
+  const appliedPrice = changes.appliedPrice ?? current.appliedPrice;
+  const profit = (appliedPrice - current.costAtSale) * quantity;
+
+  await db
+    .update(sales)
+    .set({
+      quantity,
+      appliedPrice,
+      paymentMethod: changes.paymentMethod ?? undefined,
+      profit,
+    })
+    .where(eq(sales.id, id));
 }
