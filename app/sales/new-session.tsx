@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import {
   ProductPicker,
@@ -176,11 +177,11 @@ export default function NewSessionScreen() {
       <Stack.Screen options={{ title: 'Nueva sesión' }} />
 
       <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 12, zIndex: 10 }}>
-        <Input
+        <DatePicker
           label="Fecha de la sesión"
           value={date}
-          onChangeText={setDate}
-          placeholder="YYYY-MM-DD"
+          onChange={setDate}
+          placeholder="Seleccionar fecha"
         />
 
         <ProductPicker

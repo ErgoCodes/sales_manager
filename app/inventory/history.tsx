@@ -2,6 +2,7 @@ import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { type EntryWithProduct, listEntries } from '@/db/movements';
@@ -49,19 +50,21 @@ export default function EntryHistoryScreen() {
         />
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Input
+            <DatePicker
               label="Desde"
-              placeholder="YYYY-MM-DD"
               value={dateFrom}
-              onChangeText={setDateFrom}
+              onChange={setDateFrom}
+              placeholder="Desde"
+              clearable
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Input
+            <DatePicker
               label="Hasta"
-              placeholder="YYYY-MM-DD"
               value={dateTo}
-              onChangeText={setDateTo}
+              onChange={setDateTo}
+              placeholder="Hasta"
+              clearable
             />
           </View>
         </View>

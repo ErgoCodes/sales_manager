@@ -7,6 +7,7 @@ import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import {
   ProductPicker,
@@ -209,13 +210,12 @@ export default function OutflowScreen() {
       <Controller
         control={control}
         name="date"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Fecha (YYYY-MM-DD)"
+        render={({ field: { onChange, value } }) => (
+          <DatePicker
+            label="Fecha"
             value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="2026-06-29"
+            onChange={onChange}
+            placeholder="Seleccionar fecha"
             error={errors.date?.message}
           />
         )}

@@ -7,6 +7,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
@@ -235,14 +236,14 @@ export default function ProductFormScreen() {
       <Controller
         control={control}
         name="expirationDate"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
+        render={({ field: { onChange, value } }) => (
+          <DatePicker
             label="Fecha de vencimiento (opcional)"
             value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="YYYY-MM-DD"
+            onChange={onChange}
+            placeholder="Seleccionar fecha"
             error={errors.expirationDate?.message}
+            clearable
           />
         )}
       />

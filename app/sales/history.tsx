@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Select, type SelectOption } from '@/components/ui/select';
 import { Snackbar } from '@/components/ui/snackbar';
@@ -180,19 +181,21 @@ export default function SalesHistoryScreen() {
         />
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Input
+            <DatePicker
               label="Desde"
-              placeholder="YYYY-MM-DD"
               value={dateFrom}
-              onChangeText={setDateFrom}
+              onChange={setDateFrom}
+              placeholder="Desde"
+              clearable
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Input
+            <DatePicker
               label="Hasta"
-              placeholder="YYYY-MM-DD"
               value={dateTo}
-              onChangeText={setDateTo}
+              onChange={setDateTo}
+              placeholder="Hasta"
+              clearable
             />
           </View>
         </View>
