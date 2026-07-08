@@ -96,7 +96,7 @@ export default function ReportsScreen() {
         title="Pérdidas y gastos"
         subtitle="Desglose por categoría"
         delay={180}
-        disabled
+        onPress={() => router.push('/reports/losses')}
       />
     </ScrollView>
   );
