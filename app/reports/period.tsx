@@ -239,15 +239,15 @@ export default function PeriodReportScreen() {
           icon="dollarsign.circle.fill"
           label="Efectivo"
           value={formatCurrency(summary.cash)}
-          accent={Semantic.cash}
-          iconBg={Semantic.cashSoft}
+          accent={c.cash}
+          iconBg={c.cashSoft}
         />
         <StatCard
           icon="arrow.left.arrow.right.circle.fill"
           label="Transferencia"
           value={formatCurrency(summary.transfer)}
-          accent={Semantic.transfer}
-          iconBg={Semantic.transferSoft}
+          accent={c.transfer}
+          iconBg={c.transferSoft}
         />
       </Animated.View>
 
@@ -298,7 +298,7 @@ export default function PeriodReportScreen() {
                   style={{
                     fontSize: 15,
                     fontWeight: '700',
-                    color: item.subtotal > 0 ? Semantic.danger : c.tabIconDefault,
+                    color: item.subtotal > 0 ? c.danger : c.tabIconDefault,
                     fontVariant: ['tabular-nums'],
                   }}
                 >
@@ -328,7 +328,7 @@ export default function PeriodReportScreen() {
                   style={{
                     fontSize: 20,
                     fontWeight: '800',
-                    color: Semantic.danger,
+                    color: c.danger,
                     fontVariant: ['tabular-nums'],
                   }}
                 >
@@ -336,7 +336,7 @@ export default function PeriodReportScreen() {
                 </Text>
               </View>
 
-              <HeroCard color={netProfit >= 0 ? Colors.light.tint : Semantic.danger} padding={18}>
+              <HeroCard color={netProfit >= 0 ? c.tint : c.danger} padding={18}>
                 <Text
                   style={{
                     fontSize: FontSize.xs,
@@ -411,13 +411,13 @@ export default function PeriodReportScreen() {
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Semantic.cash }} />
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.cash }} />
                   <Text style={{ fontSize: FontSize.sm, color: c.textMuted, fontVariant: ['tabular-nums'] }}>
                     {formatCurrency(item.cash)}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Semantic.transfer }} />
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.transfer }} />
                   <Text style={{ fontSize: FontSize.sm, color: c.textMuted, fontVariant: ['tabular-nums'] }}>
                     {formatCurrency(item.transfer)}
                   </Text>
@@ -425,7 +425,7 @@ export default function PeriodReportScreen() {
                 <Text
                   style={{
                     fontSize: FontSize.sm,
-                    color: Semantic.cash,
+                    color: c.cash,
                     fontWeight: '600',
                     marginLeft: 'auto',
                     fontVariant: ['tabular-nums'],

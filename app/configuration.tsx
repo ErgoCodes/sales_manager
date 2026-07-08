@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { CONFIG_KEYS, getAllConfig, getConfig, setConfig } from '@/db/config';
 import { BackupCancelledError, exportBackup, pickAndValidateBackupFile, restoreBackup } from '@/lib/backup';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Semantic, Radius } from '@/constants/theme';
 
 const nonNegativeNumber = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) >= 0, msg);
@@ -29,6 +31,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function ConfigurationScreen() {
+  const c = useAppColors();
   const [saved, setSaved] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -127,7 +130,7 @@ export default function ConfigurationScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
+    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Controller
         control={control}
         name="businessName"
@@ -206,15 +209,15 @@ export default function ConfigurationScreen() {
       <Button label={isSubmitting ? 'Guardando…' : 'Guardar'} onPress={onSubmit} disabled={isSubmitting} />
 
       {saved ? (
-        <View className="rounded-lg bg-green-50 p-3">
-          <Text variant="label" className="text-green-700">
+        <View style={{ borderRadius: Radius.md, backgroundColor: c.cashSoft, padding: 12 }}>
+          <Text variant="label" style={{ color: c.cash }}>
             ✓ Configuración guardada
           </Text>
         </View>
       ) : null}
 
       <Text variant="heading">Respaldo</Text>
-      <Card className="gap-3">
+      <Card style={{ gap: 12 }}>
         <Text variant="caption">
           Último respaldo:{' '}
           {lastBackup ? format(parseISO(lastBackup), "d 'de' MMMM 'de' yyyy", { locale: es }) : 'Nunca'}

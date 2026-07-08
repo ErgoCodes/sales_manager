@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 
 import { listProducts, type ProductWithStock } from '@/db/products';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Radius, Shadows } from '@/constants/theme';
 
 import { Input } from './input';
 import { Text } from './text';
@@ -24,6 +26,7 @@ interface ProductPickerProps {
 }
 
 export function ProductPicker({ label, value, onChange, error }: ProductPickerProps) {
+  const c = useAppColors();
   const [search, setSearch] = useState('');
   const [options, setOptions] = useState<ProductWithStock[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -55,7 +58,7 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
   }
 
   return (
-    <View className="gap-1 z-10">
+    <View style={{ gap: 4, zIndex: 10 }}>
       <Input
         label={label}
         value={value ? search || value.name : search}
@@ -67,14 +70,27 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
         error={error}
       />
       {isOpen && options.length > 0 ? (
-        <View className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-md max-h-48">
+        <View style={{
+          borderRadius: Radius.md,
+          borderWidth: 1,
+          borderColor: c.border,
+          backgroundColor: c.surface,
+          boxShadow: Shadows.md,
+          maxHeight: 192,
+        }}>
           <FlatList
             data={options}
             keyExtractor={(p) => String(p.id)}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <Pressable
-                className="px-3 py-2.5 border-b border-gray-100 dark:border-slate-800 active:bg-gray-50 dark:active:bg-slate-800"
+                style={({ pressed }) => ({
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderBottomWidth: 1,
+                  borderBottomColor: c.border,
+                  backgroundColor: pressed ? c.surfaceMuted : 'transparent',
+                })}
                 onPress={() => handleSelect(item)}>
                 <Text variant="body">{item.name}</Text>
                 <Text variant="caption">
@@ -87,7 +103,14 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
         </View>
       ) : null}
       {isOpen && options.length === 0 && search.trim() ? (
-        <View className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5">
+        <View style={{
+          borderRadius: Radius.md,
+          borderWidth: 1,
+          borderColor: c.border,
+          backgroundColor: c.surface,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+        }}>
           <Text variant="caption">No se encontraron productos.</Text>
         </View>
       ) : null}

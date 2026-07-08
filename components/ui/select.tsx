@@ -1,5 +1,8 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Radius, FontSize } from '@/constants/theme';
+
 export interface SelectOption {
   label: string;
   value: string;
@@ -15,29 +18,39 @@ interface SelectProps {
 
 /** Selector de chips para conjuntos pequeños de opciones (unidad, categoría). */
 export function Select({ label, options, value, onChange, error }: SelectProps) {
+  const c = useAppColors();
+
   return (
-    <View className="gap-1.5">
-      {label ? <Text className="text-sm font-medium text-gray-700 dark:text-slate-300">{label}</Text> : null}
-      <View className="flex-row flex-wrap gap-2">
+    <View style={{ gap: 6 }}>
+      {label ? <Text style={{ fontSize: FontSize.sm, fontWeight: '500', color: c.text }}>{label}</Text> : null}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map((opt) => {
           const selected = opt.value === value;
           return (
             <Pressable
               key={opt.value}
               onPress={() => onChange(opt.value)}
-              className={`rounded-full border px-3.5 py-2 ${
-                selected
-                  ? 'border-primary bg-primary'
-                  : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900'
-              }`}>
-              <Text className={selected ? 'text-white font-medium' : 'text-gray-700 dark:text-slate-300'}>
+              style={({ pressed }) => ({
+                borderRadius: Radius.full,
+                borderWidth: 1,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                backgroundColor: selected ? c.tint : c.surface,
+                borderColor: selected ? c.tint : c.border,
+                opacity: pressed ? 0.7 : 1,
+              })}>
+              <Text style={{
+                color: selected ? 'white' : c.text,
+                fontWeight: '500',
+                fontSize: FontSize.sm
+              }}>
                 {opt.label}
               </Text>
             </Pressable>
           );
         })}
       </View>
-      {error ? <Text className="text-sm text-red-500">{error}</Text> : null}
+      {error ? <Text style={{ fontSize: FontSize.sm, color: c.danger }}>{error}</Text> : null}
     </View>
   );
 }

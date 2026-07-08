@@ -119,15 +119,15 @@ export default function SalesScreen() {
                 icon="dollarsign.circle.fill"
                 label="Efectivo"
                 value={formatCurrency(summary.cash)}
-                accent={Semantic.cash}
-                iconBg={Semantic.cashSoft}
+                accent={c.cash}
+                iconBg={c.cashSoft}
               />
               <StatCard
                 icon="arrow.left.arrow.right.circle.fill"
                 label="Transferencia"
                 value={formatCurrency(summary.transfer)}
-                accent={Semantic.transfer}
-                iconBg={Semantic.transferSoft}
+                accent={c.transfer}
+                iconBg={c.transferSoft}
               />
             </Animated.View>
 
@@ -215,7 +215,7 @@ export default function SalesScreen() {
                 <Text
                   style={{
                     fontSize: 11,
-                    color: Semantic.cash,
+                    color: c.cash,
                     fontWeight: '600',
                     fontVariant: ['tabular-nums'],
                   }}

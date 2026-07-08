@@ -273,15 +273,15 @@ export default function DailyReportScreen() {
                 icon="dollarsign.circle.fill"
                 label="Efectivo"
                 value={formatCurrency(summary.cash)}
-                accent={Semantic.cash}
-                iconBg={Semantic.cashSoft}
+                accent={c.cash}
+                iconBg={c.cashSoft}
               />
               <StatCard
                 icon="arrow.left.arrow.right.circle.fill"
                 label="Transferencia"
                 value={formatCurrency(summary.transfer)}
-                accent={Semantic.transfer}
-                iconBg={Semantic.transferSoft}
+                accent={c.transfer}
+                iconBg={c.transferSoft}
               />
             </Animated.View>
 
@@ -356,7 +356,7 @@ export default function DailyReportScreen() {
                     <Text
                       style={{
                         fontSize: 11,
-                        color: Semantic.cash,
+                        color: c.cash,
                         fontWeight: '600',
                         fontVariant: ['tabular-nums'],
                       }}
@@ -465,7 +465,7 @@ export default function DailyReportScreen() {
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <IconSymbol name="exclamationmark.triangle.fill" size={16} color={Semantic.warningDark} />
+                  <IconSymbol name="exclamationmark.triangle.fill" size={16} color={c.warningDark} />
                   <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: c.text }}>
                     Stock bajo ({inventory.lowStock.length})
                   </Text>
@@ -481,7 +481,7 @@ export default function DailyReportScreen() {
                     <Text
                       style={{
                         fontSize: FontSize.sm,
-                        color: Semantic.warningDark,
+                        color: c.warningDark,
                         fontWeight: '600',
                         fontVariant: ['tabular-nums'],
                       }}
@@ -504,7 +504,7 @@ export default function DailyReportScreen() {
                   boxShadow: Shadows.sm,
                 }}
               >
-                <IconSymbol name="checkmark.circle.fill" size={16} color={Semantic.cash} />
+                <IconSymbol name="checkmark.circle.fill" size={16} color={c.cash} />
                 <Text style={{ fontSize: FontSize.md, color: c.textMuted }}>Sin alertas de stock</Text>
               </View>
             )}

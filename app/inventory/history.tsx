@@ -5,8 +5,11 @@ import { FlatList, View } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { type EntryWithProduct, listEntries } from '@/db/movements';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Radius, Shadows } from '@/constants/theme';
 
 export default function EntryHistoryScreen() {
+  const c = useAppColors();
   const [entries, setEntries] = useState<EntryWithProduct[]>([]);
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -35,17 +38,17 @@ export default function EntryHistoryScreen() {
   useFocusEffect(load);
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-slate-950">
+    <View style={{ flex: 1, backgroundColor: c.background }}>
       <Stack.Screen options={{ title: 'Historial de entradas' }} />
 
-      <View className="p-4 gap-3">
+      <View style={{ padding: 16, gap: 12 }}>
         <Input
           placeholder="Filtrar por producto…"
           value={search}
           onChangeText={setSearch}
         />
-        <View className="flex-row gap-3">
-          <View className="flex-1">
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
             <Input
               label="Desde"
               placeholder="YYYY-MM-DD"
@@ -53,7 +56,7 @@ export default function EntryHistoryScreen() {
               onChangeText={setDateFrom}
             />
           </View>
-          <View className="flex-1">
+          <View style={{ flex: 1 }}>
             <Input
               label="Hasta"
               placeholder="YYYY-MM-DD"
@@ -67,15 +70,15 @@ export default function EntryHistoryScreen() {
       <FlatList
         data={entries}
         keyExtractor={(e) => String(e.id)}
-        contentContainerClassName="px-4 pb-8 gap-3"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 12 }}
         ListEmptyComponent={
-          <View className="items-center py-12">
+          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
             <Text variant="caption">No hay entradas registradas.</Text>
           </View>
         }
         renderItem={({ item }) => (
-          <View className="rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-1">
-            <View className="flex-row items-start justify-between">
+          <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 16, boxShadow: Shadows.sm, gap: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <Text variant="heading">{item.productName}</Text>
               <Text variant="caption">{item.date}</Text>
             </View>
@@ -89,3 +92,4 @@ export default function EntryHistoryScreen() {
     </View>
   );
 }
+

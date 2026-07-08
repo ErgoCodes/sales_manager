@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, Text, View, type PressableProps } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Colors, FontSize, Radius } from '@/constants/theme';
 import { useAppColors } from '@/hooks/use-app-colors';
 
 type Variant = 'default' | 'soft' | 'outline' | 'ghost' | 'destructive';
@@ -15,26 +15,13 @@ interface ButtonProps extends PressableProps {
   loading?: boolean;
 }
 
-const variantStyles: Record<Variant, string> = {
-  default: 'bg-teal-700 active:bg-teal-800',
-  soft: 'bg-teal-50 active:bg-teal-100 dark:bg-teal-950 dark:active:bg-teal-900',
-  outline: 'border border-teal-700 dark:border-teal-500 bg-white dark:bg-slate-900 active:bg-teal-50 dark:active:bg-slate-800',
-  ghost: 'bg-transparent active:bg-slate-100 dark:active:bg-slate-800',
-  destructive: 'bg-red-600 active:bg-red-700',
-};
-
-const labelStyles: Record<Variant, string> = {
-  default: 'text-white',
-  soft: 'text-teal-700 dark:text-teal-300',
-  outline: 'text-teal-700 dark:text-teal-300',
-  ghost: 'text-slate-700 dark:text-slate-200',
-  destructive: 'text-white',
-};
-
-const sizeStyles: Record<Size, { container: string; label: string; iconSize: number; minHeight: number }> = {
-  sm: { container: 'px-3.5 py-2 rounded-xl', label: 'text-sm font-semibold', iconSize: 16, minHeight: 36 },
-  md: { container: 'px-4 py-3 rounded-2xl', label: 'text-base font-semibold', iconSize: 18, minHeight: 46 },
-  lg: { container: 'px-5 py-3.5 rounded-2xl', label: 'text-base font-semibold tracking-wide', iconSize: 20, minHeight: 52 },
+const sizeStyles: Record<
+  Size,
+  { paddingHorizontal: number; paddingVertical: number; borderRadius: number; fontSize: number; iconSize: number; minHeight: number }
+> = {
+  sm: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.md, fontSize: FontSize.sm, iconSize: 16, minHeight: 36 },
+  md: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: Radius.lg, fontSize: FontSize.base, iconSize: 18, minHeight: 46 },
+  lg: { paddingHorizontal: 20, paddingVertical: 14, borderRadius: Radius.xl, fontSize: FontSize.base, iconSize: 20, minHeight: 52 },
 };
 
 export function Button({
@@ -48,22 +35,58 @@ export function Button({
   ...props
 }: ButtonProps) {
   const c = useAppColors();
+  const sizing = sizeStyles[size];
+  const isDisabled = disabled || loading;
+
   const iconColors: Record<Variant, string> = {
-    // default / destructive keep white content on their teal / red fill in both modes
     default: Colors.light.surface,
     soft: c.tint,
     outline: c.tint,
     ghost: c.text,
     destructive: Colors.light.surface,
   };
-  const sizing = sizeStyles[size];
-  const isDisabled = disabled || loading;
+
   return (
     <Pressable
-      className={`flex-row items-center justify-center gap-2 ${variantStyles[variant]} ${sizing.container} ${
-        isDisabled ? 'opacity-50' : ''
-      }`}
-      style={[{ minHeight: sizing.minHeight, borderCurve: 'continuous' }, style as object]}
+      style={(state) => {
+        const { pressed } = state;
+        let bg = 'transparent';
+        let borderColor = 'transparent';
+        let borderWidth = 0;
+
+        if (variant === 'default') {
+          bg = pressed ? (c.scheme === 'dark' ? '#2DD4BF' : '#115E59') : c.tint;
+        } else if (variant === 'soft') {
+          bg = pressed ? (c.scheme === 'dark' ? '#0F766E' : '#CCFBF1') : c.tealSoft;
+        } else if (variant === 'outline') {
+          bg = pressed ? c.surfaceMuted : c.surface;
+          borderColor = c.tint;
+          borderWidth = 1;
+        } else if (variant === 'ghost') {
+          bg = pressed ? c.surfaceMuted : 'transparent';
+        } else if (variant === 'destructive') {
+          bg = pressed ? c.dangerDark : c.danger;
+        }
+
+        return [
+          {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            backgroundColor: bg,
+            borderColor,
+            borderWidth,
+            paddingHorizontal: sizing.paddingHorizontal,
+            paddingVertical: sizing.paddingVertical,
+            borderRadius: sizing.borderRadius,
+            minHeight: sizing.minHeight,
+            borderCurve: 'continuous',
+            opacity: isDisabled ? 0.5 : 1,
+          },
+          typeof style === 'function' ? style(state) : style,
+        ];
+      }}
       disabled={isDisabled}
       {...props}
     >
@@ -72,7 +95,15 @@ export function Button({
       ) : icon ? (
         <IconSymbol name={icon} size={sizing.iconSize} color={iconColors[variant]} />
       ) : null}
-      <Text className={`${labelStyles[variant]} ${sizing.label}`}>{label}</Text>
+      
+      <Text style={{
+        color: (variant === 'default' || variant === 'destructive') ? Colors.light.surface : (variant === 'ghost' ? c.text : c.tint),
+        fontSize: sizing.fontSize,
+        fontWeight: size === 'lg' ? '700' : '600',
+        letterSpacing: size === 'lg' ? 0.3 : 0,
+      }}>
+        {label}
+      </Text>
       <View />
     </Pressable>
   );

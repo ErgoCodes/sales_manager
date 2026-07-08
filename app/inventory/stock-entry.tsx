@@ -16,6 +16,8 @@ import { Text } from '@/components/ui/text';
 import { registerEntry } from '@/db/movements';
 import { updateProduct } from '@/db/products';
 import { calculateTransferPrice } from '@/lib/pricing';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Radius, Semantic, Shadows } from '@/constants/theme';
 
 const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
@@ -32,6 +34,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function StockEntryScreen() {
+  const c = useAppColors();
   const [product, setProduct] = useState<SelectedProduct | null>(null);
   const [productError, setProductError] = useState('');
   const [updatePrices, setUpdatePrices] = useState(false);
@@ -99,7 +102,7 @@ export default function StockEntryScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
+    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Stack.Screen options={{ title: 'Registrar entrada' }} />
 
       <ProductPicker
@@ -110,7 +113,7 @@ export default function StockEntryScreen() {
       />
 
       {product ? (
-        <View className="rounded-xl bg-white dark:bg-slate-900 p-3 shadow-sm gap-1">
+        <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 12, boxShadow: Shadows.sm, gap: 4 }}>
           <Text variant="label">Precios actuales</Text>
           <Text variant="caption">
             Costo: ${product.costPrice ?? '—'} · Efectivo: ${product.cashPrice ?? '—'} ·
@@ -184,14 +187,14 @@ export default function StockEntryScreen() {
       <Pressable
         onPress={() => setUpdatePrices((v) => !v)}
         hitSlop={8}
-        className="flex-row items-center gap-2">
-        <Text variant="label" className={updatePrices ? 'text-blue-600' : 'text-gray-500 dark:text-slate-400'}>
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text variant="label" style={{ color: updatePrices ? c.transfer : c.textMuted }}>
           {updatePrices ? '☑' : '☐'} Actualizar precios del catálogo
         </Text>
       </Pressable>
 
       {updatePrices ? (
-        <View className="gap-3 rounded-xl bg-blue-50 p-3">
+        <View style={{ gap: 12, borderRadius: Radius.xl, backgroundColor: c.transferSoft, padding: 12 }}>
           <Controller
             control={control}
             name="newCostPrice"

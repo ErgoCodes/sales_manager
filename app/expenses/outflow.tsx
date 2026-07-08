@@ -17,6 +17,8 @@ import { Text } from '@/components/ui/text';
 import { OUTFLOW_TYPES, type OutflowType } from '@/constants/expenses';
 import { registerOutflow } from '@/db/movements';
 import { calculateStock } from '@/db/queries';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Radius, Shadows, Colors } from '@/constants/theme';
 
 const schema = z.object({
   quantity: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
@@ -30,6 +32,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function OutflowScreen() {
+  const c = useAppColors();
   const [product, setProduct] = useState<SelectedProduct | null>(null);
   const [productError, setProductError] = useState('');
   const [type, setType] = useState<OutflowType>('merma');
@@ -109,7 +112,7 @@ export default function OutflowScreen() {
   const isAdjustment = type === 'ajuste';
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
+    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Stack.Screen options={{ title: 'Salida de almacén' }} />
 
       <Select
@@ -127,7 +130,7 @@ export default function OutflowScreen() {
       />
 
       {product ? (
-        <View className="rounded-xl bg-white dark:bg-slate-900 p-3 shadow-sm gap-1">
+        <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 12, boxShadow: Shadows.sm, gap: 4 }}>
           <Text variant="label">Costo promedio actual</Text>
           <Text variant="caption">
             ${product.averageCost > 0 ? product.averageCost : (product.costPrice ?? '—')} ·{' '}
@@ -137,9 +140,9 @@ export default function OutflowScreen() {
       ) : null}
 
       {isAdjustment ? (
-        <View className="gap-1.5">
+        <View style={{ gap: 6 }}>
           <Text variant="label">Dirección del ajuste</Text>
-          <View className="flex-row gap-2">
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             {(
               [
                 { value: 'decrease', label: 'Disminuir' },
@@ -151,10 +154,16 @@ export default function OutflowScreen() {
                 <Pressable
                   key={opt.value}
                   onPress={() => setDirection(opt.value)}
-                  className={`rounded-full border px-3.5 py-2 ${
-                    selected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900'
-                  }`}>
-                  <Text className={selected ? 'text-white font-medium' : 'text-gray-700 dark:text-slate-200'}>
+                  style={({ pressed }) => ({
+                    borderRadius: Radius.full,
+                    borderWidth: 1,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    backgroundColor: selected ? c.tint : c.surface,
+                    borderColor: selected ? c.tint : c.border,
+                    opacity: pressed ? 0.7 : 1,
+                  })}>
+                  <Text style={{ color: selected ? Colors.light.surface : c.text, fontWeight: '500' }}>
                     {opt.label}
                   </Text>
                 </Pressable>

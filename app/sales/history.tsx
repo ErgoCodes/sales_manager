@@ -14,12 +14,20 @@ import {
   restoreSale,
   updateSale,
 } from '@/db/sales';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Colors, Radius, Semantic, Shadows } from '@/constants/theme';
 
-const BADGE_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  efectivo: { bg: 'bg-green-100', text: 'text-green-700', label: 'E' },
-  transferencia: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'T' },
-  costo: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'C' },
-};
+function getBadgeStyle(paymentMethod: string, c: any) {
+  switch (paymentMethod) {
+    case 'transferencia':
+      return { bg: c.transferSoft, text: c.transfer, label: 'T' };
+    case 'costo':
+      return { bg: c.costSoft, text: c.cost, label: 'C' };
+    case 'efectivo':
+    default:
+      return { bg: c.cashSoft, text: c.cash, label: 'E' };
+  }
+}
 
 const PAYMENT_OPTIONS: readonly SelectOption[] = [
   { label: 'Efectivo', value: 'efectivo' },
@@ -28,6 +36,7 @@ const PAYMENT_OPTIONS: readonly SelectOption[] = [
 ];
 
 export default function SalesHistoryScreen() {
+  const c = useAppColors();
   const [salesList, setSalesList] = useState<SaleWithProduct[]>([]);
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -139,17 +148,17 @@ export default function SalesHistoryScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-slate-950">
+    <View style={{ flex: 1, backgroundColor: c.background }}>
       <Stack.Screen options={{ title: 'Historial de ventas' }} />
 
-      <View className="p-4 gap-3">
+      <View style={{ padding: 16, gap: 12 }}>
         <Input
           placeholder="Filtrar por producto…"
           value={search}
           onChangeText={setSearch}
         />
-        <View className="flex-row gap-3">
-          <View className="flex-1">
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
             <Input
               label="Desde"
               placeholder="YYYY-MM-DD"
@@ -157,7 +166,7 @@ export default function SalesHistoryScreen() {
               onChangeText={setDateFrom}
             />
           </View>
-          <View className="flex-1">
+          <View style={{ flex: 1 }}>
             <Input
               label="Hasta"
               placeholder="YYYY-MM-DD"
@@ -168,14 +177,19 @@ export default function SalesHistoryScreen() {
         </View>
         <Pressable
           onPress={() => setShowCancelled((v) => !v)}
-          className="flex-row items-center gap-2 self-start">
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' }}>
           <View
-            className={`h-5 w-5 items-center justify-center rounded border ${
-              showCancelled
-                ? 'border-teal-700 bg-teal-700'
-                : 'border-gray-400 dark:border-slate-600'
-            }`}>
-            {showCancelled ? <Text className="text-white text-xs font-bold">✓</Text> : null}
+            style={{
+              height: 20,
+              width: 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 4,
+              borderWidth: 1,
+              borderColor: showCancelled ? '#0F766E' : c.border,
+              backgroundColor: showCancelled ? '#0F766E' : 'transparent',
+            }}>
+            {showCancelled ? <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text> : null}
           </View>
           <Text variant="label">Mostrar anuladas</Text>
         </Pressable>
@@ -184,42 +198,46 @@ export default function SalesHistoryScreen() {
       <FlatList
         data={salesList}
         keyExtractor={(s) => String(s.id)}
-        contentContainerClassName="px-4 pb-8 gap-3"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 12 }}
         ListEmptyComponent={
-          <View className="items-center py-12">
+          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
             <Text variant="caption">No hay ventas registradas.</Text>
           </View>
         }
         renderItem={({ item }) => {
-          const badge = BADGE_COLORS[item.paymentMethod] ?? BADGE_COLORS.efectivo;
-          const strike = item.cancelled ? 'line-through' : '';
+          const badge = getBadgeStyle(item.paymentMethod, c);
           return (
             <Pressable
               onPress={() => openActions(item)}
-              className={`rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-1 active:opacity-70 ${
-                item.cancelled ? 'opacity-60' : ''
-              }`}>
-              <View className="flex-row items-start justify-between">
-                <View className="flex-1 flex-row items-center gap-2">
-                  <Text variant="heading" className={strike}>
+              style={({ pressed }) => ({
+                borderRadius: Radius.xl,
+                backgroundColor: c.surface,
+                padding: 16,
+                boxShadow: Shadows.sm,
+                gap: 4,
+                opacity: (pressed ? 0.7 : 1) * (item.cancelled ? 0.6 : 1),
+              })}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text variant="heading" style={item.cancelled ? { textDecorationLine: 'line-through' } : {}}>
                     {item.productName}
                   </Text>
                   {item.cancelled ? (
-                    <View className="rounded-full px-2 py-0.5 bg-gray-200 dark:bg-slate-700">
-                      <Text variant="caption" className="text-gray-600 dark:text-slate-300">
+                    <View style={{ borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: c.surfaceMuted }}>
+                      <Text variant="caption" style={{ color: c.textMuted }}>
                         ANULADA
                       </Text>
                     </View>
                   ) : (
-                    <View className={`rounded-full px-2 py-0.5 ${badge.bg}`}>
-                      <Text variant="caption" className={badge.text}>
+                    <View style={{ borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: badge.bg }}>
+                      <Text variant="caption" style={{ color: badge.text }}>
                         {badge.label}
                       </Text>
                     </View>
                   )}
                   {item.discountPercent > 0 ? (
-                    <View className="rounded-full px-2 py-0.5 bg-purple-100">
-                      <Text variant="caption" className="text-purple-700">
+                    <View style={{ borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: '#F3E8FF' }}>
+                      <Text variant="caption" style={{ color: '#7E22CE' }}>
                         -{Math.round(item.discountPercent)}%
                       </Text>
                     </View>
@@ -227,7 +245,7 @@ export default function SalesHistoryScreen() {
                 </View>
                 <Text variant="caption">{item.date}</Text>
               </View>
-              <Text variant="body" className={strike}>
+              <Text variant="body" style={item.cancelled ? { textDecorationLine: 'line-through' } : {}}>
                 {item.quantity} {item.unitOfMeasure} × ${item.appliedPrice} = $
                 {(item.quantity * item.appliedPrice).toFixed(2)}
               </Text>
@@ -244,12 +262,12 @@ export default function SalesHistoryScreen() {
         transparent
         animationType="slide"
         onRequestClose={() => setEditing(null)}>
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="rounded-t-3xl bg-white dark:bg-slate-900 p-5 gap-4">
-            <View className="flex-row items-center justify-between">
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: c.surface, padding: 20, gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text variant="title">Editar venta</Text>
               <Pressable hitSlop={8} onPress={() => setEditing(null)}>
-                <Text variant="body" className="text-slate-500">Cerrar</Text>
+                <Text variant="body" style={{ color: c.textMuted }}>Cerrar</Text>
               </Pressable>
             </View>
             {editing ? (
@@ -278,11 +296,11 @@ export default function SalesHistoryScreen() {
             <Text variant="caption">
               ¿Cambiar de producto? Anula esta venta y regístrala de nuevo.
             </Text>
-            <View className="flex-row gap-3">
-              <View className="flex-1">
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
                 <Button variant="outline" label="Cancelar" onPress={() => setEditing(null)} />
               </View>
-              <View className="flex-1">
+              <View style={{ flex: 1 }}>
                 <Button label="Guardar" onPress={saveEdit} />
               </View>
             </View>

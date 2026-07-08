@@ -143,14 +143,14 @@ export default function InventoryScreen() {
           label="Stock bajo"
           active={filter === 'low'}
           count={lowCount}
-          accent={Semantic.danger}
+          accent={c.danger}
           onPress={() => setFilter('low')}
         />
         <FilterChip
           label="Estancados"
           active={filter === 'stagnant'}
           count={stagnantCount}
-          accent={Semantic.warning}
+          accent={c.warning}
           onPress={() => setFilter('stagnant')}
         />
       </View>
@@ -225,7 +225,7 @@ export default function InventoryScreen() {
                   borderCurve: 'continuous',
                   boxShadow: Shadows.sm,
                   borderLeftWidth: item.isLow ? 4 : 0,
-                  borderLeftColor: Semantic.danger,
+                  borderLeftColor: c.danger,
                 }}
               >
               <View style={{ flex: 1, gap: 6 }}>
@@ -256,7 +256,7 @@ export default function InventoryScreen() {
                   style={{
                     fontSize: FontSize['2xl'],
                     fontWeight: '800',
-                    color: item.isLow ? Semantic.danger : c.text,
+                    color: item.isLow ? c.danger : c.text,
                     letterSpacing: -0.5,
                     fontVariant: ['tabular-nums'],
                   }}
@@ -275,7 +275,7 @@ export default function InventoryScreen() {
                   {item.unitOfMeasure}
                 </Text>
                 {item.isLow ? (
-                  <Text style={{ fontSize: 10, color: Semantic.danger, marginTop: 2 }}>
+                  <Text style={{ fontSize: 10, color: c.danger, marginTop: 2 }}>
                     min {item.threshold}
                   </Text>
                 ) : null}

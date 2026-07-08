@@ -31,7 +31,7 @@ export default function RankingsScreen() {
   }, [period, sortBy]);
 
   const isQuantity = sortBy === 'quantity';
-  const accent = isQuantity ? Semantic.transfer : Semantic.cash;
+  const accent = isQuantity ? c.transfer : c.cash;
   const metric = (r: ProductRanking) => (isQuantity ? r.totalQuantity : r.totalProfit);
   const maxMetric = rows.reduce((max, r) => Math.max(max, metric(r)), 0);
 
@@ -109,7 +109,7 @@ export default function RankingsScreen() {
                 style={{
                   fontSize: FontSize.base,
                   fontWeight: '700',
-                  color: active ? Colors.light.surface : c.textMuted,
+                  color: active ? 'white' : c.textMuted,
                 }}
               >
                 {t.label}
@@ -167,7 +167,7 @@ export default function RankingsScreen() {
                       style={{
                         fontSize: FontSize.lg,
                         fontWeight: '800',
-                        color: index < 3 ? Colors.light.surface : c.textMuted,
+                        color: index < 3 ? 'white' : c.textMuted,
                         fontVariant: ['tabular-nums'],
                       }}
                     >

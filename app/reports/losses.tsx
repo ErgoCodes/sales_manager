@@ -85,7 +85,7 @@ export default function LossesReportScreen() {
       />
 
       <Animated.View entering={FadeInDown.delay(60).duration(360).springify()}>
-        <HeroCard color={Semantic.danger} padding={20}>
+        <HeroCard color={c.danger} padding={20}>
           <Text
             style={{
               fontSize: FontSize.xs,
@@ -160,7 +160,7 @@ export default function LossesReportScreen() {
               style={{
                 fontSize: 15,
                 fontWeight: '700',
-                color: item.subtotal > 0 ? Semantic.danger : c.tabIconDefault,
+                color: item.subtotal > 0 ? c.danger : c.tabIconDefault,
                 fontVariant: ['tabular-nums'],
               }}
             >
@@ -249,7 +249,7 @@ export default function LossesReportScreen() {
               style={{
                 fontSize: 20,
                 fontWeight: '800',
-                color: Semantic.danger,
+                color: c.danger,
                 fontVariant: ['tabular-nums'],
               }}
             >

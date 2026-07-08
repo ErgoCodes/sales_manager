@@ -1,6 +1,6 @@
 import { Text, View, type ViewProps } from 'react-native';
 
-import { Semantic } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 export type BadgeTone = 'success' | 'info' | 'warning' | 'danger' | 'neutral' | 'cost';
 type Size = 'sm' | 'md';
@@ -12,16 +12,16 @@ interface BadgeProps extends ViewProps {
   dot?: boolean;
 }
 
-const toneColors: Record<BadgeTone, { bg: string; fg: string }> = {
-  success: { bg: Semantic.cashSoft, fg: Semantic.cash },
-  info: { bg: Semantic.transferSoft, fg: Semantic.transfer },
-  warning: { bg: Semantic.warningSoft, fg: Semantic.warningDark },
-  danger: { bg: Semantic.dangerSoft, fg: Semantic.danger },
-  neutral: { bg: Semantic.neutralSoft, fg: Semantic.neutral },
-  cost: { bg: Semantic.costSoft, fg: Semantic.cost },
-};
-
 export function Badge({ label, tone = 'neutral', size = 'sm', dot = false, style, ...props }: BadgeProps) {
+  const c = useAppColors();
+  const toneColors: Record<BadgeTone, { bg: string; fg: string }> = {
+    success: { bg: c.cashSoft, fg: c.cash },
+    info: { bg: c.transferSoft, fg: c.transfer },
+    warning: { bg: c.warningSoft, fg: c.warningDark },
+    danger: { bg: c.dangerSoft, fg: c.danger },
+    neutral: { bg: c.neutralSoft, fg: c.neutral },
+    cost: { bg: c.costSoft, fg: c.cost },
+  };
   const { bg, fg } = toneColors[tone];
   const px = size === 'sm' ? 8 : 10;
   const py = size === 'sm' ? 3 : 5;

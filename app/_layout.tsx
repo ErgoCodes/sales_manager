@@ -29,8 +29,8 @@ export default function RootLayout() {
 
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center p-6">
-        <Text className="text-center text-red-500">
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <Text style={{ textAlign: 'center', color: '#EF4444' }}>
           Error al preparar la base de datos: {error.message}
         </Text>
       </View>
@@ -39,8 +39,8 @@ export default function RootLayout() {
 
   if (!success) {
     return (
-      <View className="flex-1 items-center justify-center p-6">
-        <Text className="text-center">Preparando la base de datos…</Text>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <Text style={{ textAlign: 'center' }}>Preparando la base de datos…</Text>
       </View>
     );
   }

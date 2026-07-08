@@ -17,6 +17,8 @@ import { createProduct, getProduct, updateProduct } from '@/db/products';
 import { calculateStock, getLastSaleDate } from '@/db/queries';
 import { isNearExpiration, isStagnant } from '@/lib/product-status';
 import { calculateTransferPrice } from '@/lib/pricing';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Radius, Semantic, Shadows } from '@/constants/theme';
 
 const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
@@ -40,6 +42,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function ProductFormScreen() {
+  const c = useAppColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const isNew = id === 'new';
 
@@ -135,7 +138,7 @@ export default function ProductFormScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
+    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Stack.Screen options={{ title: isNew ? 'Nuevo producto' : 'Editar producto' }} />
 
       <Controller
@@ -245,14 +248,14 @@ export default function ProductFormScreen() {
       />
 
       {suggested > 0 ? (
-        <View className="flex-row items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
-          <Text variant="caption" className="flex-1 text-blue-700">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: Radius.md, backgroundColor: c.transferSoft, paddingHorizontal: 12, paddingVertical: 8 }}>
+          <Text variant="caption" style={{ flex: 1, color: c.transfer }}>
             ≈ Sugerido: ${suggested} (costo + 30%)
           </Text>
           <Pressable
             hitSlop={8}
             onPress={() => setValue('cashPrice', String(suggested))}>
-            <Text variant="label" className="text-blue-600">
+            <Text variant="label" style={{ color: c.transfer }}>
               Usar sugerido
             </Text>
           </Pressable>
@@ -264,8 +267,8 @@ export default function ProductFormScreen() {
       stagnantInfo &&
       (stagnantInfo.stagnant || stagnantInfo.nearExpiration) &&
       cashNum > 0 ? (
-        <View className="flex-row items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
-          <Text variant="caption" className="flex-1 text-amber-700">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: Radius.md, backgroundColor: c.warningSoft, paddingHorizontal: 12, paddingVertical: 8 }}>
+          <Text variant="caption" style={{ flex: 1, color: c.warning }}>
             {stagnantInfo.stagnant && stagnantInfo.nearExpiration
               ? 'Producto estancado y próximo a vencer.'
               : stagnantInfo.stagnant
@@ -280,28 +283,28 @@ export default function ProductFormScreen() {
               setRebajaApplied(true);
               setValue('cashPrice', String(suggestedRebaja));
             }}>
-            <Text variant="label" className="text-amber-700">
+            <Text variant="label" style={{ color: c.warning }}>
               Sugerir rebaja
             </Text>
           </Pressable>
         </View>
       ) : null}
 
-      <View className="rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-2">
+      <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 16, boxShadow: Shadows.sm, gap: 8 }}>
         <Text variant="label">Resumen de precios</Text>
-        <View className="flex-row justify-between">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Text variant="body">Costo</Text>
           <Text variant="body">{costNum > 0 ? `$${costNum}` : '—'}</Text>
         </View>
-        <View className="flex-row justify-between">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Text variant="body">Efectivo</Text>
           <Text variant="body">{cashNum > 0 ? `$${cashNum}` : '—'}</Text>
         </View>
-        <View className="flex-row justify-between">
-          <Text variant="body" className="font-semibold">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text variant="body" style={{ fontWeight: '600' }}>
             Transferencia
           </Text>
-          <Text variant="body" className="font-semibold">
+          <Text variant="body" style={{ fontWeight: '600' }}>
             {transferNum > 0 ? `$${transferNum}` : '—'}
           </Text>
         </View>

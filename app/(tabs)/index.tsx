@@ -186,15 +186,15 @@ export default function HomeScreen() {
         <StatCard
           label="Efectivo"
           value={formatCurrency(summary.cash)}
-          accent={Semantic.cash}
-          iconBg={Semantic.cashSoft}
+          accent={c.cash}
+          iconBg={c.cashSoft}
           icon="dollarsign.circle.fill"
         />
         <StatCard
           label="Transferencia"
           value={formatCurrency(summary.transfer)}
-          accent={Semantic.transfer}
-          iconBg={Semantic.transferSoft}
+          accent={c.transfer}
+          iconBg={c.transferSoft}
           icon="arrow.left.arrow.right.circle.fill"
         />
       </Animated.View>
@@ -218,22 +218,22 @@ export default function HomeScreen() {
             icon="cart.fill"
             label="Nueva venta"
             onPress={() => router.push('/sales/new-session')}
-            accent={Semantic.cash}
-            bg={Semantic.cashSoft}
+            accent={c.cash}
+            bg={c.cashSoft}
           />
           <QuickAction
             icon="shippingbox.fill"
             label="Entrada"
             onPress={() => router.push('/inventory/stock-entry')}
-            accent={Semantic.transfer}
-            bg={Semantic.transferSoft}
+            accent={c.transfer}
+            bg={c.transferSoft}
           />
           <QuickAction
             icon="square.grid.2x2"
             label="Catálogo"
             onPress={() => router.push('/catalog')}
-            accent={Colors.light.tint}
-            bg={Semantic.tealSoft}
+            accent={c.tint}
+            bg={c.tealSoft}
           />
         </View>
       </Animated.View>
@@ -247,7 +247,7 @@ export default function HomeScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 12,
-              backgroundColor: Semantic.dangerSoft,
+              backgroundColor: c.dangerSoft,
               borderRadius: Radius.xl,
               padding: 14,
               borderCurve: 'continuous',
@@ -259,22 +259,22 @@ export default function HomeScreen() {
                 width: 40,
                 height: 40,
                 borderRadius: Radius.md,
-                backgroundColor: Semantic.danger,
+                backgroundColor: c.danger,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <IconSymbol name="exclamationmark.triangle.fill" size={20} color={Colors.light.surface} />
+              <IconSymbol name="exclamationmark.triangle.fill" size={20} color={c.surface} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: Semantic.dangerDark }}>
+              <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: c.dangerDark }}>
                 Stock bajo en {lowStockCount} producto{lowStockCount > 1 ? 's' : ''}
               </Text>
-              <Text style={{ fontSize: FontSize.sm, color: Semantic.dangerDark, marginTop: 2 }}>
+              <Text style={{ fontSize: FontSize.sm, color: c.dangerDark, marginTop: 2 }}>
                 Toca para revisar el inventario
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={18} color={Semantic.danger} />
+            <IconSymbol name="chevron.right" size={18} color={c.danger} />
           </Pressable>
         ) : (
           <View
@@ -294,12 +294,12 @@ export default function HomeScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: Radius.md,
-                backgroundColor: Semantic.cashSoft,
+                backgroundColor: c.cashSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <IconSymbol name="checkmark.circle.fill" size={20} color={Semantic.cash} />
+              <IconSymbol name="checkmark.circle.fill" size={20} color={c.cash} />
             </View>
             <Text style={{ fontSize: FontSize.md, color: c.textMuted, fontWeight: '500', flex: 1 }}>
               Inventario en orden — sin alertas

@@ -134,13 +134,13 @@ export default function ExpensesScreen() {
               <ActionButton
                 label="Gasto"
                 icon="dollarsign.circle.fill"
-                accent={Semantic.transfer}
+                accent={c.transfer}
                 onPress={() => router.push('/expenses/new')}
               />
               <ActionButton
                 label="Salida"
                 icon="arrow.up.right"
-                accent={Semantic.danger}
+                accent={c.danger}
                 onPress={() => router.push('/expenses/outflow')}
               />
             </View>

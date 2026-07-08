@@ -1,6 +1,7 @@
 import { View, type ViewProps } from 'react-native';
 
-import { Shadows } from '@/constants/theme';
+import { Shadows, Radius } from '@/constants/theme';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 type Variant = 'default' | 'tinted' | 'outline' | 'flat';
 
@@ -9,26 +10,44 @@ interface CardProps extends ViewProps {
   padded?: boolean;
 }
 
-const variantClasses: Record<Variant, string> = {
-  default: 'bg-surface dark:bg-slate-900',
-  tinted: 'bg-primary-soft dark:bg-teal-950',
-  outline: 'bg-surface dark:bg-slate-900 border border-border dark:border-slate-700',
-  flat: 'bg-surface-muted dark:bg-slate-800',
-};
-
 export function Card({
   variant = 'default',
   padded = true,
-  className = '',
   style,
   children,
   ...props
 }: CardProps) {
+  const c = useAppColors();
   const shadow = variant === 'default' ? Shadows.md : undefined;
+
+  let bg = c.surface;
+  let borderColor = 'transparent';
+  let borderWidth = 0;
+
+  if (variant === 'tinted') {
+    bg = c.scheme === 'dark' ? '#134E4A' : c.tealSoft;
+  } else if (variant === 'outline') {
+    bg = c.surface;
+    borderColor = c.border;
+    borderWidth = 1;
+  } else if (variant === 'flat') {
+    bg = c.surfaceMuted;
+  }
+
   return (
     <View
-      className={`rounded-card ${variantClasses[variant]} ${padded ? 'p-4' : ''} ${className}`}
-      style={[{ borderCurve: 'continuous' }, shadow ? { boxShadow: shadow } : null, style]}
+      style={[
+        {
+          backgroundColor: bg,
+          borderColor,
+          borderWidth,
+          borderRadius: Radius.lg,
+          padding: padded ? 16 : 0,
+          borderCurve: 'continuous',
+        },
+        shadow ? { boxShadow: shadow } : null,
+        style,
+      ]}
       {...props}
     >
       {children}

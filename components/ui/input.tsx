@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { TextInput, View, Text, type TextInputProps } from 'react-native';
 
-import { Semantic } from '@/constants/theme';
 import { useAppColors } from '@/hooks/use-app-colors';
 
 interface InputProps extends TextInputProps {
@@ -13,7 +12,7 @@ interface InputProps extends TextInputProps {
 export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: InputProps) {
   const c = useAppColors();
   const [focused, setFocused] = useState(false);
-  const borderColor = error ? Semantic.danger : focused ? c.tint : c.border;
+  const borderColor = error ? c.danger : focused ? c.tint : c.border;
   return (
     <View style={{ gap: 6 }}>
       {label ? (
@@ -46,7 +45,7 @@ export function Input({ label, error, hint, style, onFocus, onBlur, ...props }: 
         {...props}
       />
       {error ? (
-        <Text style={{ fontSize: 12, color: Semantic.danger }}>{error}</Text>
+        <Text style={{ fontSize: 12, color: c.danger }}>{error}</Text>
       ) : hint ? (
         <Text style={{ fontSize: 12, color: c.tabIconDefault }}>{hint}</Text>
       ) : null}

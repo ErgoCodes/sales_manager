@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { EXPENSE_TYPES, type ExpenseType } from '@/constants/expenses';
 import { registerExpense } from '@/db/expenses';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 const schema = z.object({
   amount: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
@@ -21,6 +22,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function NewExpenseScreen() {
+  const c = useAppColors();
   const [type, setType] = useState<ExpenseType>('salario');
 
   const {
@@ -47,7 +49,7 @@ export default function NewExpenseScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-950" contentContainerClassName="p-4 gap-4">
+    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Stack.Screen options={{ title: 'Nuevo gasto' }} />
 
       <Select
@@ -111,3 +113,4 @@ export default function NewExpenseScreen() {
     </ScrollView>
   );
 }
+

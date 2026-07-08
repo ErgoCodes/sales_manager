@@ -17,11 +17,13 @@ import {
   type SelectedProduct,
 } from '@/components/ui/product-picker';
 import { Text } from '@/components/ui/text';
-import { Colors } from '@/constants/theme';
+import { Colors, Radius, Semantic, Shadows } from '@/constants/theme';
 import { registerSalesSession, verifySessionStock } from '@/db/sales';
 import { useCartStore } from '@/store';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 export default function NewSessionScreen() {
+  const c = useAppColors();
   const items = useCartStore((s) => s.items);
   const date = useCartStore((s) => s.date);
   const addItem = useCartStore((s) => s.addItem);
@@ -145,12 +147,12 @@ export default function NewSessionScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-gray-50 dark:bg-slate-950"
+      style={{ flex: 1, backgroundColor: c.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Stack.Screen options={{ title: 'Nueva sesión' }} />
 
-      <View className="px-4 pt-3 gap-3 z-10">
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 12, zIndex: 10 }}>
         <Input
           label="Fecha de la sesión"
           value={date}
@@ -165,8 +167,8 @@ export default function NewSessionScreen() {
         />
 
         {product ? (
-          <View className="rounded-xl bg-white dark:bg-slate-900 p-3 shadow-sm gap-2">
-            <View className="flex-row justify-between items-center">
+          <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 12, boxShadow: Shadows.sm, gap: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text variant="heading">{product.name}</Text>
               <Pressable
                 onPress={() => {
@@ -178,7 +180,7 @@ export default function NewSessionScreen() {
                 }}
                 hitSlop={12}
               >
-                <Text variant="body" className="text-gray-400 dark:text-slate-500">
+                <Text variant="body" style={{ color: c.textMuted }}>
                   ✕
                 </Text>
               </Pressable>
@@ -189,13 +191,22 @@ export default function NewSessionScreen() {
               {product.averageCost.toFixed(2)}
             </Text>
 
-            <View className="gap-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-slate-200">
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: c.text }}>
                 Cantidad ({product.unitOfMeasure})
               </Text>
               <TextInput
                 ref={quantityRef}
-                className="border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2.5 text-base text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-900"
+                style={{
+                  borderWidth: 1,
+                  borderColor: c.border,
+                  borderRadius: Radius.lg,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 16,
+                  color: c.text,
+                  backgroundColor: c.surface,
+                }}
                 value={quantity}
                 onChangeText={setQuantity}
                 keyboardType="numeric"
@@ -217,9 +228,9 @@ export default function NewSessionScreen() {
                 });
               }}
               hitSlop={8}
-              className="flex-row items-center gap-2"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
             >
-              <Text variant="label" className={workerSale ? 'text-orange-600' : 'text-gray-500 dark:text-slate-400'}>
+              <Text variant="label" style={{ color: workerSale ? c.cost : c.textMuted }}>
                 {workerSale ? '☑' : '☐'} Venta a trabajador (costo)
               </Text>
             </Pressable>
@@ -228,11 +239,11 @@ export default function NewSessionScreen() {
               <Pressable
                 onPress={() => setDiscountExpanded((v) => !v)}
                 hitSlop={8}
-                className="flex-row items-center gap-2"
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
               >
                 <Text
                   variant="label"
-                  className={discountExpanded ? 'text-purple-600' : 'text-gray-500 dark:text-slate-400'}
+                  style={{ color: discountExpanded ? '#9333EA' : c.textMuted }}
                 >
                   {discountExpanded ? '☑' : '☐'} Descuento
                 </Text>
@@ -251,20 +262,33 @@ export default function NewSessionScreen() {
 
             {workerSale ? (
               <Pressable
-                className="rounded-lg bg-orange-500 py-3 items-center active:bg-orange-600"
+                style={({ pressed }) => ({
+                  borderRadius: Radius.lg,
+                  backgroundColor: c.cost,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  opacity: pressed ? 0.8 : 1,
+                })}
                 onPress={() => addToCart('costo')}
               >
-                <Text className="text-white font-semibold text-sm">
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
                   A costo ${product.costPrice ?? product.averageCost.toFixed(2)}
                 </Text>
               </Pressable>
             ) : (
-              <View className="flex-row gap-3">
+              <View style={{ flexDirection: 'row', gap: 12 }}>
                 <Pressable
-                  className="flex-1 rounded-lg bg-green-600 py-3 items-center active:bg-green-700"
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    borderRadius: Radius.lg,
+                    backgroundColor: c.cash,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    opacity: pressed ? 0.8 : 1,
+                  })}
                   onPress={() => addToCart('efectivo')}
                 >
-                  <Text className="text-white font-semibold text-sm">
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
                     Efectivo $
                     {discountPercentNum > 0
                       ? ((product.cashPrice ?? 0) * (1 - discountPercentNum / 100)).toFixed(2)
@@ -272,10 +296,17 @@ export default function NewSessionScreen() {
                   </Text>
                 </Pressable>
                 <Pressable
-                  className="flex-1 rounded-lg bg-blue-600 py-3 items-center active:bg-blue-700"
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    borderRadius: Radius.lg,
+                    backgroundColor: c.transfer,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    opacity: pressed ? 0.8 : 1,
+                  })}
                   onPress={() => addToCart('transferencia')}
                 >
-                  <Text className="text-white font-semibold text-sm">
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
                     Transfer $
                     {discountPercentNum > 0
                       ? ((product.transferPrice ?? 0) * (1 - discountPercentNum / 100)).toFixed(2)
@@ -291,18 +322,18 @@ export default function NewSessionScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => item.key}
-        className="flex-1"
-        contentContainerClassName="px-4 py-3 gap-2"
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
         ListEmptyComponent={
-          <View className="items-center py-12">
+          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
             <Text variant="caption">
               Selecciona un producto para comenzar
             </Text>
           </View>
         }
         renderItem={({ item }) => (
-          <View className="flex-row items-center rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-sm">
-            <View className="flex-1 gap-0.5">
+          <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: Radius.xl, backgroundColor: c.surface, paddingHorizontal: 16, paddingVertical: 12, boxShadow: Shadows.sm }}>
+            <View style={{ flex: 1, gap: 2 }}>
               <Text variant="body">{item.name}</Text>
               <Text variant="caption">
                 {item.quantity} {item.unitOfMeasure} × ${item.appliedPrice} = $
@@ -310,56 +341,62 @@ export default function NewSessionScreen() {
               </Text>
             </View>
             {item.discountPercent > 0 ? (
-              <View className="rounded-full px-2 py-0.5 mr-2 bg-purple-100">
-                <Text variant="caption" className="text-purple-700">
+              <View style={{ borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2, marginRight: 8, backgroundColor: '#F3E8FF' }}>
+                <Text variant="caption" style={{ color: '#7E22CE' }}>
                   -{Math.round(item.discountPercent)}%
                 </Text>
               </View>
             ) : null}
             <View
-              className={`rounded-full px-2 py-0.5 mr-3 ${
-                item.paymentMethod === 'efectivo'
-                  ? 'bg-green-100'
-                  : item.paymentMethod === 'transferencia'
-                    ? 'bg-blue-100'
-                    : 'bg-orange-100'
-              }`}
+              style={{
+                borderRadius: Radius.full,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                marginRight: 12,
+                backgroundColor:
+                  item.paymentMethod === 'efectivo'
+                    ? c.cashSoft
+                    : item.paymentMethod === 'transferencia'
+                      ? c.transferSoft
+                      : c.costSoft,
+              }}
             >
               <Text
                 variant="caption"
-                className={
-                  item.paymentMethod === 'efectivo'
-                    ? 'text-green-700'
-                    : item.paymentMethod === 'transferencia'
-                      ? 'text-blue-700'
-                      : 'text-orange-700'
-                }
+                style={{
+                  color:
+                    item.paymentMethod === 'efectivo'
+                      ? c.cash
+                      : item.paymentMethod === 'transferencia'
+                        ? c.transfer
+                        : c.cost,
+                }}
               >
                 {item.paymentMethod === 'efectivo' ? 'E' : item.paymentMethod === 'transferencia' ? 'T' : 'C'}
               </Text>
             </View>
             <Pressable onPress={() => removeItem(item.key)} hitSlop={12}>
-              <Text className="text-red-500 text-lg">✕</Text>
+              <Text style={{ color: c.danger, fontSize: 18 }}>✕</Text>
             </Pressable>
           </View>
         )}
       />
 
-      <View className="bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 px-4 py-3 gap-2">
-        <View className="flex-row justify-between flex-wrap gap-1">
-          <Text variant="label" className="text-green-700">
+      <View style={{ backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+          <Text variant="label" style={{ color: c.cash }}>
             Efectivo: ${formatAmount(totalCash())}
           </Text>
-          <Text variant="label" className="text-blue-700">
+          <Text variant="label" style={{ color: c.transfer }}>
             Transfer: ${formatAmount(totalTransfer())}
           </Text>
           {totalCost() > 0 ? (
-            <Text variant="label" className="text-orange-600">
+            <Text variant="label" style={{ color: c.cost }}>
               Costo: ${formatAmount(totalCost())}
             </Text>
           ) : null}
         </View>
-        <View className="flex-row justify-between items-center">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text variant="heading">Total: ${formatAmount(grandTotal())}</Text>
           <Text variant="caption">{items.length} ítem(s)</Text>
         </View>

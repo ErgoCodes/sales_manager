@@ -44,10 +44,10 @@ export function EmptyState({ icon, title, description, action, badge }: EmptySta
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 999,
-            backgroundColor: Semantic.warningSoft,
+            backgroundColor: c.warningSoft,
           }}
         >
-          <Text style={{ fontSize: 11, fontWeight: '700', color: Semantic.warningDark, letterSpacing: 0.4 }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: c.warningDark, letterSpacing: 0.4 }}>
             {badge.toUpperCase()}
           </Text>
         </View>
@@ -66,12 +66,12 @@ export function EmptyState({ icon, title, description, action, badge }: EmptySta
             paddingHorizontal: 18,
             paddingVertical: 11,
             borderRadius: Radius.md,
-            backgroundColor: Colors.light.tint,
+            backgroundColor: c.tint,
             opacity: pressed ? 0.85 : 1,
             borderCurve: 'continuous',
           })}
         >
-          <Text style={{ color: Colors.light.surface, fontSize: 14, fontWeight: '600' }}>{action.label}</Text>
+          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{action.label}</Text>
         </Pressable>
       ) : null}
     </View>

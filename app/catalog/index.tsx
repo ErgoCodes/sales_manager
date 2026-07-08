@@ -13,10 +13,13 @@ import {
   type ProductWithStock,
   restoreProduct,
 } from '@/db/products';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Radius, Shadows, Semantic } from '@/constants/theme';
 
 const CATEGORY_FILTER = [{ label: 'Todas', value: '' }, ...CATEGORY_OPTIONS];
 
 export default function CatalogScreen() {
+  const c = useAppColors();
   const [products, setProducts] = useState<ProductWithStock[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
@@ -46,15 +49,15 @@ export default function CatalogScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-slate-950">
+    <View style={{ flex: 1, backgroundColor: c.background }}>
       <Stack.Screen options={{ title: 'Catálogo' }} />
 
-      <View className="p-4 gap-3">
+      <View style={{ padding: 16, gap: 12 }}>
         <Input placeholder="Buscar por nombre…" value={search} onChangeText={setSearch} />
         <Select options={CATEGORY_FILTER} value={category} onChange={setCategory} />
-        <View className="flex-row items-center justify-between">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Pressable onPress={() => setIncludeArchived((v) => !v)} hitSlop={8}>
-            <Text variant="label" className={includeArchived ? 'text-blue-600' : 'text-gray-500 dark:text-slate-400'}>
+            <Text variant="label" style={{ color: includeArchived ? c.transfer : c.textMuted }}>
               {includeArchived ? '☑ Mostrando archivados' : '☐ Mostrar archivados'}
             </Text>
           </Pressable>
@@ -65,27 +68,34 @@ export default function CatalogScreen() {
       <FlatList
         data={products}
         keyExtractor={(p) => String(p.id)}
-        contentContainerClassName="px-4 pb-8 gap-3"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 12 }}
         ListEmptyComponent={
-          <View className="items-center py-12">
+          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
             <Text variant="caption">No hay productos. Crea el primero con + Nuevo.</Text>
           </View>
         }
         renderItem={({ item }) => (
           <View
-            className={`rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm gap-2 ${item.active ? '' : 'opacity-60'}`}>
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1 gap-0.5">
+            style={{
+              borderRadius: Radius.xl,
+              backgroundColor: c.surface,
+              padding: 16,
+              gap: 8,
+              boxShadow: Shadows.sm,
+              opacity: item.active ? 1 : 0.6,
+            }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1, gap: 2 }}>
                 <Text variant="heading">{item.name}</Text>
                 <Text variant="caption">
                   {item.category ?? 'Sin categoría'} · umbral {item.lowStockThreshold ?? '—'}
                 </Text>
               </View>
-              <Text variant="label" className="text-gray-700 dark:text-slate-200">
+              <Text variant="label" style={{ color: c.text }}>
                 {item.stock} {item.unitOfMeasure}
               </Text>
             </View>
-            <View className="flex-row gap-2">
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               <Button
                 size="sm"
                 variant="outline"
@@ -105,3 +115,4 @@ export default function CatalogScreen() {
     </View>
   );
 }
+

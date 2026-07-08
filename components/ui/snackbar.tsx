@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
+import { useAppColors } from '@/hooks/use-app-colors';
+import { Shadows, Radius } from '@/constants/theme';
+
 interface SnackbarProps {
   visible: boolean;
   message: string;
@@ -24,6 +27,7 @@ export function Snackbar({
   duration = 5000,
 }: SnackbarProps) {
   const opacity = useRef(new Animated.Value(0)).current;
+  const c = useAppColors();
 
   useEffect(() => {
     if (!visible) return;
@@ -51,10 +55,27 @@ export function Snackbar({
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={{ opacity }}
-      className="absolute inset-x-4 bottom-8">
-      <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-slate-800 dark:bg-slate-700 px-4 py-3 shadow-lg">
-        <Text className="flex-1 text-white text-sm">{message}</Text>
+      style={{
+        opacity,
+        position: 'absolute',
+        bottom: 32,
+        left: 16,
+        right: 16,
+        zIndex: 50,
+      }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          borderRadius: Radius.lg,
+          backgroundColor: c.scheme === 'dark' ? '#334155' : '#1E293B',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          boxShadow: Shadows.lg,
+        }}>
+        <Text style={{ flex: 1, color: '#FFFFFF', fontSize: 14 }}>{message}</Text>
         {actionLabel && onAction ? (
           <Pressable
             hitSlop={8}
@@ -62,7 +83,14 @@ export function Snackbar({
               onAction();
               onDismiss();
             }}>
-            <Text className="text-teal-300 text-sm font-bold uppercase tracking-wide">
+            <Text
+              style={{
+                color: c.scheme === 'dark' ? '#5EEAD4' : '#5EEAD4',
+                fontSize: 14,
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+              }}>
               {actionLabel}
             </Text>
           </Pressable>
