@@ -38,6 +38,7 @@ const MAPPING = {
   'magnifyingglass': 'search',
   'checkmark.circle.fill': 'check-circle',
   'xmark.circle.fill': 'cancel',
+  'square.and.arrow.up': 'ios-share',
 } as IconMapping;
 
 /**

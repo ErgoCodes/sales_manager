@@ -411,16 +411,16 @@
 
 > Desde cualquier reporte, un toque para compartir.
 
-- [ ] Botón "Compartir" en todos los reportes: diario, semanal, mensual, rankings, pérdidas
-- [ ] Generar imagen del reporte (screenshot de la vista usando `react-native-view-shot` o similar) o PDF simple
-- [ ] Llamar al share sheet nativo (`expo-sharing`) con el archivo generado
-- [ ] Archivo legible en pantalla de móvil sin zoom excesivo
-- [ ] Nombre de archivo con fecha: `reporte_diario_2025-06-01.pdf`
-- [ ] Flujo funciona offline (generación es local; WhatsApp necesita internet para enviar)
+- [x] Botón "Exportar a Excel" en todos los reportes: diario, semanal, mensual, rankings, pérdidas
+- [x] Generar archivo **`.xlsx`** (SheetJS) desde los datos — no captura de UI, así se esquiva la virtualización de los `FlatList` y la New Arch. **Desviación del roadmap**: se eligió Excel sobre imagen/PDF (datos tabulares que Pupo puede filtrar/sumar). Máximo detalle: cada venta/registro individual + fila de totales, en hojas por sección
+- [x] Llamar al share sheet nativo (`expo-sharing`) con el archivo generado (`lib/excel.ts`)
+- [x] Archivo con máximo detalle, filtrable/ordenable en Excel/Sheets
+- [x] Nombre de archivo con fecha: `reporte_diario_2026-07-08.xlsx`, `reporte_mensual_…`, etc.
+- [x] Flujo funciona offline (generación local con SheetJS, JS puro; compartir es local)
 
 **Depende de:** T-16, T-17, T-18, T-19
 
-**Acepta si:** botón en todos los reportes, share sheet nativo abre, archivo contiene toda la info del reporte.
+**Acepta si:** botón en todos los reportes, share sheet nativo abre, archivo contiene toda la info del reporte. *(tsc + lint OK; núcleo de generación xlsx validado en Node —base64→bytes ZIP válidos, hojas/acentos/números correctos—; escritura de archivo + share sheet en device pendiente de probar en Expo Go)*
 
 ---
 

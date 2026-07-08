@@ -1,10 +1,11 @@
 import { format } from 'date-fns';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Badge, type BadgeTone } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DateBar } from '@/components/ui/date-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HeroCard } from '@/components/ui/hero-card';
@@ -17,7 +18,14 @@ import { listProducts } from '@/db/products';
 import { getDailySummary, type DailySummary } from '@/db/queries';
 import { listSales, type SaleWithProduct } from '@/db/sales';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { exportToExcel } from '@/lib/excel';
 import { formatCurrency } from '@/lib/format';
+
+function methodLabel(method: string): string {
+  if (method === 'efectivo') return 'Efectivo';
+  if (method === 'transferencia') return 'Transferencia';
+  return 'Costo';
+}
 
 interface ProductGroup {
   productId: number;
@@ -80,6 +88,7 @@ export default function DailyReportScreen() {
   const [rows, setRows] = useState<ProductGroup[]>([]);
   const [inventory, setInventory] = useState<Inventory>({ totalValue: 0, lowStock: [] });
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     let active = true;
@@ -126,6 +135,53 @@ export default function DailyReportScreen() {
     });
   }, []);
 
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const salesRows: (string | number)[][] = [
+        ['Fecha', 'Producto', 'Unidad', 'Cantidad', 'Método', 'Precio aplicado', 'Costo unitario', 'Importe', 'Utilidad'],
+      ];
+      let totalQty = 0;
+      let totalRevenue = 0;
+      let totalProfit = 0;
+      for (const group of rows) {
+        for (const s of group.sales) {
+          const amount = s.appliedPrice * s.quantity;
+          totalQty += s.quantity;
+          totalRevenue += amount;
+          totalProfit += s.profit;
+          salesRows.push([
+            s.date,
+            s.productName,
+            s.unitOfMeasure,
+            s.quantity,
+            methodLabel(s.paymentMethod),
+            s.appliedPrice,
+            s.costAtSale,
+            amount,
+            s.profit,
+          ]);
+        }
+      }
+      salesRows.push(['TOTAL', '', '', totalQty, '', '', '', totalRevenue, totalProfit]);
+
+      const inventoryRows: (string | number)[][] = [['Producto', 'Stock', 'Umbral']];
+      for (const item of inventory.lowStock) {
+        inventoryRows.push([item.name, item.stock, item.threshold]);
+      }
+      inventoryRows.push(['Valor total del inventario', inventory.totalValue, '']);
+
+      await exportToExcel(`reporte_diario_${date}.xlsx`, [
+        { name: 'Ventas', rows: salesRows },
+        { name: 'Inventario', rows: inventoryRows },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+    } finally {
+      setExporting(false);
+    }
+  }, [rows, inventory, date]);
+
   const sectionLabel = (text: string) => (
     <Text
       style={{
@@ -154,6 +210,15 @@ export default function DailyReportScreen() {
             <Animated.View entering={FadeInDown.duration(360).springify()}>
               <DateBar date={date} onChange={setDate} />
             </Animated.View>
+
+            <Button
+              label={exporting ? 'Exportando…' : 'Exportar a Excel'}
+              icon="square.and.arrow.up"
+              variant="soft"
+              size="sm"
+              loading={exporting}
+              onPress={handleExport}
+            />
 
             {/* HERO */}
             <Animated.View entering={FadeInDown.delay(60).duration(360).springify()}>

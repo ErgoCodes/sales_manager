@@ -1,13 +1,15 @@
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { currentWeek, PeriodBar, type Period } from '@/components/ui/period-bar';
 import { Colors, FontSize, Radius, Semantic, Shadows } from '@/constants/theme';
 import { getRangeRanking, type ProductRanking, type RankingSortBy } from '@/db/queries';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { exportToExcel } from '@/lib/excel';
 import { formatCurrency } from '@/lib/format';
 
 export default function RankingsScreen() {
@@ -15,6 +17,7 @@ export default function RankingsScreen() {
   const [period, setPeriod] = useState<Period>(() => currentWeek());
   const [sortBy, setSortBy] = useState<RankingSortBy>('quantity');
   const [rows, setRows] = useState<ProductRanking[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -37,11 +40,44 @@ export default function RankingsScreen() {
     { key: 'profit', label: 'Más rentables' },
   ];
 
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const rankRows: (string | number)[][] = [
+        ['Posición', 'Producto', 'Cantidad', 'Ingreso', 'Utilidad', 'Margen %'],
+      ];
+      rows.forEach((r, i) => {
+        rankRows.push([
+          i + 1,
+          r.productName,
+          r.totalQuantity,
+          r.totalRevenue,
+          r.totalProfit,
+          Number((r.margin * 100).toFixed(1)),
+        ]);
+      });
+      await exportToExcel(`reporte_rankings_${period.from}.xlsx`, [{ name: 'Ranking', rows: rankRows }]);
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+    } finally {
+      setExporting(false);
+    }
+  }, [rows, period]);
+
   const header = (
     <View style={{ gap: 14, marginBottom: 4 }}>
       <Animated.View entering={FadeInDown.duration(360).springify()}>
         <PeriodBar value={period} onChange={setPeriod} />
       </Animated.View>
+
+      <Button
+        label={exporting ? 'Exportando…' : 'Exportar a Excel'}
+        icon="square.and.arrow.up"
+        variant="soft"
+        size="sm"
+        loading={exporting}
+        onPress={handleExport}
+      />
 
       <Animated.View
         entering={FadeInDown.delay(60).duration(360).springify()}

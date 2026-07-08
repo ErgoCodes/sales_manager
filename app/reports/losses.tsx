@@ -1,10 +1,11 @@
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Button } from '@/components/ui/button';
 import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { currentMonth, PeriodBar, type Period } from '@/components/ui/period-bar';
@@ -12,6 +13,7 @@ import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constant
 import { getTypeLabel } from '@/constants/expenses';
 import { getLossesBreakdown, type LossCategory, type LossesBreakdown } from '@/db/queries';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { exportToExcel } from '@/lib/excel';
 import { formatCurrency } from '@/lib/format';
 
 const EMPTY_LOSSES: LossesBreakdown = { categories: [], total: 0 };
@@ -25,6 +27,7 @@ export default function LossesReportScreen() {
   const [period, setPeriod] = useState<Period>(() => currentMonth());
   const [data, setData] = useState<LossesBreakdown>(EMPTY_LOSSES);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -48,11 +51,38 @@ export default function LossesReportScreen() {
     });
   };
 
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const lossRows: (string | number)[][] = [['Categoría', 'Concepto', 'Fecha', 'Monto']];
+      for (const cat of data.categories) {
+        for (const r of cat.records) {
+          lossRows.push([cat.label, r.label, r.date, r.amount]);
+        }
+      }
+      lossRows.push(['TOTAL', '', '', data.total]);
+      await exportToExcel(`reporte_perdidas_${period.from}.xlsx`, [{ name: 'Pérdidas', rows: lossRows }]);
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+    } finally {
+      setExporting(false);
+    }
+  }, [data, period]);
+
   const header = (
     <View style={{ gap: 14, marginBottom: 4 }}>
       <Animated.View entering={FadeInDown.duration(360).springify()}>
         <PeriodBar value={period} onChange={setPeriod} />
       </Animated.View>
+
+      <Button
+        label={exporting ? 'Exportando…' : 'Exportar a Excel'}
+        icon="square.and.arrow.up"
+        variant="soft"
+        size="sm"
+        loading={exporting}
+        onPress={handleExport}
+      />
 
       <Animated.View entering={FadeInDown.delay(60).duration(360).springify()}>
         <HeroCard color={Semantic.danger} padding={20}>

@@ -2,9 +2,10 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Stack } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Text, View } from 'react-native';
+import { Alert, FlatList, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -24,9 +25,17 @@ import {
   type DayTotals,
   type LossesBreakdown,
 } from '@/db/queries';
+import { listSales } from '@/db/sales';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { exportToExcel } from '@/lib/excel';
 import { formatCurrency } from '@/lib/format';
 import { requestPermissions, scheduleWeeklyReminder } from '@/lib/notifications';
+
+function methodLabel(method: string): string {
+  if (method === 'efectivo') return 'Efectivo';
+  if (method === 'transferencia') return 'Transferencia';
+  return 'Costo';
+}
 
 const EMPTY_SUMMARY: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
 const EMPTY_LOSSES: LossesBreakdown = { categories: [], total: 0 };
@@ -42,6 +51,7 @@ export default function PeriodReportScreen() {
   const [summary, setSummary] = useState<DailySummary>(EMPTY_SUMMARY);
   const [days, setDays] = useState<DayTotals[]>([]);
   const [losses, setLosses] = useState<LossesBreakdown>(EMPTY_LOSSES);
+  const [exporting, setExporting] = useState(false);
 
   // Programa el recordatorio semanal una sola vez (gateado por config).
   useEffect(() => {
@@ -100,11 +110,83 @@ export default function PeriodReportScreen() {
     [c.textMuted],
   );
 
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const [sales, dayRows] = await Promise.all([
+        listSales({ dateFrom: period.from, dateTo: period.to }),
+        getDailyTotalsInRange(period.from, period.to),
+      ]);
+
+      const salesRows: (string | number)[][] = [
+        ['Fecha', 'Producto', 'Unidad', 'Cantidad', 'Método', 'Precio aplicado', 'Costo unitario', 'Importe', 'Utilidad'],
+      ];
+      let totalQty = 0;
+      let totalRevenue = 0;
+      let totalProfit = 0;
+      for (const s of sales) {
+        const amount = s.appliedPrice * s.quantity;
+        totalQty += s.quantity;
+        totalRevenue += amount;
+        totalProfit += s.profit;
+        salesRows.push([
+          s.date,
+          s.productName,
+          s.unitOfMeasure,
+          s.quantity,
+          methodLabel(s.paymentMethod),
+          s.appliedPrice,
+          s.costAtSale,
+          amount,
+          s.profit,
+        ]);
+      }
+      salesRows.push(['TOTAL', '', '', totalQty, '', '', '', totalRevenue, totalProfit]);
+
+      const dayRowsSheet: (string | number)[][] = [['Fecha', 'Efectivo', 'Transferencia', 'Total', 'Utilidad']];
+      for (const d of dayRows) {
+        dayRowsSheet.push([d.date, d.cash, d.transfer, d.total, d.profit]);
+      }
+
+      const sheets = [
+        { name: 'Ventas', rows: salesRows },
+        { name: 'Resumen por día', rows: dayRowsSheet },
+      ];
+
+      if (isMonth && losses.categories.length > 0) {
+        const lossRows: (string | number)[][] = [['Categoría', 'Concepto', 'Fecha', 'Monto']];
+        for (const cat of losses.categories) {
+          for (const r of cat.records) {
+            lossRows.push([cat.label, r.label, r.date, r.amount]);
+          }
+        }
+        lossRows.push(['TOTAL', '', '', losses.total]);
+        sheets.push({ name: 'Pérdidas', rows: lossRows });
+      }
+
+      const prefix = isMonth ? 'mensual' : 'semanal';
+      await exportToExcel(`reporte_${prefix}_${period.from}.xlsx`, sheets);
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+    } finally {
+      setExporting(false);
+    }
+  }, [period, isMonth, losses]);
+
   const header = (
     <View style={{ gap: 14, marginBottom: 4 }}>
       <Animated.View entering={FadeInDown.duration(360).springify()}>
         <PeriodBar value={period} onChange={setPeriod} />
       </Animated.View>
+
+      <Button
+        label={exporting ? 'Exportando…' : 'Exportar a Excel'}
+        icon="square.and.arrow.up"
+        variant="soft"
+        size="sm"
+        loading={exporting}
+        onPress={handleExport}
+      />
 
       <Animated.View entering={FadeInDown.delay(60).duration(360).springify()}>
         <HeroCard padding={20}>
