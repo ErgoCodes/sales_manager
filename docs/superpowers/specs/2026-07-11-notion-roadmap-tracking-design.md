@@ -4,7 +4,9 @@
 
 ## Contexto
 
-El proyecto (Mercado Mónaco, app de inventario/ventas para un solo negocio) ya tiene 14/23 tareas del `ROADMAP.md` hechas y 11 documentos de análisis en `docs/` que cubren tanto el roadmap pendiente (`02-plan-roadmap-pendiente.md`) como deuda técnica transversal (`03` a `09`) y dos features nuevas ya diseñadas pero no implementadas (`10`, `11`). Nada de esto está hoy en un sistema de tareas — vive solo como markdown en el repo.
+El proyecto (Mercado Mónaco, app de inventario/ventas para un solo negocio) tiene el `ROADMAP.md` original prácticamente terminado: **de las 23 tareas (T-00 a T-22), solo quedan 2 ítems sin marcar** — el test de persistencia en dispositivo real (T-01) y el recordatorio semanal de respaldo (T-21). Lo pendiente real hoy es deuda técnica transversal y features nuevas ya diseñadas en `docs/` pero no implementadas.
+
+**Nota sobre fuentes:** `docs/01-estado-del-proyecto.md` y `docs/02-plan-roadmap-pendiente.md` (fechados 2026-07-07) quedaron obsoletos casi de inmediato — afirman que T-12 y T-15 a T-22 están pendientes, pero los commits posteriores a esa fecha las implementaron todas. La lista de tareas de este spec se verificó contra `ROADMAP.md` y el código actual, no contra esos docs. Actualizarlos/archivarlos es una de las tareas registradas.
 
 El usuario quiere escalar la app hacia una herramienta multiplataforma de gestión de punto de venta e inventarios, en dos etapas:
 
@@ -23,34 +25,53 @@ Dos filas nuevas en **Proyectos**, no una: separan "lo que se toca esta semana" 
 
 | Campo | Mercado Mónaco — MVP multiplataforma | Mercado Mónaco — Plataforma multi-negocio |
 |---|---|---|
-| Objetivo | Consolidar la app actual (iOS/Android/Web vía Expo) para un solo negocio: cerrar deuda crítica, terminar el roadmap M5-M7, y validarla en dispositivo real. | Evolucionar de app single-tenant a plataforma con backend, cuentas y sincronización para múltiples puntos de venta. |
+| Objetivo | Consolidar la app actual (iOS/Android/Web vía Expo) para un solo negocio: cerrar deuda técnica, implementar las features ya diseñadas en docs/10-11, y validarla en dispositivo real. | Evolucionar de app single-tenant a plataforma con backend, cuentas y sincronización para múltiples puntos de venta. |
 | Estado | In progress | Not started |
 | Prioridad | Alta | Baja |
 | Área | Cliente | Cliente |
 | Periodo | (sin fecha fija) | (sin fecha fija) |
-| Tareas | ~21 filas (ver abajo) | ninguna todavía |
+| Tareas | 15 filas (ver abajo) | ninguna todavía |
 
 El proyecto de Etapa 2 existe solo para que la visión quede escrita en algún lado con dueño y prioridad — no dispara tareas ni fechas hasta que se decida priorizarlo.
 
-## Tareas de Etapa 1
+## Tareas de Etapa 1 (15, verificadas contra el código el 2026-07-11)
 
-Todas ligadas al proyecto "MVP multiplataforma", con `Size`/`Prioridad` tomados de las tablas ya existentes en `docs/README.md` y `docs/02-plan-roadmap-pendiente.md`, y `Notas` apuntando al doc y sección exactos.
+Todas ligadas al proyecto "MVP multiplataforma", con `Notas` apuntando al doc y sección exactos.
 
-**Roadmap pendiente** (`docs/02-plan-roadmap-pendiente.md`) — 9 tareas: T-12 (descuentos), T-15 (rebaja→gasto), T-16 (reporte diario), T-17 (reporte semanal/mensual + notificación), T-18 (rankings), T-19 (pérdidas desglosadas), T-20 (exportar/compartir), T-21 (respaldo/restauración), T-22 (editar/anular ventas).
+**Restos del roadmap original** — 2 tareas:
 
-**Deuda técnica transversal** (`docs/03` a `docs/09`) — 7 tareas: testing + CI, consistencia de estilos, manejo de errores, rendimiento, calidad de datos (date picker), limpieza de código, accesibilidad.
+1. Smoke-test de persistencia en dispositivo real (T-01; único `[ ]` de M0 — nada se ha validado fuera de `tsc`/lint/bundle).
+2. Recordatorio semanal local de respaldo (T-21; `lib/notifications.ts` solo tiene el recordatorio de reporte del lunes, falta el de backup del domingo).
 
-**Features ya diseñadas, no implementadas** (`docs/10`, `docs/11`) — 4 tareas: método de pago en venta a costo (accionable), ventas fiadas/deuda (diseño futuro, no roadmap inmediato — igual se registra para no perder el análisis ya hecho), editar/eliminar gastos, bloquear fecha futura en gastos.
+**Deuda técnica transversal** (verificada vigente) — 6 tareas:
 
-**Admin** — 3 tareas: smoke-test en dispositivo real (nada se ha validado fuera de `tsc`/lint/bundle), corregir rutas obsoletas en `ROADMAP.md` (español → inglés), reemplazar el `README.md` boilerplate de `create-expo-app` por uno real.
+3. Testing + CI (`docs/03`; sin jest ni script `test` en `package.json`).
+4. Manejo de errores en escrituras DB (`docs/05`; cero `try/catch` en `db/*.ts`).
+5. Rendimiento: `countLowStock` N+1, debounce en `ProductPicker`, `verifySessionStock` en lote (`docs/06`; los 3 fixes siguen pendientes).
+6. Accesibilidad en componentes compartidos (`docs/09`; cero `accessibilityRole`/`accessibilityLabel` en `components/ui/`).
+7. Estilos: tokens en Tailwind + migrar los 4 tabs de inline styles a `className` (`docs/04` **alcance reducido**: `formatCurrency` ya está unificado en `lib/format.ts` y el dark mode ya se implementó de verdad — solo queda la migración de estilos).
+8. Limpieza residual (`docs/08` **alcance reducido**: borrar `useDailySummaryStore` vacío y `scripts/reset-project.js`; `businessName` ya está cableado al header).
 
-Total: 23 tareas. `Estado` de cada una arranca en "Not started" salvo que ya haya trabajo iniciado.
+**Features diseñadas en docs/10-11, no implementadas** — 4 tareas:
+
+9. Método de pago real en venta a costo + flag `isCostSale` (`docs/10` §1; la columna no existe en `db/schema.ts`).
+10. Ventas fiadas/deuda (`docs/10` §2; diseño futuro, se registra con prioridad Baja para no perder el análisis).
+11. Editar/eliminar gastos (`docs/11` §1; sin `updateExpense`/`deleteExpense` en `db/expenses.ts`).
+12. Bloquear fecha futura en gastos/salidas/entradas (`docs/11` §2; `date-picker.tsx` no expone `maxDate`).
+
+**Deuda documental** — 3 tareas:
+
+13. Corregir rutas obsoletas en `ROADMAP.md` (siguen en español: `app/catalogo/`, `db/productos.ts`, etc.).
+14. Reemplazar el `README.md` boilerplate de `create-expo-app` por uno real.
+15. Actualizar o archivar `docs/01` y `docs/02` (afirman pendiente lo que ya está implementado; señalar en `docs/README.md` qué sigue vigente).
+
+`Estado` de cada una arranca en "Not started".
 
 ## En `docs/` del repo
 
 - **Nuevo `docs/12-vision-multiplataforma.md`**: documenta la Etapa 2 (multi-tenant, backend, sincronización) con las preguntas de diseño abiertas (auth, modelo de datos por negocio, estrategia de sync offline-first). Es lo que el proyecto de Notion "Plataforma multi-negocio" referencia en su `Objetivo`.
 - **`docs/README.md`**: se añade una fila al índice para el doc 12, y una nota de que el tracking de tareas vive ahora en Notion (con link).
-- Los docs `02`-`11` no se tocan en contenido — siguen siendo la spec técnica de cada tarea. Único cambio: corregir las rutas obsoletas en `ROADMAP.md` que ya están señaladas como deuda en `docs/01-estado-del-proyecto.md`.
+- La actualización de `docs/01`/`docs/02` y de `ROADMAP.md` se ejecuta como tareas del tablero (13 y 15), no como parte de este spec.
 
 ## Fuera de alcance
 
@@ -60,4 +81,4 @@ Total: 23 tareas. `Estado` de cada una arranca en "Not started" salvo que ya hay
 
 ## Ejecución
 
-Sin código de por medio: la "implementación" de este spec es directamente crear las filas en Notion (2 proyectos + 23 tareas) y escribir `docs/12-vision-multiplataforma.md` + actualizar `docs/README.md`. Se ejecuta directo tras aprobar este spec, sin pasar por plan formal de implementación.
+Sin código de por medio: la "implementación" de este spec es directamente crear las filas en Notion (2 proyectos + 15 tareas) y escribir `docs/12-vision-multiplataforma.md` + actualizar `docs/README.md`. Se ejecuta directo tras aprobar este spec, sin pasar por plan formal de implementación.
