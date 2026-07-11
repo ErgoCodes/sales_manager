@@ -2,6 +2,10 @@
 
 Conjunto de documentos generados el 2026-07-07 a partir del análisis del [ROADMAP.md](../ROADMAP.md) y del código. Cada documento cubre un tema: qué hay hoy (con referencias `archivo:línea`), qué problema causa, el plan concreto para mejorarlo y el criterio para darlo por hecho.
 
+> **Tracking de tareas (desde 2026-07-11):** el estado de cada tarea pendiente vive en Notion — [Centro de Proyectos › Mercado Mónaco — MVP multiplataforma](https://app.notion.com/p/39a19c33c39081fab767c40eb46cc347). Estos docs siguen siendo la spec técnica; Notion dice qué está pendiente/en curso/hecho. Diseño del sistema en [el spec de tracking](superpowers/specs/2026-07-11-notion-roadmap-tracking-design.md).
+>
+> **Ojo con los docs 01 y 02:** quedaron desactualizados — afirman pendientes tareas del roadmap (T-12, T-15 a T-22) que se implementaron después del 2026-07-07. Hay una tarea en el tablero para actualizarlos/archivarlos; mientras tanto, la fuente de verdad del estado es `ROADMAP.md` + el tablero de Notion. Lo mismo aplica al "Orden de ataque" de abajo, que se conserva por su parte de deuda técnica aún vigente.
+
 ## Índice
 
 | Doc | Tema | Prioridad | Esfuerzo |
@@ -15,6 +19,9 @@ Conjunto de documentos generados el 2026-07-07 a partir del análisis del [ROADM
 | [07 · Calidad de datos](07-calidad-de-datos.md) | Date picker en vez de texto libre; validación uniforme | ALTA | 1 día |
 | [08 · Limpieza de código](08-limpieza-de-codigo.md) | Borrar/cablear infra muerta (dark mode, stores vacíos, config sin usar) | BAJA-MEDIA | ½ día |
 | [09 · Accesibilidad](09-accesibilidad.md) | Roles, estados y áreas táctiles en componentes compartidos | MEDIA | ½-1 día |
+| [10 · Método de pago: costo y fiado](10-metodo-pago-costo-y-fiado.md) | Venta a costo debe permitir elegir efectivo/transferencia; diseño futuro de ventas fiadas (deuda) | MEDIA | ~2-3 días |
+| [11 · Editar/eliminar gastos + fecha futura](11-editar-eliminar-gastos.md) | Editar y eliminar gastos registrados; bloquear fecha futura en gastos | MEDIA | ~1 día |
+| [12 · Visión: plataforma multi-negocio](12-vision-multiplataforma.md) | Etapa 2 a futuro: multi-tenant, backend, sync offline-first — preguntas abiertas de diseño | BAJA | lectura |
 
 ## Orden de ataque recomendado
 
