@@ -2,7 +2,9 @@
 
 **Prioridad: BAJA (visión a futuro) · Estado: sin trabajo iniciado — solo documento de visión**
 
-> Este doc registra hacia dónde se quiere escalar la app, para que la visión no viva solo en la cabeza del desarrollador. **No es un plan de ejecución**: cuando se decida priorizar la Etapa 2, el primer paso es un brainstorming/spec formal partiendo de estas preguntas, no empezar a codear. Tracking en Notion: proyecto "Mercado Mónaco — Plataforma multi-negocio" en el Centro de Proyectos.
+> Este doc registra hacia dónde se quiere escalar la app, para que la visión no viva solo en la cabeza del desarrollador. **No es un plan de ejecución**. Tracking en Notion: proyecto "Mercado Mónaco — Plataforma multi-negocio" en el Centro de Proyectos.
+>
+> **Actualización 2026-07-11:** el brainstorm formal ya se hizo — las preguntas abiertas de abajo tienen respuesta en [el spec de la Etapa 2](superpowers/specs/2026-07-11-etapa2-plataforma-multinegocio-design.md) (descomposición SP1-SP4, sync por op-log propio, jerarquía owner/admin/vendedor, catálogo por punto, stack NestJS+Drizzle+Postgres en VPS). Las secciones siguientes se conservan como registro del razonamiento original; la fuente de verdad del diseño es el spec.
 
 ## Las dos etapas
 
