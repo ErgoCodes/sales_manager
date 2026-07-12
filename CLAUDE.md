@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Always read https://docs.expo.dev/versions/v54.0.0/ before writing Expo-specific code. The API changes between major versions; training data may be stale.
 
+## Task Tracking
+
+Task status (pending/in-progress/done) lives in Notion, not in this repo: [Centro de Proyectos › Mercado Mónaco — MVP multiplataforma](https://app.notion.com/p/39a19c33c39081fab767c40eb46cc347). `docs/` holds the technical spec for each task (file:line references, acceptance criteria); Notion says what's pending and its priority/size. Don't duplicate technical content into Notion — link to the doc instead.
+
+`docs/01-estado-del-proyecto.md` and `docs/02-plan-roadmap-pendiente.md` are stale (dated 2026-07-07, describe tasks as pending that were implemented afterward). Treat `ROADMAP.md` + the Notion board as the source of truth for what's actually done.
+
+The long-term vision (multi-tenant/backend platform, not started) is documented in `docs/12-vision-multiplataforma.md`.
+
 ## Package Manager
 
 Use `pnpm` exclusively. Never use `npm` or `yarn`.
