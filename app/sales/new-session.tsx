@@ -1,14 +1,7 @@
 import { Stack, router } from 'expo-router';
 import { useRef, useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, FlatList, Pressable, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -186,7 +179,7 @@ export default function NewSessionScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <Stack.Screen options={{ title: 'Nueva sesión' }} />
 

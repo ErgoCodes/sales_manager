@@ -1,6 +1,7 @@
 import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -294,7 +295,9 @@ export default function SalesHistoryScreen() {
         transparent
         animationType="slide"
         onRequestClose={() => setEditing(null)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+        <KeyboardAvoidingView
+          behavior="padding"
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <View style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: c.surface, padding: 20, gap: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text variant="title">Editar venta</Text>
@@ -337,7 +340,7 @@ export default function SalesHistoryScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Snackbar

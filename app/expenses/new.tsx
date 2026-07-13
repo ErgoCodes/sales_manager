@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { Stack, router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export default function NewExpenseScreen() {
   });
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
+    <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Stack.Screen options={{ title: 'Nuevo gasto' }} />
 
       <Select
@@ -116,7 +116,7 @@ export default function NewExpenseScreen() {
         onPress={onSubmit}
         disabled={isSubmitting}
       />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

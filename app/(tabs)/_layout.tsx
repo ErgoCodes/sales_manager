@@ -1,10 +1,11 @@
 import { Tabs, router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { CONFIG_KEYS, getConfig } from '@/db/config';
 
 interface HeaderIconButtonProps {
   name: Parameters<typeof IconSymbol>[0]['name'];
@@ -36,6 +37,11 @@ function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButto
 
 export default function TabLayout() {
   const c = useAppColors();
+  const [businessName, setBusinessName] = useState<string | null>(null);
+
+  useEffect(() => {
+    getConfig(CONFIG_KEYS.businessName).then(setBusinessName);
+  }, []);
 
   return (
     <Tabs
@@ -62,7 +68,7 @@ export default function TabLayout() {
         options={{
           title: 'Inicio',
           headerShown: true,
-          headerTitle: 'Mercado Mónaco',
+          headerTitle: businessName || 'Inicio',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
           headerRight: () => (
             <View style={{ marginRight: 16 }}>

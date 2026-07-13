@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
 import { Uniwind } from 'uniwind';
 
@@ -46,15 +47,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="configuration"
-          options={{ presentation: 'modal', title: 'Configuración' }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <KeyboardProvider>
+      <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="configuration"
+            options={{ presentation: 'modal', title: 'Configuración' }}
+          />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </KeyboardProvider>
   );
 }
