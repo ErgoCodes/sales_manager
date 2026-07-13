@@ -30,6 +30,26 @@ export async function scheduleWeeklyReminder() {
   });
 }
 
+/**
+ * Programa un recordatorio semanal de respaldo los domingos a las 20:00.
+ * Usa weekday = 1 (domingo) en el trigger WEEKLY de expo-notifications.
+ * Debe programarse una sola vez (gateada por CONFIG_KEYS.backupReminderScheduled).
+ */
+export async function scheduleBackupReminder() {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Respaldo semanal',
+      body: 'Realiza un respaldo de seguridad de tus datos hoy.',
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 1, // Sunday
+      hour: 20,
+      minute: 0,
+    },
+  });
+}
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,

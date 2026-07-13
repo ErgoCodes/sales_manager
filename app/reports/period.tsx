@@ -29,7 +29,11 @@ import { listSales } from '@/db/sales';
 import { useAppColors } from '@/hooks/use-app-colors';
 import { exportToExcel } from '@/lib/excel';
 import { formatCurrency } from '@/lib/format';
-import { requestPermissions, scheduleWeeklyReminder } from '@/lib/notifications';
+import {
+  requestPermissions,
+  scheduleBackupReminder,
+  scheduleWeeklyReminder,
+} from '@/lib/notifications';
 
 function methodLabel(method: string): string {
   if (method === 'efectivo') return 'Efectivo';
@@ -53,16 +57,29 @@ export default function PeriodReportScreen() {
   const [losses, setLosses] = useState<LossesBreakdown>(EMPTY_LOSSES);
   const [exporting, setExporting] = useState(false);
 
-  // Programa el recordatorio semanal una sola vez (gateado por config).
+  // Programa recordatorios una sola vez (gateados por config).
   useEffect(() => {
     let active = true;
     (async () => {
-      const flag = await getConfig(CONFIG_KEYS.weeklyReminderScheduled);
-      if (!active || flag === '1') return;
+      const weeklyFlag = await getConfig(CONFIG_KEYS.weeklyReminderScheduled);
+      const backupFlag = await getConfig(CONFIG_KEYS.backupReminderScheduled);
+      if (!active) return;
+
+      const needsWeekly = weeklyFlag !== '1';
+      const needsBackup = backupFlag !== '1';
+      if (!needsWeekly && !needsBackup) return;
+
       const granted = await requestPermissions();
-      if (!granted) return;
-      await scheduleWeeklyReminder();
-      await setConfig(CONFIG_KEYS.weeklyReminderScheduled, '1');
+      if (!granted || !active) return;
+
+      if (needsWeekly) {
+        await scheduleWeeklyReminder();
+        await setConfig(CONFIG_KEYS.weeklyReminderScheduled, '1');
+      }
+      if (needsBackup) {
+        await scheduleBackupReminder();
+        await setConfig(CONFIG_KEYS.backupReminderScheduled, '1');
+      }
     })();
     return () => {
       active = false;

@@ -10,6 +10,8 @@ export const CONFIG_KEYS = {
   stagnantDiscountPercent: 'descuento_estancado_pct',
   // Flag one-shot: '1' cuando ya se programó el recordatorio semanal (T-17).
   weeklyReminderScheduled: 'recordatorio_semanal_programado',
+  // Flag one-shot: '1' cuando ya se programó el recordatorio de respaldo (TSK-6).
+  backupReminderScheduled: 'recordatorio_respaldo_programado',
   // Fecha 'yyyy-MM-dd' del último respaldo exportado (T-21).
   lastBackup: 'ultimo_respaldo',
 } as const;
