@@ -3,7 +3,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import type { CartItem } from '@/store';
 
 import { db } from './client';
-import { calculateStock } from './queries';
+import { calculateAllStocks } from './queries';
 import { products, saleSessions, sales } from './schema';
 
 export interface StockWarning {
@@ -29,12 +29,18 @@ export async function verifySessionStock(
     }
   }
 
+  const stocks = await calculateAllStocks();
   const warnings: StockWarning[] = [];
   for (const [productId, { name, quantity }] of byProduct) {
-    const stock = await calculateStock(productId);
+    const stock = stocks.get(productId) ?? 0;
     const resulting = stock - quantity;
     if (resulting < 0) {
-      warnings.push({ name, currentStock: stock, quantityToSell: quantity, resultingStock: resulting });
+      warnings.push({
+        name,
+        currentStock: stock,
+        quantityToSell: quantity,
+        resultingStock: resulting,
+      });
     }
   }
   return warnings;
