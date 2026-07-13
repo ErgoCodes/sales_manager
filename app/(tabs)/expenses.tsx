@@ -53,7 +53,7 @@ export default function ExpensesScreen() {
     id: number;
   } | null>(null);
 
-  const toastTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const triggerRefetch = () => setRefreshTrigger((prev) => prev + 1);
 
