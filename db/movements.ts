@@ -65,6 +65,56 @@ export async function registerOutflow(data: OutflowData): Promise<void> {
   });
 }
 
+/** Actualiza los campos editables de una salida existente (T-15). */
+export async function updateOutflow(
+  id: number,
+  data: Partial<{
+    productId: number;
+    type: string;
+    quantity: number;
+    unitCostPrice: number;
+    date: string;
+    notes: string | null;
+  }>,
+): Promise<void> {
+  await db.update(warehouseMovements).set(data).where(eq(warehouseMovements.id, id));
+}
+
+/** Devuelve una salida por su id (para edición T-15). */
+export async function getOutflowById(id: number) {
+  const [row] = await db
+    .select({
+      id: warehouseMovements.id,
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      type: warehouseMovements.type,
+      quantity: warehouseMovements.quantity,
+      unitCostPrice: warehouseMovements.unitCostPrice,
+      date: warehouseMovements.date,
+      notes: warehouseMovements.notes,
+      cancelled: warehouseMovements.cancelled,
+      costPrice: products.costPrice,
+      cashPrice: products.cashPrice,
+      transferPrice: products.transferPrice,
+      averageCost: products.averageCost,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(eq(warehouseMovements.id, id));
+  return row ?? null;
+}
+
+/** Soft-delete: marca la salida como anulada (T-15). */
+export async function cancelOutflow(id: number): Promise<void> {
+  await db.update(warehouseMovements).set({ cancelled: true }).where(eq(warehouseMovements.id, id));
+}
+
+/** Restaura una salida anulada (undo). */
+export async function restoreOutflow(id: number): Promise<void> {
+  await db.update(warehouseMovements).set({ cancelled: false }).where(eq(warehouseMovements.id, id));
+}
+
 export interface EntryWithProduct {
   id: number;
   productId: number;
@@ -119,6 +169,7 @@ export interface MovementWithProduct {
   unitCostPrice: number;
   date: string;
   notes: string | null;
+  cancelled: boolean;
 }
 
 interface ListMovementsOptions {
@@ -126,6 +177,7 @@ interface ListMovementsOptions {
   productId?: number;
   dateFrom?: string;
   dateTo?: string;
+  includeCancelled?: boolean;
 }
 
 /** Lista movimientos de almacén (filtrable por tipo, p. ej. las salidas T-13). */
@@ -133,6 +185,7 @@ export async function listMovements(
   opts: ListMovementsOptions = {},
 ): Promise<MovementWithProduct[]> {
   const conditions = [];
+  if (!opts.includeCancelled) conditions.push(eq(warehouseMovements.cancelled, false));
   if (opts.types && opts.types.length > 0)
     conditions.push(inArray(warehouseMovements.type, opts.types));
   if (opts.productId) conditions.push(eq(warehouseMovements.productId, opts.productId));
@@ -152,6 +205,7 @@ export async function listMovements(
       unitCostPrice: warehouseMovements.unitCostPrice,
       date: warehouseMovements.date,
       notes: warehouseMovements.notes,
+      cancelled: warehouseMovements.cancelled,
     })
     .from(warehouseMovements)
     .innerJoin(products, eq(warehouseMovements.productId, products.id))
@@ -168,7 +222,10 @@ export async function sumLossOutflowsValue(
   dateFrom?: string,
   dateTo?: string,
 ): Promise<number> {
-  const conditions = [inArray(warehouseMovements.type, ['merma', 'retiro_owner'])];
+  const conditions = [
+    inArray(warehouseMovements.type, ['merma', 'retiro_owner']),
+    eq(warehouseMovements.cancelled, false),
+  ];
   if (dateFrom)
     conditions.push(sql`date(${warehouseMovements.date}) >= date(${dateFrom})`);
   if (dateTo)

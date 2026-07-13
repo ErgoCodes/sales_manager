@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { Stack, router } from 'expo-router';
-import { useState } from 'react';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { z } from 'zod';
@@ -11,14 +11,17 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { EXPENSE_TYPES, type ExpenseType } from '@/constants/expenses';
-import { registerExpense } from '@/db/expenses';
+import { getExpenseById, registerExpense, updateExpense } from '@/db/expenses';
 import { useAppColors } from '@/hooks/use-app-colors';
 import { safeWrite } from '@/lib/safe-write';
 
 const schema = z.object({
   amount: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
   concept: z.string().optional(),
-  date: z.string().min(1, 'La fecha es obligatoria'),
+  date: z.string().min(1, 'La fecha es obligatoria').refine(
+    (v) => v <= format(new Date(), 'yyyy-MM-dd'),
+    'La fecha no puede ser futura'
+  ),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -26,10 +29,13 @@ type FormValues = z.infer<typeof schema>;
 export default function NewExpenseScreen() {
   const c = useAppColors();
   const [type, setType] = useState<ExpenseType>('salario');
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEdit = !!id;
 
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -40,15 +46,40 @@ export default function NewExpenseScreen() {
     },
   });
 
+  useEffect(() => {
+    if (id) {
+      (async () => {
+        const expense = await getExpenseById(Number(id));
+        if (expense) {
+          setType(expense.type as ExpenseType);
+          reset({
+            amount: String(expense.amount),
+            concept: expense.concept ?? '',
+            date: expense.date,
+          });
+        }
+      })();
+    }
+  }, [id, reset]);
+
   const onSubmit = handleSubmit(async (values) => {
     const result = await safeWrite(async () => {
-      await registerExpense({
-        type,
-        concept: values.concept || null,
-        amount: Number(values.amount),
-        date: values.date,
-      });
-    });
+      if (isEdit) {
+        await updateExpense(Number(id), {
+          type,
+          concept: values.concept || null,
+          amount: Number(values.amount),
+          date: values.date,
+        });
+      } else {
+        await registerExpense({
+          type,
+          concept: values.concept || null,
+          amount: Number(values.amount),
+          date: values.date,
+        });
+      }
+    }, isEdit ? 'Error al guardar cambios' : 'No se pudo guardar');
 
     if (result.ok) {
       router.back();
@@ -57,7 +88,7 @@ export default function NewExpenseScreen() {
 
   return (
     <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Stack.Screen options={{ title: 'Nuevo gasto' }} />
+      <Stack.Screen options={{ title: isEdit ? 'Editar gasto' : 'Nuevo gasto' }} />
 
       <Select
         label="Tipo de gasto"
@@ -107,12 +138,13 @@ export default function NewExpenseScreen() {
             onChange={onChange}
             placeholder="Seleccionar fecha"
             error={errors.date?.message}
+            maxDate={format(new Date(), 'yyyy-MM-dd')}
           />
         )}
       />
 
       <Button
-        label={isSubmitting ? 'Registrando…' : 'Registrar gasto'}
+        label={isSubmitting ? (isEdit ? 'Guardando…' : 'Registrando…') : isEdit ? 'Guardar cambios' : 'Registrar gasto'}
         onPress={onSubmit}
         disabled={isSubmitting}
       />

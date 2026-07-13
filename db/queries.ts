@@ -14,7 +14,12 @@ export async function calculateStock(productId: number): Promise<number> {
       END), 0)`,
     })
     .from(warehouseMovements)
-    .where(eq(warehouseMovements.productId, productId));
+    .where(
+      and(
+        eq(warehouseMovements.productId, productId),
+        eq(warehouseMovements.cancelled, false)
+      )
+    );
 
   const [saleRow] = await db
     .select({
@@ -36,6 +41,7 @@ export async function calculateAllStocks(): Promise<Map<number, number>> {
       END), 0)`,
     })
     .from(warehouseMovements)
+    .where(eq(warehouseMovements.cancelled, false))
     .groupBy(warehouseMovements.productId);
 
   const saleRows = await db
@@ -331,6 +337,7 @@ export async function getLossesBreakdown(from: string, to: string): Promise<Loss
       .where(
         and(
           inArray(warehouseMovements.type, ['merma', 'retiro_owner']),
+          eq(warehouseMovements.cancelled, false),
           sql`date(${warehouseMovements.date}) >= date(${from})`,
           sql`date(${warehouseMovements.date}) <= date(${to})`,
         ),
@@ -347,6 +354,7 @@ export async function getLossesBreakdown(from: string, to: string): Promise<Loss
       .from(expenses)
       .where(
         and(
+          eq(expenses.cancelled, false),
           sql`date(${expenses.date}) >= date(${from})`,
           sql`date(${expenses.date}) <= date(${to})`,
         ),

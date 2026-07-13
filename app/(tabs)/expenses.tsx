@@ -1,7 +1,7 @@
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Badge, type BadgeTone } from '@/components/ui/badge';
@@ -10,10 +10,11 @@ import { HeroCard } from '@/components/ui/hero-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { getTypeLabel } from '@/constants/expenses';
 import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
-import { listExpenses, sumExpenses } from '@/db/expenses';
-import { listMovements, sumLossOutflowsValue } from '@/db/movements';
+import { cancelExpense, listExpenses, restoreExpense, sumExpenses } from '@/db/expenses';
+import { cancelOutflow, listMovements, restoreOutflow, sumLossOutflowsValue } from '@/db/movements';
 import { useAppColors } from '@/hooks/use-app-colors';
 import { formatCurrency } from '@/lib/format';
+import { safeWrite } from '@/lib/safe-write';
 
 const OUTFLOW_FILTER = ['merma', 'retiro_owner', 'ajuste'];
 
@@ -29,17 +30,138 @@ const TONE_BY_TYPE: Record<string, BadgeTone> = {
 
 interface LedgerRow {
   key: string;
+  id: number;
   date: string;
   title: string;
   typeValue: string;
   amount: number;
   detail: string;
+  cancelled: boolean;
 }
 
 export default function ExpensesScreen() {
   const c = useAppColors();
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [monthTotal, setMonthTotal] = useState(0);
+  const [showCancelled, setShowCancelled] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    key: string;
+    isExpense: boolean;
+    id: number;
+  } | null>(null);
+
+  const toastTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const triggerRefetch = () => setRefreshTrigger((prev) => prev + 1);
+
+  const showUndoToast = (key: string, isExpense: boolean, id: number, title: string) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToast({
+      visible: true,
+      message: `Anulado: ${title}`,
+      key,
+      isExpense,
+      id,
+    });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, 5000);
+  };
+
+  const handleCancel = async (key: string, isExpense: boolean, id: number, title: string) => {
+    const result = await safeWrite(async () => {
+      if (isExpense) {
+        await cancelExpense(id);
+      } else {
+        await cancelOutflow(id);
+      }
+    }, 'Error al anular');
+
+    if (result.ok) {
+      triggerRefetch();
+      showUndoToast(key, isExpense, id, title);
+    }
+  };
+
+  const handleRestore = async (key: string, isExpense: boolean, id: number) => {
+    const result = await safeWrite(async () => {
+      if (isExpense) {
+        await restoreExpense(id);
+      } else {
+        await restoreOutflow(id);
+      }
+    }, 'Error al restaurar');
+
+    if (result.ok) {
+      triggerRefetch();
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!toast) return;
+    const { isExpense, id } = toast;
+
+    const result = await safeWrite(async () => {
+      if (isExpense) {
+        await restoreExpense(id);
+      } else {
+        await restoreOutflow(id);
+      }
+    }, 'Error al restaurar');
+
+    if (result.ok) {
+      setToast(null);
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+      triggerRefetch();
+    }
+  };
+
+  const handlePressRow = (item: LedgerRow) => {
+    const isExpense = item.key.startsWith('exp-');
+    if (item.cancelled) {
+      Alert.alert(
+        'Registro anulado',
+        '¿Deseas restaurar este registro?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Restaurar',
+            onPress: () => handleRestore(item.key, isExpense, item.id),
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Opciones de registro',
+        'Selecciona una acción:',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Editar',
+            onPress: () => {
+              if (isExpense) {
+                router.push(`/expenses/new?id=${item.id}`);
+              } else {
+                router.push(`/expenses/outflow?id=${item.id}`);
+              }
+            },
+          },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () => handleCancel(item.key, isExpense, item.id, item.title),
+          },
+        ]
+      );
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -49,8 +171,8 @@ export default function ExpensesScreen() {
         const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
         const [expenses, movements, expSum, lossSum] = await Promise.all([
-          listExpenses(),
-          listMovements({ types: OUTFLOW_FILTER }),
+          listExpenses({ includeCancelled: showCancelled }),
+          listMovements({ types: OUTFLOW_FILTER, includeCancelled: showCancelled }),
           sumExpenses(monthStart, monthEnd),
           sumLossOutflowsValue(monthStart, monthEnd),
         ]);
@@ -58,11 +180,13 @@ export default function ExpensesScreen() {
 
         const expenseRows: LedgerRow[] = expenses.map((e) => ({
           key: `exp-${e.id}`,
+          id: e.id,
           date: e.date,
           title: e.concept || getTypeLabel(e.type),
           typeValue: e.type,
           amount: e.amount,
           detail: getTypeLabel(e.type),
+          cancelled: e.cancelled,
         }));
 
         const outflowRows: LedgerRow[] = movements.map((m) => {
@@ -70,16 +194,18 @@ export default function ExpensesScreen() {
           const signLabel = isAdjustment ? (m.quantity >= 0 ? '+' : '') : '-';
           return {
             key: `mov-${m.id}`,
+            id: m.id,
             date: m.date,
             title: m.productName,
             typeValue: m.type,
             amount: Math.abs(m.quantity) * m.unitCostPrice,
             detail: `${getTypeLabel(m.type)} · ${signLabel}${Math.abs(m.quantity)} ${m.unitOfMeasure}`,
+            cancelled: m.cancelled,
           };
         });
 
         const merged = [...expenseRows, ...outflowRows].sort((a, b) =>
-          a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
+          a.date < b.date ? 1 : a.date > b.date ? -1 : 0
         );
 
         setRows(merged);
@@ -88,7 +214,7 @@ export default function ExpensesScreen() {
       return () => {
         active = false;
       };
-    }, []),
+    }, [showCancelled, refreshTrigger])
   );
 
   return (
@@ -144,6 +270,35 @@ export default function ExpensesScreen() {
                 onPress={() => router.push('/expenses/outflow')}
               />
             </View>
+
+            <Pressable
+              onPress={() => setShowCancelled(!showCancelled)}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                paddingVertical: 8,
+                opacity: pressed ? 0.7 : 1,
+                alignSelf: 'flex-end',
+                marginTop: 4,
+              })}
+            >
+              <IconSymbol
+                name={showCancelled ? 'eye.fill' : 'eye.slash.fill'}
+                size={16}
+                color={showCancelled ? c.tint : c.tabIconDefault}
+              />
+              <Text
+                style={{
+                  fontSize: FontSize.sm,
+                  fontWeight: '600',
+                  color: showCancelled ? c.tint : c.tabIconDefault,
+                }}
+              >
+                {showCancelled ? 'Mostrar anulados: Sí' : 'Mostrar anulados: No'}
+              </Text>
+            </Pressable>
           </View>
         }
         ListEmptyComponent={
@@ -155,8 +310,9 @@ export default function ExpensesScreen() {
         }
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(index * 25).duration(260)}>
-            <View
-              style={{
+            <Pressable
+              onPress={() => handlePressRow(item)}
+              style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
                 backgroundColor: c.surface,
@@ -165,10 +321,20 @@ export default function ExpensesScreen() {
                 gap: 12,
                 borderCurve: 'continuous',
                 boxShadow: Shadows.sm,
-              }}
+                opacity: item.cancelled ? 0.5 : pressed ? 0.9 : 1,
+              })}
             >
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={{ fontSize: FontSize.lg, fontWeight: '700', color: c.text }}>{item.title}</Text>
+                <Text
+                  style={{
+                    fontSize: FontSize.lg,
+                    fontWeight: '700',
+                    color: c.text,
+                    textDecorationLine: item.cancelled ? 'line-through' : 'none',
+                  }}
+                >
+                  {item.title}
+                </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <Badge label={getTypeLabel(item.typeValue)} tone={TONE_BY_TYPE[item.typeValue] ?? 'neutral'} />
                   <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}>{item.date}</Text>
@@ -181,14 +347,52 @@ export default function ExpensesScreen() {
                   color: c.text,
                   letterSpacing: -0.4,
                   fontVariant: ['tabular-nums'],
+                  textDecorationLine: item.cancelled ? 'line-through' : 'none',
                 }}
               >
                 {formatCurrency(item.amount)}
               </Text>
-            </View>
+            </Pressable>
           </Animated.View>
         )}
       />
+
+      {toast?.visible && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            left: 16,
+            right: 16,
+            backgroundColor: '#1E293B',
+            borderRadius: Radius.md,
+            padding: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: Shadows.md,
+            zIndex: 999,
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: FontSize.base, fontWeight: '600' }}>
+            {toast.message}
+          </Text>
+          <Pressable
+            onPress={handleUndo}
+            style={({ pressed }) => ({
+              backgroundColor: '#334155',
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: Radius.sm,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text style={{ color: c.tint, fontSize: FontSize.sm, fontWeight: '700' }}>
+              Deshacer
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }

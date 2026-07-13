@@ -27,6 +27,7 @@ export const warehouseMovements = sqliteTable(
     unitCostPrice: real('precio_costo_unitario').notNull(),
     salePrice: real('precio_venta'),
     notes: text('notas'),
+    cancelled: integer('anulado', { mode: 'boolean' }).notNull().default(false),
   },
   (table) => ({
     productIdx: index('idx_movimientos_producto').on(table.productId),
@@ -75,6 +76,7 @@ export const expenses = sqliteTable('gastos', {
   concept: text('concepto'),
   amount: real('monto').notNull(),
   date: text('fecha').notNull(),
+  cancelled: integer('anulado', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const configuration = sqliteTable('configuracion', {
