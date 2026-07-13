@@ -82,6 +82,7 @@ export function Snackbar({
         </Text>
         {actionLabel && onAction ? (
           <Pressable
+            accessibilityRole="button"
             hitSlop={8}
             onPress={() => {
               onAction();

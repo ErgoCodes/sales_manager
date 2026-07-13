@@ -39,6 +39,8 @@ const MAPPING = {
   'checkmark.circle.fill': 'check-circle',
   'xmark.circle.fill': 'cancel',
   'square.and.arrow.up': 'ios-share',
+  'checkmark.square.fill': 'check-box',
+  'square': 'check-box-outline-blank',
 } as IconMapping;
 
 /**

@@ -1,9 +1,9 @@
 import { Stack, router } from "expo-router";
 import { useRef, useState } from "react";
-import { Alert, FlatList, Pressable, TextInput, View } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import {
@@ -186,9 +186,10 @@ export default function NewSessionScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior="padding"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={100}
     >
-      <Stack.Screen options={{ title: "Nueva sesión" }} />
+      <Stack.Screen options={{ title: "Nueva venta" }} />
 
       <View
         style={{ paddingHorizontal: 16, paddingTop: 12, gap: 12, zIndex: 10 }}
@@ -232,6 +233,8 @@ export default function NewSessionScreen() {
                   setDiscountExpanded(false);
                   setDiscountPercent("");
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar selección de producto"
                 hitSlop={12}
               >
                 <Text variant="body" style={{ color: c.textMuted }}>
@@ -270,7 +273,8 @@ export default function NewSessionScreen() {
               />
             </View>
 
-            <Pressable
+            <Checkbox
+              checked={workerSale}
               onPress={() => {
                 setWorkerSale((v) => {
                   const next = !v;
@@ -281,30 +285,17 @@ export default function NewSessionScreen() {
                   return next;
                 });
               }}
-              hitSlop={8}
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <Text
-                variant="label"
-                style={{ color: workerSale ? c.cost : c.textMuted }}
-              >
-                {workerSale ? "☑" : "☐"} Venta a trabajador (costo)
-              </Text>
-            </Pressable>
+              label="Venta a trabajador (costo)"
+              activeColor={c.cost}
+            />
 
             {!workerSale ? (
-              <Pressable
+              <Checkbox
+                checked={discountExpanded}
                 onPress={() => setDiscountExpanded((v) => !v)}
-                hitSlop={8}
-                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-              >
-                <Text
-                  variant="label"
-                  style={{ color: discountExpanded ? "#9333EA" : c.textMuted }}
-                >
-                  {discountExpanded ? "☑" : "☐"} Descuento
-                </Text>
-              </Pressable>
+                label="Descuento"
+                activeColor="#9333EA"
+              />
             ) : null}
 
             {!workerSale && discountExpanded ? (
@@ -319,6 +310,8 @@ export default function NewSessionScreen() {
 
             {workerSale ? (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Agregar al costo por ${(product.costPrice ?? product.averageCost).toFixed(2)} pesos`}
                 style={({ pressed }) => ({
                   borderRadius: Radius.lg,
                   backgroundColor: c.cost,
@@ -331,12 +324,13 @@ export default function NewSessionScreen() {
                 <Text
                   style={{ color: "white", fontWeight: "600", fontSize: 14 }}
                 >
-                  A costo ${product.costPrice ?? product.averageCost.toFixed(2)}
+                  A costo ${(product.costPrice ?? product.averageCost).toFixed(2)}
                 </Text>
               </Pressable>
             ) : (
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <Pressable
+                  accessibilityRole="button"
                   style={({ pressed }) => ({
                     flex: 1,
                     borderRadius: Radius.lg,
@@ -360,6 +354,7 @@ export default function NewSessionScreen() {
                   </Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="button"
                   style={({ pressed }) => ({
                     flex: 1,
                     borderRadius: Radius.lg,
@@ -468,9 +463,14 @@ export default function NewSessionScreen() {
                     : "C"}
               </Text>
             </View>
-            <Pressable onPress={() => removeItem(item.key)} hitSlop={12}>
-              <Text style={{ color: c.danger, fontSize: 18 }}>✕</Text>
-            </Pressable>
+             <Pressable
+              onPress={() => removeItem(item.key)}
+              accessibilityRole="button"
+              accessibilityLabel={`Quitar ${item.name} del carrito`}
+              hitSlop={12}
+             >
+               <Text style={{ color: c.danger, fontSize: 18 }}>✕</Text>
+             </Pressable>
           </View>
         )}
       />

@@ -104,6 +104,7 @@ export function DatePicker({
         ) : null}
         <Pressable
           onPress={() => setIsOpen(true)}
+          accessibilityRole="button"
           style={({ pressed }) => ({
             borderWidth: 1.5,
             borderColor: error ? c.danger : c.border,
@@ -164,6 +165,8 @@ export function DatePicker({
             >
               <Pressable
                 onPress={handlePrevMonth}
+                accessibilityRole="button"
+                accessibilityLabel="Mes anterior"
                 hitSlop={6}
                 style={({ pressed }) => ({
                   width: 36,
@@ -193,6 +196,9 @@ export function DatePicker({
               <Pressable
                 onPress={handleNextMonth}
                 disabled={isNextMonthDisabled}
+                accessibilityRole="button"
+                accessibilityLabel="Mes siguiente"
+                accessibilityState={{ disabled: isNextMonthDisabled }}
                 hitSlop={6}
                 style={({ pressed }) => ({
                   width: 36,
@@ -266,6 +272,9 @@ export function DatePicker({
                       key={dateStr}
                       onPress={() => handleSelectDate(day)}
                       disabled={isDisabled}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected, disabled: isDisabled }}
+                      accessibilityLabel={`${format(day, "EEEE d 'de' MMMM", { locale: es })}`}
                       style={({ pressed }) => ({
                         width: "14.285%",
                         aspectRatio: 1,
@@ -304,6 +313,7 @@ export function DatePicker({
             >
               <Pressable
                 onPress={() => setIsOpen(false)}
+                accessibilityRole="button"
                 style={({ pressed }) => ({
                   flex: 1,
                   paddingHorizontal: 12,
@@ -328,6 +338,7 @@ export function DatePicker({
               {clearable ? (
                 <Pressable
                   onPress={handleClear}
+                  accessibilityRole="button"
                   style={({ pressed }) => ({
                     flex: 1,
                     paddingHorizontal: 12,

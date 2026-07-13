@@ -4,6 +4,7 @@ import { FlatList, Pressable, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HeroCard } from "@/components/ui/hero-card";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -28,75 +29,6 @@ interface ProductWithValue extends ProductWithStock {
   isLow: boolean;
   isStagnant: boolean;
   isNearExpiration: boolean;
-}
-
-interface FilterChipProps {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  count?: number;
-  accent?: string;
-}
-
-function FilterChip({
-  label,
-  active,
-  onPress,
-  count,
-  accent,
-}: FilterChipProps) {
-  const c = useAppColors();
-  const chipAccent = accent ?? c.tint;
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: Radius.full,
-        backgroundColor: active ? chipAccent : c.surface,
-        borderWidth: 1,
-        borderColor: active ? chipAccent : c.border,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Text
-        style={{
-          fontSize: FontSize.md,
-          fontWeight: "600",
-          color: active ? Colors.light.surface : c.text,
-        }}
-      >
-        {label}
-      </Text>
-      {count !== undefined ? (
-        <View
-          style={{
-            paddingHorizontal: 6,
-            paddingVertical: 1,
-            borderRadius: Radius.full,
-            backgroundColor: active ? Overlay.strong : c.surfaceMuted,
-            minWidth: 20,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: FontSize.xs,
-              fontWeight: "700",
-              color: active ? Colors.light.surface : c.textMuted,
-              fontVariant: ["tabular-nums"],
-            }}
-          >
-            {count}
-          </Text>
-        </View>
-      ) : null}
-    </Pressable>
-  );
 }
 
 export default function InventoryScreen() {
@@ -166,20 +98,20 @@ export default function InventoryScreen() {
           gap: 8,
         }}
       >
-        <FilterChip
+        <Chip
           label="Todos"
           active={filter === "all"}
           count={products.length}
           onPress={() => setFilter("all")}
         />
-        <FilterChip
+        <Chip
           label="Stock bajo"
           active={filter === "low"}
           count={lowCount}
           accent={c.danger}
           onPress={() => setFilter("low")}
         />
-        <FilterChip
+        <Chip
           label="Estancados"
           active={filter === "stagnant"}
           count={stagnantCount}
@@ -260,6 +192,8 @@ export default function InventoryScreen() {
           <Animated.View entering={FadeInDown.delay(index * 30).duration(280)}>
             <Pressable
               onPress={() => router.push(`/catalog/${item.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Editar producto ${item.name}, stock actual ${item.stock} ${item.unitOfMeasure}`}
               style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
             >
               <View
@@ -378,6 +312,8 @@ export default function InventoryScreen() {
 
       <Pressable
         onPress={() => router.push("/inventory/stock-entry")}
+        accessibilityRole="button"
+        accessibilityLabel="Agregar entrada de stock"
         style={({ pressed }) => ({
           position: "absolute",
           bottom: 24,

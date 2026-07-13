@@ -82,6 +82,8 @@ export function Button({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled }}
       style={(state) => {
         const { pressed } = state;
         let bg = "transparent";

@@ -18,6 +18,7 @@ function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButto
   const c = useAppColors();
   return (
     <Pressable
+      accessibilityRole="button"
       hitSlop={10}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}

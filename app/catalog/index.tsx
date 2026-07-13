@@ -1,8 +1,9 @@
 import { Stack, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Pressable, View } from "react-native";
+import { FlatList, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
@@ -70,16 +71,12 @@ export default function CatalogScreen() {
             justifyContent: "space-between",
           }}
         >
-          <Pressable onPress={() => setIncludeArchived((v) => !v)} hitSlop={8}>
-            <Text
-              variant="label"
-              style={{ color: includeArchived ? c.transfer : c.textMuted }}
-            >
-              {includeArchived
-                ? "☑ Mostrando archivados"
-                : "☐ Mostrar archivados"}
-            </Text>
-          </Pressable>
+          <Checkbox
+            checked={includeArchived}
+            onPress={() => setIncludeArchived((v) => !v)}
+            label={includeArchived ? "Mostrando archivados" : "Mostrar archivados"}
+            activeColor={c.transfer}
+          />
           <Button
             size="sm"
             label="+ Nuevo"

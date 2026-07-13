@@ -41,6 +41,8 @@ export function DateBar({ date, onChange }: DateBarProps) {
         onPress={() =>
           onChange(format(addDays(parseISO(date), -1), "yyyy-MM-dd"))
         }
+        accessibilityRole="button"
+        accessibilityLabel="Día anterior"
         hitSlop={6}
         style={({ pressed }) => ({
           width: 36,
@@ -78,6 +80,8 @@ export function DateBar({ date, onChange }: DateBarProps) {
         onPress={() =>
           onChange(format(addDays(parseISO(date), 1), "yyyy-MM-dd"))
         }
+        accessibilityRole="button"
+        accessibilityLabel="Día siguiente"
         hitSlop={6}
         style={({ pressed }) => ({
           width: 36,

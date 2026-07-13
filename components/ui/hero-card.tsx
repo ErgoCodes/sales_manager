@@ -69,6 +69,7 @@ export function HeroCard({
     return (
       <Pressable
         onPress={onPress}
+        accessibilityRole="button"
         style={({ pressed }) => [
           baseStyle,
           { opacity: pressed ? 0.92 : 1 },
