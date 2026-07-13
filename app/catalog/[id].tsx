@@ -1,45 +1,51 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { z } from 'zod';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Pressable, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { z } from "zod";
 
-import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Text } from '@/components/ui/text';
-import { CATEGORY_OPTIONS, UNITS_OF_MEASURE } from '@/constants/catalog';
-import { CONFIG_KEYS, getConfig } from '@/db/config';
-import { registerExpense } from '@/db/expenses';
-import { createProduct, getProduct, updateProduct } from '@/db/products';
-import { calculateStock, getLastSaleDate } from '@/db/queries';
-import { isNearExpiration, isStagnant } from '@/lib/product-status';
-import { calculateTransferPrice } from '@/lib/pricing';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { Radius, Semantic, Shadows } from '@/constants/theme';
-import { safeWrite } from '@/lib/safe-write';
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Text } from "@/components/ui/text";
+import { CONFIG_KEYS, getConfig } from "@/db/config";
+import { registerExpense } from "@/db/expenses";
+import { createProduct, getProduct, updateProduct } from "@/db/products";
+import { calculateStock, getLastSaleDate } from "@/db/queries";
+import {
+  CATEGORY_OPTIONS,
+  UNITS_OF_MEASURE,
+} from "@/drizzle/constants/catalog";
+import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { calculateTransferPrice } from "@/lib/pricing";
+import { isNearExpiration, isStagnant } from "@/lib/product-status";
+import { safeWrite } from "@/lib/safe-write";
 
 const positivePrice = (msg: string) =>
-  z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
+  z.string().refine((v) => v.trim() !== "" && Number(v) > 0, msg);
 
 const schema = z.object({
-  name: z.string().trim().min(1, 'El nombre no puede estar vacío'),
-  unitOfMeasure: z.string().min(1, 'Selecciona una unidad'),
-  category: z.string().min(1, 'Selecciona una categoría'),
+  name: z.string().trim().min(1, "El nombre no puede estar vacío"),
+  unitOfMeasure: z.string().min(1, "Selecciona una unidad"),
+  category: z.string().min(1, "Selecciona una categoría"),
   lowStockThreshold: z
     .string()
-    .refine((v) => Number(v) > 0, 'Debe ser mayor que 0')
-    .refine((v) => Number.isInteger(Number(v)), 'Debe ser un número entero'),
-  costPrice: positivePrice('Debe ser mayor que 0'),
-  cashPrice: positivePrice('Debe ser mayor que 0'),
+    .refine((v) => Number(v) > 0, "Debe ser mayor que 0")
+    .refine((v) => Number.isInteger(Number(v)), "Debe ser un número entero"),
+  costPrice: positivePrice("Debe ser mayor que 0"),
+  cashPrice: positivePrice("Debe ser mayor que 0"),
   expirationDate: z
     .string()
     .optional()
-    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Formato de fecha inválido (YYYY-MM-DD)'),
+    .refine(
+      (v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v),
+      "Formato de fecha inválido (YYYY-MM-DD)"
+    ),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -47,7 +53,7 @@ type FormValues = z.infer<typeof schema>;
 export default function ProductFormScreen() {
   const c = useAppColors();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const isNew = id === 'new';
+  const isNew = id === "new";
 
   const {
     control,
@@ -59,17 +65,20 @@ export default function ProductFormScreen() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: '',
-      unitOfMeasure: 'ud',
-      category: '',
-      lowStockThreshold: '',
-      costPrice: '',
-      cashPrice: '',
-      expirationDate: '',
+      name: "",
+      unitOfMeasure: "ud",
+      category: "",
+      lowStockThreshold: "",
+      costPrice: "",
+      cashPrice: "",
+      expirationDate: "",
     },
   });
 
-  const [stagnantInfo, setStagnantInfo] = useState<{ stagnant: boolean; nearExpiration: boolean } | null>(null);
+  const [stagnantInfo, setStagnantInfo] = useState<{
+    stagnant: boolean;
+    nearExpiration: boolean;
+  } | null>(null);
   const [discountPct, setDiscountPct] = useState(15);
   const [currentStock, setCurrentStock] = useState(0);
   const [rebajaApplied, setRebajaApplied] = useState(false);
@@ -83,11 +92,12 @@ export default function ProductFormScreen() {
       reset({
         name: p.name,
         unitOfMeasure: p.unitOfMeasure,
-        category: p.category ?? '',
-        lowStockThreshold: p.lowStockThreshold != null ? String(p.lowStockThreshold) : '',
-        costPrice: p.costPrice != null ? String(p.costPrice) : '',
-        cashPrice: p.cashPrice != null ? String(p.cashPrice) : '',
-        expirationDate: p.expirationDate ?? '',
+        category: p.category ?? "",
+        lowStockThreshold:
+          p.lowStockThreshold != null ? String(p.lowStockThreshold) : "",
+        costPrice: p.costPrice != null ? String(p.costPrice) : "",
+        cashPrice: p.cashPrice != null ? String(p.cashPrice) : "",
+        expirationDate: p.expirationDate ?? "",
       });
 
       const [stock, lastSaleDate, pctStr] = await Promise.all([
@@ -104,13 +114,14 @@ export default function ProductFormScreen() {
     })();
   }, [id, isNew, reset]);
 
-  const costStr = watch('costPrice');
-  const cashStr = watch('cashPrice');
+  const costStr = watch("costPrice");
+  const cashStr = watch("cashPrice");
   const costNum = Number(costStr) || 0;
   const cashNum = Number(cashStr) || 0;
   const transferNum = cashNum > 0 ? calculateTransferPrice(cashNum) : 0;
   const suggested = costNum > 0 ? Math.round(costNum * 1.3 * 100) / 100 : 0;
-  const suggestedRebaja = cashNum > 0 ? Math.round(cashNum * (1 - discountPct / 100)) : 0;
+  const suggestedRebaja =
+    cashNum > 0 ? Math.round(cashNum * (1 - discountPct / 100)) : 0;
 
   const onSubmit = handleSubmit(async (values) => {
     const cash = Number(values.cashPrice);
@@ -132,13 +143,18 @@ export default function ProductFormScreen() {
         await updateProduct(Number(id), data);
       }
 
-      if (!isNew && rebajaApplied && priceBeforeRebaja > cash && currentStock > 0) {
+      if (
+        !isNew &&
+        rebajaApplied &&
+        priceBeforeRebaja > cash &&
+        currentStock > 0
+      ) {
         const potentialLoss = (priceBeforeRebaja - cash) * currentStock;
         await registerExpense({
-          type: 'rebaja_liquidacion',
+          type: "rebaja_liquidacion",
           concept: values.name.trim(),
           amount: potentialLoss,
-          date: format(new Date(), 'yyyy-MM-dd'),
+          date: format(new Date(), "yyyy-MM-dd"),
         });
       }
     });
@@ -149,8 +165,13 @@ export default function ProductFormScreen() {
   });
 
   return (
-    <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Stack.Screen options={{ title: isNew ? 'Nuevo producto' : 'Editar producto' }} />
+    <KeyboardAwareScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
+    >
+      <Stack.Screen
+        options={{ title: isNew ? "Nuevo producto" : "Editar producto" }}
+      />
 
       <Controller
         control={control}
@@ -259,13 +280,24 @@ export default function ProductFormScreen() {
       />
 
       {suggested > 0 ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: Radius.md, backgroundColor: c.transferSoft, paddingHorizontal: 12, paddingVertical: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: Radius.md,
+            backgroundColor: c.transferSoft,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+          }}
+        >
           <Text variant="caption" style={{ flex: 1, color: c.transfer }}>
             ≈ Sugerido: ${suggested} (costo + 30%)
           </Text>
           <Pressable
             hitSlop={8}
-            onPress={() => setValue('cashPrice', String(suggested))}>
+            onPress={() => setValue("cashPrice", String(suggested))}
+          >
             <Text variant="label" style={{ color: c.transfer }}>
               Usar sugerido
             </Text>
@@ -278,13 +310,23 @@ export default function ProductFormScreen() {
       stagnantInfo &&
       (stagnantInfo.stagnant || stagnantInfo.nearExpiration) &&
       cashNum > 0 ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: Radius.md, backgroundColor: c.warningSoft, paddingHorizontal: 12, paddingVertical: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: Radius.md,
+            backgroundColor: c.warningSoft,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+          }}
+        >
           <Text variant="caption" style={{ flex: 1, color: c.warning }}>
             {stagnantInfo.stagnant && stagnantInfo.nearExpiration
-              ? 'Producto estancado y próximo a vencer.'
+              ? "Producto estancado y próximo a vencer."
               : stagnantInfo.stagnant
-                ? 'Producto estancado (sin ventas en 7 días).'
-                : 'Producto próximo a vencer.'}{' '}
+                ? "Producto estancado (sin ventas en 7 días)."
+                : "Producto próximo a vencer."}{" "}
             Sugerencia: ${suggestedRebaja} (−{discountPct}%)
           </Text>
           <Pressable
@@ -292,8 +334,9 @@ export default function ProductFormScreen() {
             onPress={() => {
               setPriceBeforeRebaja(cashNum);
               setRebajaApplied(true);
-              setValue('cashPrice', String(suggestedRebaja));
-            }}>
+              setValue("cashPrice", String(suggestedRebaja));
+            }}
+          >
             <Text variant="label" style={{ color: c.warning }}>
               Sugerir rebaja
             </Text>
@@ -301,28 +344,42 @@ export default function ProductFormScreen() {
         </View>
       ) : null}
 
-      <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 16, boxShadow: Shadows.sm, gap: 8 }}>
+      <View
+        style={{
+          borderRadius: Radius.xl,
+          backgroundColor: c.surface,
+          padding: 16,
+          boxShadow: Shadows.sm,
+          gap: 8,
+        }}
+      >
         <Text variant="label">Resumen de precios</Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text variant="body">Costo</Text>
-          <Text variant="body">{costNum > 0 ? `$${costNum}` : '—'}</Text>
+          <Text variant="body">{costNum > 0 ? `$${costNum}` : "—"}</Text>
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text variant="body">Efectivo</Text>
-          <Text variant="body">{cashNum > 0 ? `$${cashNum}` : '—'}</Text>
+          <Text variant="body">{cashNum > 0 ? `$${cashNum}` : "—"}</Text>
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text variant="body" style={{ fontWeight: '600' }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text variant="body" style={{ fontWeight: "600" }}>
             Transferencia
           </Text>
-          <Text variant="body" style={{ fontWeight: '600' }}>
-            {transferNum > 0 ? `$${transferNum}` : '—'}
+          <Text variant="body" style={{ fontWeight: "600" }}>
+            {transferNum > 0 ? `$${transferNum}` : "—"}
           </Text>
         </View>
       </View>
 
       <Button
-        label={isSubmitting ? 'Guardando…' : isNew ? 'Crear producto' : 'Guardar cambios'}
+        label={
+          isSubmitting
+            ? "Guardando…"
+            : isNew
+              ? "Crear producto"
+              : "Guardar cambios"
+        }
         onPress={onSubmit}
         disabled={isSubmitting}
       />

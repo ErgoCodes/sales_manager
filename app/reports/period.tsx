@@ -1,22 +1,21 @@
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Stack } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+import { Stack } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, FlatList, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
-import { HeroCard } from '@/components/ui/hero-card';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { HeroCard } from "@/components/ui/hero-card";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   currentWeek,
   PeriodBar,
   type Period,
-} from '@/components/ui/period-bar';
-import { StatCard } from '@/components/ui/stat-card';
-import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
-import { CONFIG_KEYS, getConfig, setConfig } from '@/db/config';
+} from "@/components/ui/period-bar";
+import { StatCard } from "@/components/ui/stat-card";
+import { CONFIG_KEYS, getConfig, setConfig } from "@/db/config";
 import {
   getDailyTotalsInRange,
   getLossesBreakdown,
@@ -24,24 +23,36 @@ import {
   type DailySummary,
   type DayTotals,
   type LossesBreakdown,
-} from '@/db/queries';
-import { listSales } from '@/db/sales';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { exportToExcel } from '@/lib/excel';
-import { formatCurrency } from '@/lib/format';
+} from "@/db/queries";
+import { listSales } from "@/db/sales";
+import {
+  Colors,
+  FontSize,
+  Overlay,
+  Radius,
+  Shadows,
+} from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { exportToExcel } from "@/lib/excel";
+import { formatCurrency } from "@/lib/format";
 import {
   requestPermissions,
   scheduleBackupReminder,
   scheduleWeeklyReminder,
-} from '@/lib/notifications';
+} from "@/lib/notifications";
 
 function methodLabel(method: string): string {
-  if (method === 'efectivo') return 'Efectivo';
-  if (method === 'transferencia') return 'Transferencia';
-  return 'Costo';
+  if (method === "efectivo") return "Efectivo";
+  if (method === "transferencia") return "Transferencia";
+  return "Costo";
 }
 
-const EMPTY_SUMMARY: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
+const EMPTY_SUMMARY: DailySummary = {
+  cash: 0,
+  transfer: 0,
+  total: 0,
+  profit: 0,
+};
 const EMPTY_LOSSES: LossesBreakdown = { categories: [], total: 0 };
 
 function dayLabel(iso: string): string {
@@ -65,8 +76,8 @@ export default function PeriodReportScreen() {
       const backupFlag = await getConfig(CONFIG_KEYS.backupReminderScheduled);
       if (!active) return;
 
-      const needsWeekly = weeklyFlag !== '1';
-      const needsBackup = backupFlag !== '1';
+      const needsWeekly = weeklyFlag !== "1";
+      const needsBackup = backupFlag !== "1";
       if (!needsWeekly && !needsBackup) return;
 
       const granted = await requestPermissions();
@@ -74,11 +85,11 @@ export default function PeriodReportScreen() {
 
       if (needsWeekly) {
         await scheduleWeeklyReminder();
-        await setConfig(CONFIG_KEYS.weeklyReminderScheduled, '1');
+        await setConfig(CONFIG_KEYS.weeklyReminderScheduled, "1");
       }
       if (needsBackup) {
         await scheduleBackupReminder();
-        await setConfig(CONFIG_KEYS.backupReminderScheduled, '1');
+        await setConfig(CONFIG_KEYS.backupReminderScheduled, "1");
       }
     })();
     return () => {
@@ -89,13 +100,15 @@ export default function PeriodReportScreen() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const isMonth = period.mode === 'month';
+      const isMonth = period.mode === "month";
       const [s, dayRows, lossRows] = await Promise.all([
         getRangeSummary(period.from, period.to),
         isMonth
           ? Promise.resolve<DayTotals[]>([])
           : getDailyTotalsInRange(period.from, period.to),
-        isMonth ? getLossesBreakdown(period.from, period.to) : Promise.resolve(EMPTY_LOSSES),
+        isMonth
+          ? getLossesBreakdown(period.from, period.to)
+          : Promise.resolve(EMPTY_LOSSES),
       ]);
       if (!active) return;
       setSummary(s);
@@ -107,7 +120,7 @@ export default function PeriodReportScreen() {
     };
   }, [period]);
 
-  const isMonth = period.mode === 'month';
+  const isMonth = period.mode === "month";
   const netProfit = summary.profit - losses.total;
 
   const sectionLabel = useCallback(
@@ -115,16 +128,16 @@ export default function PeriodReportScreen() {
       <Text
         style={{
           fontSize: 11,
-          fontWeight: '700',
+          fontWeight: "700",
           color: c.textMuted,
           letterSpacing: 1,
-          textTransform: 'uppercase',
+          textTransform: "uppercase",
         }}
       >
         {text}
       </Text>
     ),
-    [c.textMuted],
+    [c.textMuted]
   );
 
   const handleExport = useCallback(async () => {
@@ -136,7 +149,17 @@ export default function PeriodReportScreen() {
       ]);
 
       const salesRows: (string | number)[][] = [
-        ['Fecha', 'Producto', 'Unidad', 'Cantidad', 'Método', 'Precio aplicado', 'Costo unitario', 'Importe', 'Utilidad'],
+        [
+          "Fecha",
+          "Producto",
+          "Unidad",
+          "Cantidad",
+          "Método",
+          "Precio aplicado",
+          "Costo unitario",
+          "Importe",
+          "Utilidad",
+        ],
       ];
       let totalQty = 0;
       let totalRevenue = 0;
@@ -158,33 +181,52 @@ export default function PeriodReportScreen() {
           s.profit,
         ]);
       }
-      salesRows.push(['TOTAL', '', '', totalQty, '', '', '', totalRevenue, totalProfit]);
+      salesRows.push([
+        "TOTAL",
+        "",
+        "",
+        totalQty,
+        "",
+        "",
+        "",
+        totalRevenue,
+        totalProfit,
+      ]);
 
-      const dayRowsSheet: (string | number)[][] = [['Fecha', 'Efectivo', 'Transferencia', 'Total', 'Utilidad']];
+      const dayRowsSheet: (string | number)[][] = [
+        ["Fecha", "Efectivo", "Transferencia", "Total", "Utilidad"],
+      ];
       for (const d of dayRows) {
         dayRowsSheet.push([d.date, d.cash, d.transfer, d.total, d.profit]);
       }
 
       const sheets = [
-        { name: 'Ventas', rows: salesRows },
-        { name: 'Resumen por día', rows: dayRowsSheet },
+        { name: "Ventas", rows: salesRows },
+        { name: "Resumen por día", rows: dayRowsSheet },
       ];
 
       if (isMonth && losses.categories.length > 0) {
-        const lossRows: (string | number)[][] = [['Categoría', 'Concepto', 'Fecha', 'Monto']];
+        const lossRows: (string | number)[][] = [
+          ["Categoría", "Concepto", "Fecha", "Monto"],
+        ];
         for (const cat of losses.categories) {
           for (const r of cat.records) {
             lossRows.push([cat.label, r.label, r.date, r.amount]);
           }
         }
-        lossRows.push(['TOTAL', '', '', losses.total]);
-        sheets.push({ name: 'Pérdidas', rows: lossRows });
+        lossRows.push(["TOTAL", "", "", losses.total]);
+        sheets.push({ name: "Pérdidas", rows: lossRows });
       }
 
-      const prefix = isMonth ? 'mensual' : 'semanal';
+      const prefix = isMonth ? "mensual" : "semanal";
       await exportToExcel(`reporte_${prefix}_${period.from}.xlsx`, sheets);
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "No se pudo exportar el reporte."
+      );
     } finally {
       setExporting(false);
     }
@@ -197,7 +239,7 @@ export default function PeriodReportScreen() {
       </Animated.View>
 
       <Button
-        label={exporting ? 'Exportando…' : 'Exportar a Excel'}
+        label={exporting ? "Exportando…" : "Exportar a Excel"}
         icon="square.and.arrow.up"
         variant="soft"
         size="sm"
@@ -210,10 +252,10 @@ export default function PeriodReportScreen() {
           <Text
             style={{
               fontSize: FontSize.xs,
-              fontWeight: '700',
+              fontWeight: "700",
               color: Overlay.text,
               letterSpacing: 1,
-              textTransform: 'uppercase',
+              textTransform: "uppercase",
             }}
           >
             Total del período
@@ -222,24 +264,33 @@ export default function PeriodReportScreen() {
             selectable
             style={{
               fontSize: 36,
-              fontWeight: '800',
+              fontWeight: "800",
               color: Colors.light.surface,
               letterSpacing: -1,
               marginTop: 4,
-              fontVariant: ['tabular-nums'],
+              fontVariant: ["tabular-nums"],
             }}
           >
             {formatCurrency(summary.total)}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 6,
+            }}
+          >
             <IconSymbol name="sparkles" size={13} color={Overlay.textStrong} />
-            <Text style={{ fontSize: FontSize.md, color: Overlay.textStrong }}>Utilidad</Text>
+            <Text style={{ fontSize: FontSize.md, color: Overlay.textStrong }}>
+              Utilidad
+            </Text>
             <Text
               style={{
                 fontSize: FontSize.md,
-                fontWeight: '700',
+                fontWeight: "700",
                 color: Colors.light.surface,
-                fontVariant: ['tabular-nums'],
+                fontVariant: ["tabular-nums"],
               }}
             >
               {formatCurrency(summary.profit)}
@@ -250,7 +301,7 @@ export default function PeriodReportScreen() {
 
       <Animated.View
         entering={FadeInDown.delay(120).duration(360).springify()}
-        style={{ flexDirection: 'row', gap: 10 }}
+        style={{ flexDirection: "row", gap: 10 }}
       >
         <StatCard
           icon="dollarsign.circle.fill"
@@ -272,7 +323,7 @@ export default function PeriodReportScreen() {
         entering={FadeInDown.delay(180).duration(360).springify()}
         style={{ marginTop: 6 }}
       >
-        {sectionLabel(isMonth ? 'Pérdidas del mes' : 'Ventas por día')}
+        {sectionLabel(isMonth ? "Pérdidas del mes" : "Ventas por día")}
       </Animated.View>
     </View>
   );
@@ -281,7 +332,7 @@ export default function PeriodReportScreen() {
   if (isMonth) {
     return (
       <View style={{ flex: 1, backgroundColor: c.background }}>
-        <Stack.Screen options={{ title: 'Semanal y mensual' }} />
+        <Stack.Screen options={{ title: "Semanal y mensual" }} />
         <FlatList
           data={losses.categories}
           keyExtractor={(item) => item.type}
@@ -289,34 +340,44 @@ export default function PeriodReportScreen() {
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={header}
           renderItem={({ item, index }) => (
-            <Animated.View entering={FadeInDown.delay(200 + index * 30).duration(280)}>
+            <Animated.View
+              entering={FadeInDown.delay(200 + index * 30).duration(280)}
+            >
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                   backgroundColor: c.surface,
                   borderRadius: Radius.lg,
                   padding: 14,
-                  borderCurve: 'continuous',
+                  borderCurve: "continuous",
                   boxShadow: Shadows.sm,
                 }}
               >
                 <View style={{ gap: 2 }}>
-                  <Text style={{ fontSize: FontSize.base, fontWeight: '600', color: c.text }}>
+                  <Text
+                    style={{
+                      fontSize: FontSize.base,
+                      fontWeight: "600",
+                      color: c.text,
+                    }}
+                  >
                     {item.label}
                   </Text>
-                  <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}>
-                    {item.records.length}{' '}
-                    {item.records.length === 1 ? 'registro' : 'registros'}
+                  <Text
+                    style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}
+                  >
+                    {item.records.length}{" "}
+                    {item.records.length === 1 ? "registro" : "registros"}
                   </Text>
                 </View>
                 <Text
                   style={{
                     fontSize: 15,
-                    fontWeight: '700',
+                    fontWeight: "700",
                     color: item.subtotal > 0 ? c.danger : c.tabIconDefault,
-                    fontVariant: ['tabular-nums'],
+                    fontVariant: ["tabular-nums"],
                   }}
                 >
                   {formatCurrency(item.subtotal)}
@@ -325,28 +386,37 @@ export default function PeriodReportScreen() {
             </Animated.View>
           )}
           ListFooterComponent={
-            <Animated.View entering={FadeInDown.delay(260).duration(320)} style={{ marginTop: 18, gap: 12 }}>
+            <Animated.View
+              entering={FadeInDown.delay(260).duration(320)}
+              style={{ marginTop: 18, gap: 12 }}
+            >
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                   backgroundColor: c.surface,
                   borderRadius: Radius.lg,
                   padding: 16,
-                  borderCurve: 'continuous',
+                  borderCurve: "continuous",
                   boxShadow: Shadows.sm,
                 }}
               >
-                <Text style={{ fontSize: FontSize.lg, fontWeight: '600', color: c.text }}>
+                <Text
+                  style={{
+                    fontSize: FontSize.lg,
+                    fontWeight: "600",
+                    color: c.text,
+                  }}
+                >
                   Total de pérdidas
                 </Text>
                 <Text
                   style={{
                     fontSize: 20,
-                    fontWeight: '800',
+                    fontWeight: "800",
                     color: c.danger,
-                    fontVariant: ['tabular-nums'],
+                    fontVariant: ["tabular-nums"],
                   }}
                 >
                   {formatCurrency(losses.total)}
@@ -357,10 +427,10 @@ export default function PeriodReportScreen() {
                 <Text
                   style={{
                     fontSize: FontSize.xs,
-                    fontWeight: '700',
+                    fontWeight: "700",
                     color: Overlay.text,
                     letterSpacing: 1,
-                    textTransform: 'uppercase',
+                    textTransform: "uppercase",
                   }}
                 >
                   Utilidad neta
@@ -369,16 +439,22 @@ export default function PeriodReportScreen() {
                   selectable
                   style={{
                     fontSize: 30,
-                    fontWeight: '800',
+                    fontWeight: "800",
                     color: Colors.light.surface,
                     letterSpacing: -0.5,
                     marginTop: 4,
-                    fontVariant: ['tabular-nums'],
+                    fontVariant: ["tabular-nums"],
                   }}
                 >
                   {formatCurrency(netProfit)}
                 </Text>
-                <Text style={{ fontSize: FontSize.sm, color: Overlay.textStrong, marginTop: 4 }}>
+                <Text
+                  style={{
+                    fontSize: FontSize.sm,
+                    color: Overlay.textStrong,
+                    marginTop: 4,
+                  }}
+                >
                   Utilidad de ventas menos pérdidas
                 </Text>
               </HeroCard>
@@ -392,7 +468,7 @@ export default function PeriodReportScreen() {
   // ---- Week / custom view: per-day totals ----
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <Stack.Screen options={{ title: 'Semanal y mensual' }} />
+      <Stack.Screen options={{ title: "Semanal y mensual" }} />
       <FlatList
         data={days}
         keyExtractor={(item) => item.date}
@@ -407,35 +483,88 @@ export default function PeriodReportScreen() {
           />
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(200 + index * 30).duration(280)}>
+          <Animated.View
+            entering={FadeInDown.delay(200 + index * 30).duration(280)}
+          >
             <View
               style={{
                 backgroundColor: c.surface,
                 borderRadius: Radius.lg,
                 padding: 14,
                 gap: 10,
-                borderCurve: 'continuous',
+                borderCurve: "continuous",
                 boxShadow: Shadows.sm,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: FontSize.base, fontWeight: '600', color: c.text }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: FontSize.base,
+                    fontWeight: "600",
+                    color: c.text,
+                  }}
+                >
                   {dayLabel(item.date)}
                 </Text>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: c.text, fontVariant: ['tabular-nums'] }}>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: "700",
+                    color: c.text,
+                    fontVariant: ["tabular-nums"],
+                  }}
+                >
                   {formatCurrency(item.total)}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.cash }} />
-                  <Text style={{ fontSize: FontSize.sm, color: c.textMuted, fontVariant: ['tabular-nums'] }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 14 }}
+              >
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
+                >
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: c.cash,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: FontSize.sm,
+                      color: c.textMuted,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
                     {formatCurrency(item.cash)}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.transfer }} />
-                  <Text style={{ fontSize: FontSize.sm, color: c.textMuted, fontVariant: ['tabular-nums'] }}>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
+                >
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: c.transfer,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: FontSize.sm,
+                      color: c.textMuted,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
                     {formatCurrency(item.transfer)}
                   </Text>
                 </View>
@@ -443,9 +572,9 @@ export default function PeriodReportScreen() {
                   style={{
                     fontSize: FontSize.sm,
                     color: c.cash,
-                    fontWeight: '600',
-                    marginLeft: 'auto',
-                    fontVariant: ['tabular-nums'],
+                    fontWeight: "600",
+                    marginLeft: "auto",
+                    fontVariant: ["tabular-nums"],
                   }}
                 >
                   +{formatCurrency(item.profit)}

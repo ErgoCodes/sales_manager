@@ -1,19 +1,26 @@
-import { Text, View } from 'react-native';
+import { Text, View } from "react-native";
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Shadows } from '@/constants/theme';
-import { useAppColors } from '@/hooks/use-app-colors';
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
 
 interface StatCardProps {
   label: string;
   value: string;
   accent?: string;
-  icon?: Parameters<typeof IconSymbol>[0]['name'];
+  icon?: Parameters<typeof IconSymbol>[0]["name"];
   iconBg?: string;
   caption?: string;
 }
 
-export function StatCard({ label, value, accent, icon, iconBg, caption }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  accent,
+  icon,
+  iconBg,
+  caption,
+}: StatCardProps) {
   const c = useAppColors();
   const resolvedAccent = accent ?? c.text;
   return (
@@ -24,12 +31,26 @@ export function StatCard({ label, value, accent, icon, iconBg, caption }: StatCa
         borderRadius: 20,
         padding: 14,
         gap: 10,
-        borderCurve: 'continuous',
+        borderCurve: "continuous",
         boxShadow: Shadows.md,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: c.textMuted, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: c.textMuted,
+            letterSpacing: 0.3,
+            textTransform: "uppercase",
+          }}
+        >
           {label}
         </Text>
         {icon ? (
@@ -39,8 +60,8 @@ export function StatCard({ label, value, accent, icon, iconBg, caption }: StatCa
               height: 30,
               borderRadius: 10,
               backgroundColor: iconBg ?? `${resolvedAccent}15`,
-              alignItems: 'center',
-              justifyContent: 'center',
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <IconSymbol name={icon} size={18} color={resolvedAccent} />
@@ -51,10 +72,10 @@ export function StatCard({ label, value, accent, icon, iconBg, caption }: StatCa
         selectable
         style={{
           fontSize: 22,
-          fontWeight: '700',
+          fontWeight: "700",
           color: resolvedAccent,
           letterSpacing: -0.5,
-          fontVariant: ['tabular-nums'],
+          fontVariant: ["tabular-nums"],
         }}
       >
         {value}

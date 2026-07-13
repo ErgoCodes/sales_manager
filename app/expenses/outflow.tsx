@@ -1,37 +1,43 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Alert, Pressable, View } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { z } from 'zod';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Alert, Pressable, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { z } from "zod";
 
-import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
 import {
   ProductPicker,
   type SelectedProduct,
-} from '@/components/ui/product-picker';
-import { Select } from '@/components/ui/select';
-import { Text } from '@/components/ui/text';
-import { OUTFLOW_TYPES, type OutflowType } from '@/constants/expenses';
-import { getOutflowById, registerOutflow, updateOutflow } from '@/db/movements';
-import { calculateStock } from '@/db/queries';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { safeWrite } from '@/lib/safe-write';
-import { Radius, Shadows, Colors } from '@/constants/theme';
+} from "@/components/ui/product-picker";
+import { Select } from "@/components/ui/select";
+import { Text } from "@/components/ui/text";
+import { getOutflowById, registerOutflow, updateOutflow } from "@/db/movements";
+import { calculateStock } from "@/db/queries";
+import { OUTFLOW_TYPES, type OutflowType } from "@/drizzle/constants/expenses";
+import { Colors, Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { safeWrite } from "@/lib/safe-write";
 
 const schema = z.object({
-  quantity: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
+  quantity: z.string().refine((v) => Number(v) > 0, "Debe ser mayor que 0"),
   unitCostPrice: z
     .string()
-    .refine((v) => v.trim() !== '' && Number(v) > 0, 'El costo es obligatorio y debe ser mayor que 0'),
-  date: z.string().min(1, 'La fecha es obligatoria').refine(
-    (v) => v <= format(new Date(), 'yyyy-MM-dd'),
-    'La fecha no puede ser futura'
-  ),
+    .refine(
+      (v) => v.trim() !== "" && Number(v) > 0,
+      "El costo es obligatorio y debe ser mayor que 0"
+    ),
+  date: z
+    .string()
+    .min(1, "La fecha es obligatoria")
+    .refine(
+      (v) => v <= format(new Date(), "yyyy-MM-dd"),
+      "La fecha no puede ser futura"
+    ),
   notes: z.string().optional(),
 });
 
@@ -40,9 +46,11 @@ type FormValues = z.infer<typeof schema>;
 export default function OutflowScreen() {
   const c = useAppColors();
   const [product, setProduct] = useState<SelectedProduct | null>(null);
-  const [productError, setProductError] = useState('');
-  const [type, setType] = useState<OutflowType>('merma');
-  const [direction, setDirection] = useState<'decrease' | 'increase'>('decrease');
+  const [productError, setProductError] = useState("");
+  const [type, setType] = useState<OutflowType>("merma");
+  const [direction, setDirection] = useState<"decrease" | "increase">(
+    "decrease"
+  );
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEdit = !!id;
 
@@ -56,10 +64,10 @@ export default function OutflowScreen() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      quantity: '',
-      unitCostPrice: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      notes: '',
+      quantity: "",
+      unitCostPrice: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      notes: "",
     },
   });
 
@@ -78,14 +86,14 @@ export default function OutflowScreen() {
             averageCost: row.averageCost,
           });
           setType(row.type as OutflowType);
-          if (row.type === 'ajuste') {
-            setDirection(row.quantity >= 0 ? 'increase' : 'decrease');
+          if (row.type === "ajuste") {
+            setDirection(row.quantity >= 0 ? "increase" : "decrease");
           }
           reset({
             quantity: String(Math.abs(row.quantity)),
             unitCostPrice: String(row.unitCostPrice),
             date: row.date,
-            notes: row.notes ?? '',
+            notes: row.notes ?? "",
           });
         }
       })();
@@ -94,34 +102,37 @@ export default function OutflowScreen() {
 
   function onProductSelected(p: SelectedProduct) {
     setProduct(p);
-    setProductError('');
+    setProductError("");
     const cost = p.averageCost > 0 ? p.averageCost : (p.costPrice ?? 0);
-    if (cost > 0) setValue('unitCostPrice', String(cost));
+    if (cost > 0) setValue("unitCostPrice", String(cost));
   }
 
   async function persist(values: FormValues, signedQuantity: number) {
     if (!product) return;
-    const result = await safeWrite(async () => {
-      if (isEdit) {
-        await updateOutflow(Number(id), {
-          productId: product.id,
-          type,
-          quantity: signedQuantity,
-          unitCostPrice: Number(values.unitCostPrice),
-          date: values.date,
-          notes: values.notes || null,
-        });
-      } else {
-        await registerOutflow({
-          productId: product.id,
-          type,
-          quantity: signedQuantity,
-          unitCostPrice: Number(values.unitCostPrice),
-          date: values.date,
-          notes: values.notes || null,
-        });
-      }
-    }, isEdit ? 'Error al guardar cambios' : 'No se pudo guardar');
+    const result = await safeWrite(
+      async () => {
+        if (isEdit) {
+          await updateOutflow(Number(id), {
+            productId: product.id,
+            type,
+            quantity: signedQuantity,
+            unitCostPrice: Number(values.unitCostPrice),
+            date: values.date,
+            notes: values.notes || null,
+          });
+        } else {
+          await registerOutflow({
+            productId: product.id,
+            type,
+            quantity: signedQuantity,
+            unitCostPrice: Number(values.unitCostPrice),
+            date: values.date,
+            notes: values.notes || null,
+          });
+        }
+      },
+      isEdit ? "Error al guardar cambios" : "No se pudo guardar"
+    );
     if (result.ok) {
       router.back();
     }
@@ -129,14 +140,14 @@ export default function OutflowScreen() {
 
   const onSubmit = handleSubmit(async (values) => {
     if (!product) {
-      setProductError('Selecciona un producto');
+      setProductError("Selecciona un producto");
       return;
     }
 
     // Ajuste puede subir o bajar el stock; merma y retiro siempre lo bajan.
     const magnitude = Number(values.quantity);
     const signedQuantity =
-      type === 'ajuste' && direction === 'increase' ? magnitude : -magnitude;
+      type === "ajuste" && direction === "increase" ? magnitude : -magnitude;
 
     // Advertir (sin bloquear) si el stock quedaría negativo.
     if (signedQuantity < 0) {
@@ -144,16 +155,16 @@ export default function OutflowScreen() {
       const resulting = stock + signedQuantity;
       if (resulting < 0) {
         Alert.alert(
-          'Stock insuficiente',
+          "Stock insuficiente",
           `${product.name} tiene ${stock} ${product.unitOfMeasure}. Esta salida lo dejaría en ${resulting}. ¿Registrar de todas formas?`,
           [
-            { text: 'Cancelar', style: 'cancel' },
+            { text: "Cancelar", style: "cancel" },
             {
-              text: 'Registrar',
-              style: 'destructive',
+              text: "Registrar",
+              style: "destructive",
               onPress: () => persist(getValues(), signedQuantity),
             },
-          ],
+          ]
         );
         return;
       }
@@ -162,11 +173,16 @@ export default function OutflowScreen() {
     await persist(values, signedQuantity);
   });
 
-  const isAdjustment = type === 'ajuste';
+  const isAdjustment = type === "ajuste";
 
   return (
-    <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Stack.Screen options={{ title: isEdit ? 'Editar salida' : 'Salida de almacén' }} />
+    <KeyboardAwareScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
+    >
+      <Stack.Screen
+        options={{ title: isEdit ? "Editar salida" : "Salida de almacén" }}
+      />
 
       <Select
         label="Tipo de salida"
@@ -183,11 +199,22 @@ export default function OutflowScreen() {
       />
 
       {product ? (
-        <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 12, boxShadow: Shadows.sm, gap: 4 }}>
+        <View
+          style={{
+            borderRadius: Radius.xl,
+            backgroundColor: c.surface,
+            padding: 12,
+            boxShadow: Shadows.sm,
+            gap: 4,
+          }}
+        >
           <Text variant="label">Costo promedio actual</Text>
           <Text variant="caption">
-            ${product.averageCost > 0 ? product.averageCost : (product.costPrice ?? '—')} ·{' '}
-            {product.unitOfMeasure}
+            $
+            {product.averageCost > 0
+              ? product.averageCost
+              : (product.costPrice ?? "—")}{" "}
+            · {product.unitOfMeasure}
           </Text>
         </View>
       ) : null}
@@ -195,11 +222,11 @@ export default function OutflowScreen() {
       {isAdjustment ? (
         <View style={{ gap: 6 }}>
           <Text variant="label">Dirección del ajuste</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
             {(
               [
-                { value: 'decrease', label: 'Disminuir' },
-                { value: 'increase', label: 'Aumentar' },
+                { value: "decrease", label: "Disminuir" },
+                { value: "increase", label: "Aumentar" },
               ] as const
             ).map((opt) => {
               const selected = opt.value === direction;
@@ -215,8 +242,14 @@ export default function OutflowScreen() {
                     backgroundColor: selected ? c.tint : c.surface,
                     borderColor: selected ? c.tint : c.border,
                     opacity: pressed ? 0.7 : 1,
-                  })}>
-                  <Text style={{ color: selected ? Colors.light.surface : c.text, fontWeight: '500' }}>
+                  })}
+                >
+                  <Text
+                    style={{
+                      color: selected ? Colors.light.surface : c.text,
+                      fontWeight: "500",
+                    }}
+                  >
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -231,7 +264,7 @@ export default function OutflowScreen() {
         name="quantity"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ''}`}
+            label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ""}`}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -269,7 +302,7 @@ export default function OutflowScreen() {
             onChange={onChange}
             placeholder="Seleccionar fecha"
             error={errors.date?.message}
-            maxDate={format(new Date(), 'yyyy-MM-dd')}
+            maxDate={format(new Date(), "yyyy-MM-dd")}
           />
         )}
       />
@@ -290,7 +323,15 @@ export default function OutflowScreen() {
       />
 
       <Button
-        label={isSubmitting ? (isEdit ? 'Guardando…' : 'Registrando…') : isEdit ? 'Guardar cambios' : 'Registrar salida'}
+        label={
+          isSubmitting
+            ? isEdit
+              ? "Guardando…"
+              : "Registrando…"
+            : isEdit
+              ? "Guardar cambios"
+              : "Registrar salida"
+        }
         onPress={onSubmit}
         disabled={isSubmitting}
       />

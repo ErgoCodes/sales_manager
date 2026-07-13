@@ -1,9 +1,9 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
-import { db } from './client';
-import { CONFIG_KEYS, getConfig } from './config';
-import { expenses, products, sales, warehouseMovements } from './schema';
-import { getProductThreshold } from '@/constants/catalog';
+import { getProductThreshold } from "@/drizzle/constants/catalog";
+import { db } from "./client";
+import { CONFIG_KEYS, getConfig } from "./config";
+import { expenses, products, sales, warehouseMovements } from "./schema";
 
 export async function calculateStock(productId: number): Promise<number> {
   const [movRow] = await db
@@ -64,7 +64,7 @@ export async function calculateAllStocks(): Promise<Map<number, number>> {
 export async function recalculateAverageCost(
   productId: number,
   newQuantity: number,
-  newCost: number,
+  newCost: number
 ): Promise<number> {
   const currentStock = await calculateStock(productId);
 
@@ -78,7 +78,9 @@ export async function recalculateAverageCost(
 
   if (denominator <= 0) return newCost;
 
-  return (currentStock * currentAverageCost + newQuantity * newCost) / denominator;
+  return (
+    (currentStock * currentAverageCost + newQuantity * newCost) / denominator
+  );
 }
 
 export interface DailySummary {
@@ -98,13 +100,16 @@ export async function getDailySummary(date: string): Promise<DailySummary> {
       profit: sql<number>`COALESCE(SUM(${sales.profit}), 0)`,
     })
     .from(sales)
-    .where(and(eq(sales.cancelled, false), sql`date(${sales.date}) = date(${date})`))
+    .where(
+      and(eq(sales.cancelled, false), sql`date(${sales.date}) = date(${date})`)
+    )
     .groupBy(sales.paymentMethod);
 
   const summary: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
   for (const row of rows) {
-    if (row.paymentMethod === 'efectivo') summary.cash += row.revenue;
-    else if (row.paymentMethod === 'transferencia') summary.transfer += row.revenue;
+    if (row.paymentMethod === "efectivo") summary.cash += row.revenue;
+    else if (row.paymentMethod === "transferencia")
+      summary.transfer += row.revenue;
     summary.total += row.revenue;
     summary.profit += row.profit;
   }
@@ -119,7 +124,9 @@ export interface ProductDaySummary {
   totalProfit: number;
 }
 
-export async function getDailyBreakdown(date: string): Promise<ProductDaySummary[]> {
+export async function getDailyBreakdown(
+  date: string
+): Promise<ProductDaySummary[]> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
   return db
@@ -132,7 +139,9 @@ export async function getDailyBreakdown(date: string): Promise<ProductDaySummary
     })
     .from(sales)
     .innerJoin(products, eq(sales.productId, products.id))
-    .where(and(eq(sales.cancelled, false), sql`date(${sales.date}) = date(${date})`))
+    .where(
+      and(eq(sales.cancelled, false), sql`date(${sales.date}) = date(${date})`)
+    )
     .groupBy(sales.productId)
     .orderBy(desc(sql`COALESCE(SUM(${revenue}), 0)`));
 }
@@ -142,7 +151,10 @@ export async function getDailyBreakdown(date: string): Promise<ProductDaySummary
  * de `getDailySummary`: mismo cálculo pero filtrando con el par
  * `date(col) >= date(from)` / `date(col) <= date(to)`.
  */
-export async function getRangeSummary(from: string, to: string): Promise<DailySummary> {
+export async function getRangeSummary(
+  from: string,
+  to: string
+): Promise<DailySummary> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
   const rows = await db
@@ -156,15 +168,16 @@ export async function getRangeSummary(from: string, to: string): Promise<DailySu
       and(
         eq(sales.cancelled, false),
         sql`date(${sales.date}) >= date(${from})`,
-        sql`date(${sales.date}) <= date(${to})`,
-      ),
+        sql`date(${sales.date}) <= date(${to})`
+      )
     )
     .groupBy(sales.paymentMethod);
 
   const summary: DailySummary = { cash: 0, transfer: 0, total: 0, profit: 0 };
   for (const row of rows) {
-    if (row.paymentMethod === 'efectivo') summary.cash += row.revenue;
-    else if (row.paymentMethod === 'transferencia') summary.transfer += row.revenue;
+    if (row.paymentMethod === "efectivo") summary.cash += row.revenue;
+    else if (row.paymentMethod === "transferencia")
+      summary.transfer += row.revenue;
     summary.total += row.revenue;
     summary.profit += row.profit;
   }
@@ -172,7 +185,10 @@ export async function getRangeSummary(from: string, to: string): Promise<DailySu
 }
 
 /** Desglose por producto en un rango de fechas (clon por rango de `getDailyBreakdown`). */
-export async function getRangeBreakdown(from: string, to: string): Promise<ProductDaySummary[]> {
+export async function getRangeBreakdown(
+  from: string,
+  to: string
+): Promise<ProductDaySummary[]> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
   return db
@@ -189,8 +205,8 @@ export async function getRangeBreakdown(from: string, to: string): Promise<Produ
       and(
         eq(sales.cancelled, false),
         sql`date(${sales.date}) >= date(${from})`,
-        sql`date(${sales.date}) <= date(${to})`,
-      ),
+        sql`date(${sales.date}) <= date(${to})`
+      )
     )
     .groupBy(sales.productId)
     .orderBy(desc(sql`COALESCE(SUM(${revenue}), 0)`));
@@ -208,7 +224,10 @@ export interface DayTotals {
  * Serie diaria de totales dentro de un rango: una fila por día con ventas,
  * agrupada por `date(fecha)`. Alimenta la vista semanal (agregado por día).
  */
-export async function getDailyTotalsInRange(from: string, to: string): Promise<DayTotals[]> {
+export async function getDailyTotalsInRange(
+  from: string,
+  to: string
+): Promise<DayTotals[]> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
   return db
@@ -224,14 +243,14 @@ export async function getDailyTotalsInRange(from: string, to: string): Promise<D
       and(
         eq(sales.cancelled, false),
         sql`date(${sales.date}) >= date(${from})`,
-        sql`date(${sales.date}) <= date(${to})`,
-      ),
+        sql`date(${sales.date}) <= date(${to})`
+      )
     )
     .groupBy(sql`date(${sales.date})`)
     .orderBy(sql`date(${sales.date})`);
 }
 
-export type RankingSortBy = 'quantity' | 'profit';
+export type RankingSortBy = "quantity" | "profit";
 
 export interface ProductRanking {
   productId: number;
@@ -250,13 +269,13 @@ export interface ProductRanking {
 export async function getRangeRanking(
   from: string,
   to: string,
-  sortBy: RankingSortBy,
+  sortBy: RankingSortBy
 ): Promise<ProductRanking[]> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
   const quantitySum = sql<number>`COALESCE(SUM(${sales.quantity}), 0)`;
   const revenueSum = sql<number>`COALESCE(SUM(${revenue}), 0)`;
   const profitSum = sql<number>`COALESCE(SUM(${sales.profit}), 0)`;
-  const orderExpr = sortBy === 'quantity' ? quantitySum : profitSum;
+  const orderExpr = sortBy === "quantity" ? quantitySum : profitSum;
 
   const rows = await db
     .select({
@@ -272,8 +291,8 @@ export async function getRangeRanking(
       and(
         eq(sales.cancelled, false),
         sql`date(${sales.date}) >= date(${from})`,
-        sql`date(${sales.date}) <= date(${to})`,
-      ),
+        sql`date(${sales.date}) <= date(${to})`
+      )
     )
     .groupBy(sales.productId)
     .orderBy(desc(orderExpr));
@@ -307,13 +326,17 @@ export interface LossesBreakdown {
 }
 
 /** Orden y títulos de las categorías de pérdidas del reporte T-19. */
-const LOSS_CATEGORIES: { type: string; label: string; source: 'movement' | 'expense' }[] = [
-  { type: 'retiro_owner', label: 'Retiros', source: 'movement' },
-  { type: 'merma', label: 'Mermas', source: 'movement' },
-  { type: 'salario', label: 'Salarios', source: 'expense' },
-  { type: 'multa', label: 'Multas', source: 'expense' },
-  { type: 'onat', label: 'ONAT', source: 'expense' },
-  { type: 'rebaja_liquidacion', label: 'Rebajas', source: 'expense' },
+const LOSS_CATEGORIES: {
+  type: string;
+  label: string;
+  source: "movement" | "expense";
+}[] = [
+  { type: "retiro_owner", label: "Retiros", source: "movement" },
+  { type: "merma", label: "Mermas", source: "movement" },
+  { type: "salario", label: "Salarios", source: "expense" },
+  { type: "multa", label: "Multas", source: "expense" },
+  { type: "onat", label: "ONAT", source: "expense" },
+  { type: "rebaja_liquidacion", label: "Rebajas", source: "expense" },
 ];
 
 /**
@@ -322,7 +345,10 @@ const LOSS_CATEGORIES: { type: string; label: string; source: 'movement' | 'expe
  * del dueño, más los gastos periódicos por tipo. Todas las categorías se
  * devuelven siempre (subtotal 0 y sin registros si no hubo movimientos).
  */
-export async function getLossesBreakdown(from: string, to: string): Promise<LossesBreakdown> {
+export async function getLossesBreakdown(
+  from: string,
+  to: string
+): Promise<LossesBreakdown> {
   const [movementRows, expenseRows] = await Promise.all([
     db
       .select({
@@ -336,11 +362,11 @@ export async function getLossesBreakdown(from: string, to: string): Promise<Loss
       .innerJoin(products, eq(warehouseMovements.productId, products.id))
       .where(
         and(
-          inArray(warehouseMovements.type, ['merma', 'retiro_owner']),
+          inArray(warehouseMovements.type, ["merma", "retiro_owner"]),
           eq(warehouseMovements.cancelled, false),
           sql`date(${warehouseMovements.date}) >= date(${from})`,
-          sql`date(${warehouseMovements.date}) <= date(${to})`,
-        ),
+          sql`date(${warehouseMovements.date}) <= date(${to})`
+        )
       )
       .orderBy(desc(warehouseMovements.date)),
     db
@@ -356,8 +382,8 @@ export async function getLossesBreakdown(from: string, to: string): Promise<Loss
         and(
           eq(expenses.cancelled, false),
           sql`date(${expenses.date}) >= date(${from})`,
-          sql`date(${expenses.date}) <= date(${to})`,
-        ),
+          sql`date(${expenses.date}) <= date(${to})`
+        )
       )
       .orderBy(desc(expenses.date)),
   ]);
@@ -365,14 +391,19 @@ export async function getLossesBreakdown(from: string, to: string): Promise<Loss
   const recordsByType = new Map<string, LossRecord[]>();
   for (const row of movementRows) {
     const list = recordsByType.get(row.type) ?? [];
-    list.push({ id: row.id, label: row.productName, amount: row.value, date: row.date });
+    list.push({
+      id: row.id,
+      label: row.productName,
+      amount: row.value,
+      date: row.date,
+    });
     recordsByType.set(row.type, list);
   }
   for (const row of expenseRows) {
     const list = recordsByType.get(row.type) ?? [];
     list.push({
       id: row.id,
-      label: row.concept && row.concept.length > 0 ? row.concept : 'Gasto',
+      label: row.concept && row.concept.length > 0 ? row.concept : "Gasto",
       amount: row.amount,
       date: row.date,
     });
@@ -390,7 +421,9 @@ export async function getLossesBreakdown(from: string, to: string): Promise<Loss
   return { categories, total };
 }
 
-export async function getLastSaleDate(productId: number): Promise<string | null> {
+export async function getLastSaleDate(
+  productId: number
+): Promise<string | null> {
   const [row] = await db
     .select({ lastDate: sql<string>`MAX(${sales.date})` })
     .from(sales)
@@ -417,11 +450,15 @@ export async function getLastSaleDates(): Promise<Map<number, string>> {
 
 export async function countLowStock(): Promise<number> {
   const generalThreshold = Number(
-    (await getConfig(CONFIG_KEYS.generalStockThreshold)) ?? 5,
+    (await getConfig(CONFIG_KEYS.generalStockThreshold)) ?? 5
   );
 
   const activeProducts = await db
-    .select({ id: products.id, lowStockThreshold: products.lowStockThreshold, category: products.category })
+    .select({
+      id: products.id,
+      lowStockThreshold: products.lowStockThreshold,
+      category: products.category,
+    })
     .from(products)
     .where(eq(products.active, true));
 

@@ -1,4 +1,4 @@
-# Mercado Mónaco — MVP
+# Sales Manager — MVP
 
 Sistema de gestión de inventario y ventas offline-first para un solo usuario (Yamile), dueña de un pequeño mercado. El principal objetivo de la aplicación es permitir llevar un control preciso de las ventas diarias desglosadas por método de pago (**efectivo vs. transferencia**) y calcular la utilidad real del negocio en tiempo real.
 

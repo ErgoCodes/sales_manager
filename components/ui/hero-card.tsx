@@ -1,6 +1,6 @@
-import { Pressable, View, type ViewStyle } from 'react-native';
+import { Pressable, View, type ViewStyle } from "react-native";
 
-import { Colors, Overlay, Radius, Shadows } from '@/constants/theme';
+import { Colors, Overlay, Radius, Shadows } from "@/drizzle/constants/theme";
 
 /**
  * Reusable hero card with tinted background and decorative orb overlays.
@@ -30,7 +30,7 @@ export function HeroCard({
       {/* Decorative orb — top right */}
       <View
         style={{
-          position: 'absolute',
+          position: "absolute",
           right: -40,
           top: -30,
           width: 140,
@@ -42,7 +42,7 @@ export function HeroCard({
       {/* Decorative orb — bottom right */}
       <View
         style={{
-          position: 'absolute',
+          position: "absolute",
           right: 30,
           bottom: -50,
           width: 110,
@@ -60,16 +60,20 @@ export function HeroCard({
     borderRadius: Radius.xl,
     padding,
     gap: 6,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     boxShadow: Shadows.hero,
-    overflow: 'hidden',
+    overflow: "hidden",
   };
 
   if (onPress) {
     return (
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [baseStyle, { opacity: pressed ? 0.92 : 1 }, style]}
+        style={({ pressed }) => [
+          baseStyle,
+          { opacity: pressed ? 0.92 : 1 },
+          style,
+        ]}
       >
         {content}
       </Pressable>

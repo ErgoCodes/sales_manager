@@ -1,7 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from "react-native";
 
-import { useAppColors } from '@/hooks/use-app-colors';
-import { Radius, FontSize } from '@/constants/theme';
+import { FontSize, Radius } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
 
 export interface SelectOption {
   label: string;
@@ -17,13 +17,25 @@ interface SelectProps {
 }
 
 /** Selector de chips para conjuntos pequeños de opciones (unidad, categoría). */
-export function Select({ label, options, value, onChange, error }: SelectProps) {
+export function Select({
+  label,
+  options,
+  value,
+  onChange,
+  error,
+}: SelectProps) {
   const c = useAppColors();
 
   return (
     <View style={{ gap: 6 }}>
-      {label ? <Text style={{ fontSize: FontSize.sm, fontWeight: '500', color: c.text }}>{label}</Text> : null}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {label ? (
+        <Text
+          style={{ fontSize: FontSize.sm, fontWeight: "500", color: c.text }}
+        >
+          {label}
+        </Text>
+      ) : null}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {options.map((opt) => {
           const selected = opt.value === value;
           return (
@@ -38,19 +50,24 @@ export function Select({ label, options, value, onChange, error }: SelectProps) 
                 backgroundColor: selected ? c.tint : c.surface,
                 borderColor: selected ? c.tint : c.border,
                 opacity: pressed ? 0.7 : 1,
-              })}>
-              <Text style={{
-                color: selected ? 'white' : c.text,
-                fontWeight: '500',
-                fontSize: FontSize.sm
-              }}>
+              })}
+            >
+              <Text
+                style={{
+                  color: selected ? "white" : c.text,
+                  fontWeight: "500",
+                  fontSize: FontSize.sm,
+                }}
+              >
                 {opt.label}
               </Text>
             </Pressable>
           );
         })}
       </View>
-      {error ? <Text style={{ fontSize: FontSize.sm, color: c.danger }}>{error}</Text> : null}
+      {error ? (
+        <Text style={{ fontSize: FontSize.sm, color: c.danger }}>{error}</Text>
+      ) : null}
     </View>
   );
 }

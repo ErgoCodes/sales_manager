@@ -1,22 +1,22 @@
-import { Stack, router } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, TextInput, View } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { Stack, router } from "expo-router";
+import { useRef, useState } from "react";
+import { Alert, FlatList, Pressable, TextInput, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
-import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
 import {
   ProductPicker,
   type SelectedProduct,
-} from '@/components/ui/product-picker';
-import { Snackbar } from '@/components/ui/snackbar';
-import { Text } from '@/components/ui/text';
-import { Colors, Radius, Shadows } from '@/constants/theme';
-import { registerSalesSession, verifySessionStock } from '@/db/sales';
-import { useCartStore } from '@/store';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { safeWrite } from '@/lib/safe-write';
+} from "@/components/ui/product-picker";
+import { Snackbar } from "@/components/ui/snackbar";
+import { Text } from "@/components/ui/text";
+import { registerSalesSession, verifySessionStock } from "@/db/sales";
+import { Colors, Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { safeWrite } from "@/lib/safe-write";
+import { useCartStore } from "@/store";
 
 export default function NewSessionScreen() {
   const c = useAppColors();
@@ -32,21 +32,22 @@ export default function NewSessionScreen() {
   const grandTotal = useCartStore((s) => s.grandTotal);
 
   const [product, setProduct] = useState<SelectedProduct | null>(null);
-  const [quantity, setQuantity] = useState('');
+  const [quantity, setQuantity] = useState("");
   const [workerSale, setWorkerSale] = useState(false);
   const [discountExpanded, setDiscountExpanded] = useState(false);
-  const [discountPercent, setDiscountPercent] = useState('');
-  const [amountReceived, setAmountReceived] = useState('');
+  const [discountPercent, setDiscountPercent] = useState("");
+  const [amountReceived, setAmountReceived] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const quantityRef = useRef<TextInput>(null);
-  const discountPercentNum = discountPercent === '' ? 0 : Number(discountPercent);
+  const discountPercentNum =
+    discountPercent === "" ? 0 : Number(discountPercent);
 
   function handleDiscountChange(text: string) {
-    const cleaned = text.replace(/[^0-9]/g, '');
-    if (cleaned === '') {
-      setDiscountPercent('');
+    const cleaned = text.replace(/[^0-9]/g, "");
+    if (cleaned === "") {
+      setDiscountPercent("");
       return;
     }
     setDiscountPercent(String(Math.min(100, Number(cleaned))));
@@ -54,28 +55,29 @@ export default function NewSessionScreen() {
 
   function onProductSelected(p: SelectedProduct) {
     setProduct(p);
-    setQuantity('1');
+    setQuantity("1");
     setWorkerSale(false);
     setDiscountExpanded(false);
-    setDiscountPercent('');
+    setDiscountPercent("");
     setTimeout(() => quantityRef.current?.focus(), 100);
   }
 
-  function addToCart(paymentMethod: 'efectivo' | 'transferencia' | 'costo') {
+  function addToCart(paymentMethod: "efectivo" | "transferencia" | "costo") {
     if (!product) return;
     const qty = Number(quantity);
     if (!qty || qty <= 0) return;
 
-    const effectiveDiscount = paymentMethod === 'costo' ? 0 : discountPercentNum;
+    const effectiveDiscount =
+      paymentMethod === "costo" ? 0 : discountPercentNum;
 
     let appliedPrice: number;
     let profit: number;
-    if (paymentMethod === 'costo') {
+    if (paymentMethod === "costo") {
       appliedPrice = product.costPrice ?? product.averageCost;
       profit = 0;
     } else {
       const basePrice =
-        paymentMethod === 'efectivo'
+        paymentMethod === "efectivo"
           ? (product.cashPrice ?? 0)
           : (product.transferPrice ?? 0);
       appliedPrice = basePrice * (1 - effectiveDiscount / 100);
@@ -95,10 +97,10 @@ export default function NewSessionScreen() {
     });
 
     setProduct(null);
-    setQuantity('');
+    setQuantity("");
     setWorkerSale(false);
     setDiscountExpanded(false);
-    setDiscountPercent('');
+    setDiscountPercent("");
   }
 
   async function saveSession() {
@@ -106,7 +108,7 @@ export default function NewSessionScreen() {
 
     if (cashDue > 0 && (receivedNum === null || receivedNum < cashDue)) {
       setErrorMessage(
-        `El monto recibido en efectivo ($${amountReceived === '' ? '0' : amountReceived}) es menor al subtotal en efectivo ($${formatAmount(cashDue)}).`,
+        `El monto recibido en efectivo ($${amountReceived === "" ? "0" : amountReceived}) es menor al subtotal en efectivo ($${formatAmount(cashDue)}).`
       );
       return;
     }
@@ -119,18 +121,22 @@ export default function NewSessionScreen() {
         const message = warnings
           .map(
             (w) =>
-              `${w.name}: stock ${w.currentStock}, vendiendo ${w.quantityToSell} → quedaría ${w.resultingStock}`,
+              `${w.name}: stock ${w.currentStock}, vendiendo ${w.quantityToSell} → quedaría ${w.resultingStock}`
           )
-          .join('\n');
+          .join("\n");
 
         const shouldContinue = await new Promise<boolean>((resolve) => {
           Alert.alert(
-            'Stock insuficiente',
+            "Stock insuficiente",
             `Los siguientes productos quedarían con stock negativo:\n\n${message}\n\n¿Desea continuar de todas formas?`,
             [
-              { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Guardar igual', onPress: () => resolve(true) },
-            ],
+              {
+                text: "Cancelar",
+                style: "cancel",
+                onPress: () => resolve(false),
+              },
+              { text: "Guardar igual", onPress: () => resolve(true) },
+            ]
           );
         });
         if (!shouldContinue) {
@@ -140,13 +146,14 @@ export default function NewSessionScreen() {
       }
 
       const received = Number(amountReceived);
-      const result = await safeWrite(() =>
-        registerSalesSession(
-          items,
-          date,
-          received > 0 ? { amountReceived: received } : undefined,
-        ),
-        'No se pudo guardar la sesión',
+      const result = await safeWrite(
+        () =>
+          registerSalesSession(
+            items,
+            date,
+            received > 0 ? { amountReceived: received } : undefined
+          ),
+        "No se pudo guardar la sesión"
       );
       if (result.ok) {
         clear();
@@ -162,17 +169,17 @@ export default function NewSessionScreen() {
   // Denominaciones DOP para llenar el monto recibido con un toque.
   const QUICK_BILLS = [100, 200, 500, 1000, 2000];
   const cashDue = totalCash();
-  const receivedNum = amountReceived === '' ? null : Number(amountReceived);
+  const receivedNum = amountReceived === "" ? null : Number(amountReceived);
   const changeAmount = receivedNum === null ? null : receivedNum - cashDue;
 
   function addBill(bill: number) {
-    const current = amountReceived === '' ? 0 : Number(amountReceived);
+    const current = amountReceived === "" ? 0 : Number(amountReceived);
     setAmountReceived(String(current + bill));
   }
 
   function handleReceivedChange(text: string) {
     // Solo dígitos y un punto decimal.
-    const cleaned = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+    const cleaned = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
     setAmountReceived(cleaned);
   }
 
@@ -181,9 +188,11 @@ export default function NewSessionScreen() {
       style={{ flex: 1, backgroundColor: c.background }}
       behavior="padding"
     >
-      <Stack.Screen options={{ title: 'Nueva sesión' }} />
+      <Stack.Screen options={{ title: "Nueva sesión" }} />
 
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 12, zIndex: 10 }}>
+      <View
+        style={{ paddingHorizontal: 16, paddingTop: 12, gap: 12, zIndex: 10 }}
+      >
         <DatePicker
           label="Fecha de la sesión"
           value={date}
@@ -198,16 +207,30 @@ export default function NewSessionScreen() {
         />
 
         {product ? (
-          <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 12, boxShadow: Shadows.sm, gap: 8 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View
+            style={{
+              borderRadius: Radius.xl,
+              backgroundColor: c.surface,
+              padding: 12,
+              boxShadow: Shadows.sm,
+              gap: 8,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
               <Text variant="heading">{product.name}</Text>
               <Pressable
                 onPress={() => {
                   setProduct(null);
-                  setQuantity('');
+                  setQuantity("");
                   setWorkerSale(false);
                   setDiscountExpanded(false);
-                  setDiscountPercent('');
+                  setDiscountPercent("");
                 }}
                 hitSlop={12}
               >
@@ -217,13 +240,13 @@ export default function NewSessionScreen() {
               </Pressable>
             </View>
             <Text variant="caption">
-              Efectivo: ${product.cashPrice ?? '—'} · Transferencia: $
-              {product.transferPrice ?? '—'} · Costo prom: $
+              Efectivo: ${product.cashPrice ?? "—"} · Transferencia: $
+              {product.transferPrice ?? "—"} · Costo prom: $
               {product.averageCost.toFixed(2)}
             </Text>
 
             <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: c.text }}>
+              <Text style={{ fontSize: 14, fontWeight: "500", color: c.text }}>
                 Cantidad ({product.unitOfMeasure})
               </Text>
               <TextInput
@@ -253,16 +276,19 @@ export default function NewSessionScreen() {
                   const next = !v;
                   if (next) {
                     setDiscountExpanded(false);
-                    setDiscountPercent('');
+                    setDiscountPercent("");
                   }
                   return next;
                 });
               }}
               hitSlop={8}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <Text variant="label" style={{ color: workerSale ? c.cost : c.textMuted }}>
-                {workerSale ? '☑' : '☐'} Venta a trabajador (costo)
+              <Text
+                variant="label"
+                style={{ color: workerSale ? c.cost : c.textMuted }}
+              >
+                {workerSale ? "☑" : "☐"} Venta a trabajador (costo)
               </Text>
             </Pressable>
 
@@ -270,13 +296,13 @@ export default function NewSessionScreen() {
               <Pressable
                 onPress={() => setDiscountExpanded((v) => !v)}
                 hitSlop={8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
               >
                 <Text
                   variant="label"
-                  style={{ color: discountExpanded ? '#9333EA' : c.textMuted }}
+                  style={{ color: discountExpanded ? "#9333EA" : c.textMuted }}
                 >
-                  {discountExpanded ? '☑' : '☐'} Descuento
+                  {discountExpanded ? "☑" : "☐"} Descuento
                 </Text>
               </Pressable>
             ) : null}
@@ -297,32 +323,39 @@ export default function NewSessionScreen() {
                   borderRadius: Radius.lg,
                   backgroundColor: c.cost,
                   paddingVertical: 12,
-                  alignItems: 'center',
+                  alignItems: "center",
                   opacity: pressed ? 0.8 : 1,
                 })}
-                onPress={() => addToCart('costo')}
+                onPress={() => addToCart("costo")}
               >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                <Text
+                  style={{ color: "white", fontWeight: "600", fontSize: 14 }}
+                >
                   A costo ${product.costPrice ?? product.averageCost.toFixed(2)}
                 </Text>
               </Pressable>
             ) : (
-              <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flexDirection: "row", gap: 12 }}>
                 <Pressable
                   style={({ pressed }) => ({
                     flex: 1,
                     borderRadius: Radius.lg,
                     backgroundColor: c.cash,
                     paddingVertical: 12,
-                    alignItems: 'center',
+                    alignItems: "center",
                     opacity: pressed ? 0.8 : 1,
                   })}
-                  onPress={() => addToCart('efectivo')}
+                  onPress={() => addToCart("efectivo")}
                 >
-                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                  <Text
+                    style={{ color: "white", fontWeight: "600", fontSize: 14 }}
+                  >
                     Efectivo $
                     {discountPercentNum > 0
-                      ? ((product.cashPrice ?? 0) * (1 - discountPercentNum / 100)).toFixed(2)
+                      ? (
+                          (product.cashPrice ?? 0) *
+                          (1 - discountPercentNum / 100)
+                        ).toFixed(2)
                       : (product.cashPrice ?? 0)}
                   </Text>
                 </Pressable>
@@ -332,15 +365,20 @@ export default function NewSessionScreen() {
                     borderRadius: Radius.lg,
                     backgroundColor: c.transfer,
                     paddingVertical: 12,
-                    alignItems: 'center',
+                    alignItems: "center",
                     opacity: pressed ? 0.8 : 1,
                   })}
-                  onPress={() => addToCart('transferencia')}
+                  onPress={() => addToCart("transferencia")}
                 >
-                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                  <Text
+                    style={{ color: "white", fontWeight: "600", fontSize: 14 }}
+                  >
                     Transfer $
                     {discountPercentNum > 0
-                      ? ((product.transferPrice ?? 0) * (1 - discountPercentNum / 100)).toFixed(2)
+                      ? (
+                          (product.transferPrice ?? 0) *
+                          (1 - discountPercentNum / 100)
+                        ).toFixed(2)
                       : (product.transferPrice ?? 0)}
                   </Text>
                 </Pressable>
@@ -354,16 +392,28 @@ export default function NewSessionScreen() {
         data={items}
         keyExtractor={(item) => item.key}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          gap: 8,
+        }}
         ListEmptyComponent={
-          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-            <Text variant="caption">
-              Selecciona un producto para comenzar
-            </Text>
+          <View style={{ alignItems: "center", paddingVertical: 48 }}>
+            <Text variant="caption">Selecciona un producto para comenzar</Text>
           </View>
         }
         renderItem={({ item }) => (
-          <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: Radius.xl, backgroundColor: c.surface, paddingHorizontal: 16, paddingVertical: 12, boxShadow: Shadows.sm }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              borderRadius: Radius.xl,
+              backgroundColor: c.surface,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              boxShadow: Shadows.sm,
+            }}
+          >
             <View style={{ flex: 1, gap: 2 }}>
               <Text variant="body">{item.name}</Text>
               <Text variant="caption">
@@ -372,8 +422,16 @@ export default function NewSessionScreen() {
               </Text>
             </View>
             {item.discountPercent > 0 ? (
-              <View style={{ borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2, marginRight: 8, backgroundColor: '#F3E8FF' }}>
-                <Text variant="caption" style={{ color: '#7E22CE' }}>
+              <View
+                style={{
+                  borderRadius: Radius.full,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  marginRight: 8,
+                  backgroundColor: "#F3E8FF",
+                }}
+              >
+                <Text variant="caption" style={{ color: "#7E22CE" }}>
                   -{Math.round(item.discountPercent)}%
                 </Text>
               </View>
@@ -385,9 +443,9 @@ export default function NewSessionScreen() {
                 paddingVertical: 2,
                 marginRight: 12,
                 backgroundColor:
-                  item.paymentMethod === 'efectivo'
+                  item.paymentMethod === "efectivo"
                     ? c.cashSoft
-                    : item.paymentMethod === 'transferencia'
+                    : item.paymentMethod === "transferencia"
                       ? c.transferSoft
                       : c.costSoft,
               }}
@@ -396,14 +454,18 @@ export default function NewSessionScreen() {
                 variant="caption"
                 style={{
                   color:
-                    item.paymentMethod === 'efectivo'
+                    item.paymentMethod === "efectivo"
                       ? c.cash
-                      : item.paymentMethod === 'transferencia'
+                      : item.paymentMethod === "transferencia"
                         ? c.transfer
                         : c.cost,
                 }}
               >
-                {item.paymentMethod === 'efectivo' ? 'E' : item.paymentMethod === 'transferencia' ? 'T' : 'C'}
+                {item.paymentMethod === "efectivo"
+                  ? "E"
+                  : item.paymentMethod === "transferencia"
+                    ? "T"
+                    : "C"}
               </Text>
             </View>
             <Pressable onPress={() => removeItem(item.key)} hitSlop={12}>
@@ -413,8 +475,24 @@ export default function NewSessionScreen() {
         )}
       />
 
-      <View style={{ backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+      <View
+        style={{
+          backgroundColor: c.surface,
+          borderTopWidth: 1,
+          borderTopColor: c.border,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          gap: 8,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 4,
+          }}
+        >
           <Text variant="label" style={{ color: c.cash }}>
             Efectivo: ${formatAmount(totalCash())}
           </Text>
@@ -427,17 +505,32 @@ export default function NewSessionScreen() {
             </Text>
           ) : null}
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <Text variant="heading">Total: ${formatAmount(grandTotal())}</Text>
           <Text variant="caption">{items.length} ítem(s)</Text>
         </View>
 
         {cashDue > 0 ? (
-          <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 }}>
+          <View
+            style={{
+              gap: 8,
+              borderTopWidth: 1,
+              borderTopColor: c.border,
+              paddingTop: 8,
+            }}
+          >
             <Text variant="label" style={{ color: c.text }}>
               Cobro en efectivo (${formatAmount(cashDue)})
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               <TextInput
                 style={{
                   flex: 1,
@@ -461,11 +554,12 @@ export default function NewSessionScreen() {
                   variant="label"
                   style={{ color: changeAmount >= 0 ? c.cash : c.danger }}
                 >
-                  {changeAmount >= 0 ? 'Vuelto' : 'Falta'}: ${formatAmount(Math.abs(changeAmount))}
+                  {changeAmount >= 0 ? "Vuelto" : "Falta"}: $
+                  {formatAmount(Math.abs(changeAmount))}
                 </Text>
               ) : null}
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {QUICK_BILLS.map((bill) => (
                 <Pressable
                   key={bill}
@@ -502,7 +596,7 @@ export default function NewSessionScreen() {
         ) : null}
 
         <Button
-          label={saving ? 'Guardando…' : `Guardar venta (${items.length})`}
+          label={saving ? "Guardando…" : `Guardar venta (${items.length})`}
           onPress={saveSession}
           disabled={items.length === 0 || saving}
           size="lg"
@@ -511,7 +605,7 @@ export default function NewSessionScreen() {
 
       <Snackbar
         visible={errorMessage !== null}
-        message={errorMessage ?? ''}
+        message={errorMessage ?? ""}
         onDismiss={() => setErrorMessage(null)}
       />
     </KeyboardAvoidingView>

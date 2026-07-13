@@ -1,5 +1,5 @@
-import { Palette, type ColorScheme } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Palette, type ColorScheme } from "@/drizzle/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 /**
  * Returns the active scheme's flattened palette (base colors + semantic
@@ -11,9 +11,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
  *   const c = useAppColors();
  *   <View style={{ backgroundColor: c.surface }}>
  */
-export function useAppColors(): (typeof Palette)[ColorScheme] & { scheme: ColorScheme } {
-  const scheme: ColorScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+export function useAppColors(): (typeof Palette)[ColorScheme] & {
+  scheme: ColorScheme;
+} {
+  const scheme: ColorScheme = useColorScheme() === "dark" ? "dark" : "light";
   return { ...Palette[scheme], scheme };
 }
-
-

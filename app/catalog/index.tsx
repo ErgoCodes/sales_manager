@@ -1,28 +1,28 @@
-import { Stack, router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { Stack, router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { FlatList, Pressable, View } from "react-native";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Text } from '@/components/ui/text';
-import { CATEGORY_OPTIONS } from '@/constants/catalog';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Text } from "@/components/ui/text";
 import {
   archiveProduct,
   listProducts,
-  type ProductWithStock,
   restoreProduct,
-} from '@/db/products';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { Radius, Shadows, Semantic } from '@/constants/theme';
+  type ProductWithStock,
+} from "@/db/products";
+import { CATEGORY_OPTIONS } from "@/drizzle/constants/catalog";
+import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
 
-const CATEGORY_FILTER = [{ label: 'Todas', value: '' }, ...CATEGORY_OPTIONS];
+const CATEGORY_FILTER = [{ label: "Todas", value: "" }, ...CATEGORY_OPTIONS];
 
 export default function CatalogScreen() {
   const c = useAppColors();
   const [products, setProducts] = useState<ProductWithStock[]>([]);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
   const [includeArchived, setIncludeArchived] = useState(false);
 
   const load = useCallback(() => {
@@ -50,28 +50,57 @@ export default function CatalogScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <Stack.Screen options={{ title: 'Catálogo' }} />
+      <Stack.Screen options={{ title: "Catálogo" }} />
 
       <View style={{ padding: 16, gap: 12 }}>
-        <Input placeholder="Buscar por nombre…" value={search} onChangeText={setSearch} />
-        <Select options={CATEGORY_FILTER} value={category} onChange={setCategory} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Input
+          placeholder="Buscar por nombre…"
+          value={search}
+          onChangeText={setSearch}
+        />
+        <Select
+          options={CATEGORY_FILTER}
+          value={category}
+          onChange={setCategory}
+        />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <Pressable onPress={() => setIncludeArchived((v) => !v)} hitSlop={8}>
-            <Text variant="label" style={{ color: includeArchived ? c.transfer : c.textMuted }}>
-              {includeArchived ? '☑ Mostrando archivados' : '☐ Mostrar archivados'}
+            <Text
+              variant="label"
+              style={{ color: includeArchived ? c.transfer : c.textMuted }}
+            >
+              {includeArchived
+                ? "☑ Mostrando archivados"
+                : "☐ Mostrar archivados"}
             </Text>
           </Pressable>
-          <Button size="sm" label="+ Nuevo" onPress={() => router.push('/catalog/new')} />
+          <Button
+            size="sm"
+            label="+ Nuevo"
+            onPress={() => router.push("/catalog/new")}
+          />
         </View>
       </View>
 
       <FlatList
         data={products}
         keyExtractor={(p) => String(p.id)}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 12 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: 32,
+          gap: 12,
+        }}
         ListEmptyComponent={
-          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-            <Text variant="caption">No hay productos. Crea el primero con + Nuevo.</Text>
+          <View style={{ alignItems: "center", paddingVertical: 48 }}>
+            <Text variant="caption">
+              No hay productos. Crea el primero con + Nuevo.
+            </Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -83,19 +112,27 @@ export default function CatalogScreen() {
               gap: 8,
               boxShadow: Shadows.sm,
               opacity: item.active ? 1 : 0.6,
-            }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+              }}
+            >
               <View style={{ flex: 1, gap: 2 }}>
                 <Text variant="heading">{item.name}</Text>
                 <Text variant="caption">
-                  {item.category ?? 'Sin categoría'} · umbral {item.lowStockThreshold ?? '—'}
+                  {item.category ?? "Sin categoría"} · umbral{" "}
+                  {item.lowStockThreshold ?? "—"}
                 </Text>
               </View>
               <Text variant="label" style={{ color: c.text }}>
                 {item.stock} {item.unitOfMeasure}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 8 }}>
               <Button
                 size="sm"
                 variant="outline"
@@ -104,8 +141,8 @@ export default function CatalogScreen() {
               />
               <Button
                 size="sm"
-                variant={item.active ? 'ghost' : 'outline'}
-                label={item.active ? 'Archivar' : 'Restaurar'}
+                variant={item.active ? "ghost" : "outline"}
+                label={item.active ? "Archivar" : "Restaurar"}
                 onPress={() => toggleArchive(item)}
               />
             </View>
@@ -115,4 +152,3 @@ export default function CatalogScreen() {
     </View>
   );
 }
-

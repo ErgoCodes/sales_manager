@@ -1,12 +1,12 @@
-import { useCallback, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useCallback, useRef, useState } from "react";
+import { Pressable, View } from "react-native";
 
-import { listProducts, type ProductWithStock } from '@/db/products';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { Radius, Shadows } from '@/constants/theme';
+import { listProducts, type ProductWithStock } from "@/db/products";
+import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
 
-import { Input } from './input';
-import { Text } from './text';
+import { Input } from "./input";
+import { Text } from "./text";
 
 export interface SelectedProduct {
   id: number;
@@ -25,14 +25,19 @@ interface ProductPickerProps {
   error?: string;
 }
 
-export function ProductPicker({ label, value, onChange, error }: ProductPickerProps) {
+export function ProductPicker({
+  label,
+  value,
+  onChange,
+  error,
+}: ProductPickerProps) {
   const c = useAppColors();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [options, setOptions] = useState<ProductWithStock[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const latest = useRef('');
+  const latest = useRef("");
 
   const handleSearch = useCallback((text: string) => {
     setSearch(text);
@@ -84,15 +89,17 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
         // View + map en vez de FlatList: la lista de sugerencias es corta
         // (acotada por maxHeight) y anidar un VirtualizedList dentro del
         // ScrollView de la pantalla contenedora dispara el warning de RN.
-        <View style={{
-          borderRadius: Radius.md,
-          borderWidth: 1,
-          borderColor: c.border,
-          backgroundColor: c.surface,
-          boxShadow: Shadows.md,
-          maxHeight: 192,
-          overflow: 'hidden',
-        }}>
+        <View
+          style={{
+            borderRadius: Radius.md,
+            borderWidth: 1,
+            borderColor: c.border,
+            backgroundColor: c.surface,
+            boxShadow: Shadows.md,
+            maxHeight: 192,
+            overflow: "hidden",
+          }}
+        >
           {options.map((item) => (
             <Pressable
               key={item.id}
@@ -101,27 +108,30 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
                 paddingVertical: 10,
                 borderBottomWidth: 1,
                 borderBottomColor: c.border,
-                backgroundColor: pressed ? c.surfaceMuted : 'transparent',
+                backgroundColor: pressed ? c.surfaceMuted : "transparent",
               })}
-              onPress={() => handleSelect(item)}>
+              onPress={() => handleSelect(item)}
+            >
               <Text variant="body">{item.name}</Text>
               <Text variant="caption">
                 Stock: {item.stock} {item.unitOfMeasure}
-                {item.costPrice != null ? ` · Costo: $${item.costPrice}` : ''}
+                {item.costPrice != null ? ` · Costo: $${item.costPrice}` : ""}
               </Text>
             </Pressable>
           ))}
         </View>
       ) : null}
       {isOpen && options.length === 0 && search.trim() ? (
-        <View style={{
-          borderRadius: Radius.md,
-          borderWidth: 1,
-          borderColor: c.border,
-          backgroundColor: c.surface,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-        }}>
+        <View
+          style={{
+            borderRadius: Radius.md,
+            borderWidth: 1,
+            borderColor: c.border,
+            backgroundColor: c.surface,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+          }}
+        >
           <Text variant="caption">No se encontraron productos.</Text>
         </View>
       ) : null}

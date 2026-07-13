@@ -1,13 +1,13 @@
-import { router } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { router } from "expo-router";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Badge } from '@/components/ui/badge';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { FontSize, Radius, Shadows } from '@/constants/theme';
-import { useAppColors } from '@/hooks/use-app-colors';
+import { Badge } from "@/components/ui/badge";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { FontSize, Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
 
-type IconName = Parameters<typeof IconSymbol>[0]['name'];
+type IconName = Parameters<typeof IconSymbol>[0]["name"];
 
 interface ReportCardProps {
   icon: IconName;
@@ -18,7 +18,14 @@ interface ReportCardProps {
   disabled?: boolean;
 }
 
-function ReportCard({ icon, title, subtitle, delay, onPress, disabled }: ReportCardProps) {
+function ReportCard({
+  icon,
+  title,
+  subtitle,
+  delay,
+  onPress,
+  disabled,
+}: ReportCardProps) {
   const c = useAppColors();
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(320).springify()}>
@@ -26,13 +33,13 @@ function ReportCard({ icon, title, subtitle, delay, onPress, disabled }: ReportC
         onPress={onPress}
         disabled={disabled}
         style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: "row",
+          alignItems: "center",
           gap: 14,
           backgroundColor: c.surface,
           borderRadius: Radius.lg,
           padding: 16,
-          borderCurve: 'continuous',
+          borderCurve: "continuous",
           boxShadow: Shadows.sm,
           opacity: disabled ? 0.55 : pressed ? 0.85 : 1,
         })}
@@ -43,20 +50,32 @@ function ReportCard({ icon, title, subtitle, delay, onPress, disabled }: ReportC
             height: 44,
             borderRadius: 14,
             backgroundColor: c.surfaceMuted,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <IconSymbol name={icon} size={22} color={c.tint} />
         </View>
         <View style={{ flex: 1, gap: 3 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: c.text }}>{title}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text
+              style={{
+                fontSize: FontSize.base,
+                fontWeight: "700",
+                color: c.text,
+              }}
+            >
+              {title}
+            </Text>
             {disabled ? <Badge tone="neutral" label="Próximamente" /> : null}
           </View>
-          <Text style={{ fontSize: FontSize.sm, color: c.textMuted }}>{subtitle}</Text>
+          <Text style={{ fontSize: FontSize.sm, color: c.textMuted }}>
+            {subtitle}
+          </Text>
         </View>
-        {!disabled ? <IconSymbol name="chevron.right" size={18} color={c.tabIconDefault} /> : null}
+        {!disabled ? (
+          <IconSymbol name="chevron.right" size={18} color={c.tabIconDefault} />
+        ) : null}
       </Pressable>
     </Animated.View>
   );
@@ -75,28 +94,28 @@ export default function ReportsScreen() {
         title="Reporte diario"
         subtitle="Ventas del día con detalle e inventario"
         delay={0}
-        onPress={() => router.push('/reports/daily')}
+        onPress={() => router.push("/reports/daily")}
       />
       <ReportCard
         icon="calendar"
         title="Semanal y mensual"
         subtitle="Totales por período para compartir"
         delay={60}
-        onPress={() => router.push('/reports/period')}
+        onPress={() => router.push("/reports/period")}
       />
       <ReportCard
         icon="sparkles"
         title="Rankings"
         subtitle="Más vendidos y más rentables"
         delay={120}
-        onPress={() => router.push('/reports/rankings')}
+        onPress={() => router.push("/reports/rankings")}
       />
       <ReportCard
         icon="creditcard.fill"
         title="Pérdidas y gastos"
         subtitle="Desglose por categoría"
         delay={180}
-        onPress={() => router.push('/reports/losses')}
+        onPress={() => router.push("/reports/losses")}
       />
     </ScrollView>
   );

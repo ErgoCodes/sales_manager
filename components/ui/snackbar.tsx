@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Pressable, Text, View } from 'react-native';
+import { useEffect, useRef } from "react";
+import { Animated, Pressable, Text, View } from "react-native";
 
-import { useAppColors } from '@/hooks/use-app-colors';
-import { Shadows, Radius } from '@/constants/theme';
+import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
 
 interface SnackbarProps {
   visible: boolean;
@@ -57,40 +57,46 @@ export function Snackbar({
       pointerEvents="box-none"
       style={{
         opacity,
-        position: 'absolute',
+        position: "absolute",
         bottom: 32,
         left: 16,
         right: 16,
         zIndex: 50,
-      }}>
+      }}
+    >
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
           gap: 12,
           borderRadius: Radius.lg,
-          backgroundColor: c.scheme === 'dark' ? '#334155' : '#1E293B',
+          backgroundColor: c.scheme === "dark" ? "#334155" : "#1E293B",
           paddingHorizontal: 16,
           paddingVertical: 12,
           boxShadow: Shadows.lg,
-        }}>
-        <Text style={{ flex: 1, color: '#FFFFFF', fontSize: 14 }}>{message}</Text>
+        }}
+      >
+        <Text style={{ flex: 1, color: "#FFFFFF", fontSize: 14 }}>
+          {message}
+        </Text>
         {actionLabel && onAction ? (
           <Pressable
             hitSlop={8}
             onPress={() => {
               onAction();
               onDismiss();
-            }}>
+            }}
+          >
             <Text
               style={{
-                color: c.scheme === 'dark' ? '#5EEAD4' : '#5EEAD4',
+                color: c.scheme === "dark" ? "#5EEAD4" : "#5EEAD4",
                 fontSize: 14,
-                fontWeight: '700',
-                textTransform: 'uppercase',
+                fontWeight: "700",
+                textTransform: "uppercase",
                 letterSpacing: 0.5,
-              }}>
+              }}
+            >
               {actionLabel}
             </Text>
           </Pressable>

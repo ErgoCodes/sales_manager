@@ -1,31 +1,47 @@
-import { endOfMonth, format, startOfMonth } from 'date-fns';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { endOfMonth, format, startOfMonth } from "date-fns";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Badge, type BadgeTone } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
-import { HeroCard } from '@/components/ui/hero-card';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getTypeLabel } from '@/constants/expenses';
-import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
-import { cancelExpense, listExpenses, restoreExpense, sumExpenses } from '@/db/expenses';
-import { cancelOutflow, listMovements, restoreOutflow, sumLossOutflowsValue } from '@/db/movements';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { formatCurrency } from '@/lib/format';
-import { safeWrite } from '@/lib/safe-write';
+import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { HeroCard } from "@/components/ui/hero-card";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import {
+  cancelExpense,
+  listExpenses,
+  restoreExpense,
+  sumExpenses,
+} from "@/db/expenses";
+import {
+  cancelOutflow,
+  listMovements,
+  restoreOutflow,
+  sumLossOutflowsValue,
+} from "@/db/movements";
+import { getTypeLabel } from "@/drizzle/constants/expenses";
+import {
+  Colors,
+  FontSize,
+  Overlay,
+  Radius,
+  Shadows,
+} from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { formatCurrency } from "@/lib/format";
+import { safeWrite } from "@/lib/safe-write";
 
-const OUTFLOW_FILTER = ['merma', 'retiro_owner', 'ajuste'];
+const OUTFLOW_FILTER = ["merma", "retiro_owner", "ajuste"];
 
 const TONE_BY_TYPE: Record<string, BadgeTone> = {
-  merma: 'danger',
-  retiro_owner: 'warning',
-  ajuste: 'neutral',
-  salario: 'info',
-  multa: 'danger',
-  onat: 'cost',
-  rebaja_liquidacion: 'warning',
+  merma: "danger",
+  retiro_owner: "warning",
+  ajuste: "neutral",
+  salario: "info",
+  multa: "danger",
+  onat: "cost",
+  rebaja_liquidacion: "warning",
 };
 
 interface LedgerRow {
@@ -53,11 +69,18 @@ export default function ExpensesScreen() {
     id: number;
   } | null>(null);
 
-  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
 
   const triggerRefetch = () => setRefreshTrigger((prev) => prev + 1);
 
-  const showUndoToast = (key: string, isExpense: boolean, id: number, title: string) => {
+  const showUndoToast = (
+    key: string,
+    isExpense: boolean,
+    id: number,
+    title: string
+  ) => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
@@ -73,14 +96,19 @@ export default function ExpensesScreen() {
     }, 5000);
   };
 
-  const handleCancel = async (key: string, isExpense: boolean, id: number, title: string) => {
+  const handleCancel = async (
+    key: string,
+    isExpense: boolean,
+    id: number,
+    title: string
+  ) => {
     const result = await safeWrite(async () => {
       if (isExpense) {
         await cancelExpense(id);
       } else {
         await cancelOutflow(id);
       }
-    }, 'Error al anular');
+    }, "Error al anular");
 
     if (result.ok) {
       triggerRefetch();
@@ -95,7 +123,7 @@ export default function ExpensesScreen() {
       } else {
         await restoreOutflow(id);
       }
-    }, 'Error al restaurar');
+    }, "Error al restaurar");
 
     if (result.ok) {
       triggerRefetch();
@@ -112,7 +140,7 @@ export default function ExpensesScreen() {
       } else {
         await restoreOutflow(id);
       }
-    }, 'Error al restaurar');
+    }, "Error al restaurar");
 
     if (result.ok) {
       setToast(null);
@@ -124,42 +152,34 @@ export default function ExpensesScreen() {
   };
 
   const handlePressRow = (item: LedgerRow) => {
-    const isExpense = item.key.startsWith('exp-');
+    const isExpense = item.key.startsWith("exp-");
     if (item.cancelled) {
-      Alert.alert(
-        'Registro anulado',
-        '¿Deseas restaurar este registro?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Restaurar',
-            onPress: () => handleRestore(item.key, isExpense, item.id),
-          },
-        ]
-      );
+      Alert.alert("Registro anulado", "¿Deseas restaurar este registro?", [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Restaurar",
+          onPress: () => handleRestore(item.key, isExpense, item.id),
+        },
+      ]);
     } else {
-      Alert.alert(
-        'Opciones de registro',
-        'Selecciona una acción:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Editar',
-            onPress: () => {
-              if (isExpense) {
-                router.push(`/expenses/new?id=${item.id}`);
-              } else {
-                router.push(`/expenses/outflow?id=${item.id}`);
-              }
-            },
+      Alert.alert("Opciones de registro", "Selecciona una acción:", [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Editar",
+          onPress: () => {
+            if (isExpense) {
+              router.push(`/expenses/new?id=${item.id}`);
+            } else {
+              router.push(`/expenses/outflow?id=${item.id}`);
+            }
           },
-          {
-            text: 'Eliminar',
-            style: 'destructive',
-            onPress: () => handleCancel(item.key, isExpense, item.id, item.title),
-          },
-        ]
-      );
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: () => handleCancel(item.key, isExpense, item.id, item.title),
+        },
+      ]);
     }
   };
 
@@ -167,12 +187,15 @@ export default function ExpensesScreen() {
     useCallback(() => {
       let active = true;
       (async () => {
-        const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-        const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+        const monthStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
+        const monthEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
         const [expenses, movements, expSum, lossSum] = await Promise.all([
           listExpenses({ includeCancelled: showCancelled }),
-          listMovements({ types: OUTFLOW_FILTER, includeCancelled: showCancelled }),
+          listMovements({
+            types: OUTFLOW_FILTER,
+            includeCancelled: showCancelled,
+          }),
           sumExpenses(monthStart, monthEnd),
           sumLossOutflowsValue(monthStart, monthEnd),
         ]);
@@ -190,8 +213,8 @@ export default function ExpensesScreen() {
         }));
 
         const outflowRows: LedgerRow[] = movements.map((m) => {
-          const isAdjustment = m.type === 'ajuste';
-          const signLabel = isAdjustment ? (m.quantity >= 0 ? '+' : '') : '-';
+          const isAdjustment = m.type === "ajuste";
+          const signLabel = isAdjustment ? (m.quantity >= 0 ? "+" : "") : "-";
           return {
             key: `mov-${m.id}`,
             id: m.id,
@@ -222,7 +245,12 @@ export default function ExpensesScreen() {
       <FlatList
         data={rows}
         keyExtractor={(r) => r.key}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40, gap: 10 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 14,
+          paddingBottom: 40,
+          gap: 10,
+        }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={{ gap: 14, marginBottom: 4 }}>
@@ -230,10 +258,10 @@ export default function ExpensesScreen() {
               <Text
                 style={{
                   fontSize: FontSize.xs,
-                  fontWeight: '700',
+                  fontWeight: "700",
                   color: Overlay.text,
                   letterSpacing: 1,
-                  textTransform: 'uppercase',
+                  textTransform: "uppercase",
                 }}
               >
                 Pérdidas y gastos del mes
@@ -241,62 +269,70 @@ export default function ExpensesScreen() {
               <Text
                 selectable
                 style={{
-                  fontSize: FontSize['3xl'],
-                  fontWeight: '800',
+                  fontSize: FontSize["3xl"],
+                  fontWeight: "800",
                   color: Colors.light.surface,
                   letterSpacing: -0.8,
                   marginTop: 6,
-                  fontVariant: ['tabular-nums'],
+                  fontVariant: ["tabular-nums"],
                 }}
               >
                 {formatCurrency(monthTotal)}
               </Text>
-              <Text style={{ fontSize: FontSize.sm, color: Overlay.text, marginTop: 4 }}>
+              <Text
+                style={{
+                  fontSize: FontSize.sm,
+                  color: Overlay.text,
+                  marginTop: 4,
+                }}
+              >
                 Gastos + mermas y retiros valorados
               </Text>
             </HeroCard>
 
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: 10 }}>
               <ActionButton
                 label="Gasto"
                 icon="dollarsign.circle.fill"
                 accent={c.transfer}
-                onPress={() => router.push('/expenses/new')}
+                onPress={() => router.push("/expenses/new")}
               />
               <ActionButton
                 label="Salida"
                 icon="arrow.up.right"
                 accent={c.danger}
-                onPress={() => router.push('/expenses/outflow')}
+                onPress={() => router.push("/expenses/outflow")}
               />
             </View>
 
             <Pressable
               onPress={() => setShowCancelled(!showCancelled)}
               style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
                 gap: 6,
                 paddingVertical: 8,
                 opacity: pressed ? 0.7 : 1,
-                alignSelf: 'flex-end',
+                alignSelf: "flex-end",
                 marginTop: 4,
               })}
             >
               <IconSymbol
-                name={showCancelled ? 'eye.fill' : 'eye.slash.fill'}
+                name={showCancelled ? "eye.fill" : "eye.slash.fill"}
                 size={16}
                 color={showCancelled ? c.tint : c.tabIconDefault}
               />
               <Text
                 style={{
                   fontSize: FontSize.sm,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: showCancelled ? c.tint : c.tabIconDefault,
                 }}
               >
-                {showCancelled ? 'Mostrar anulados: Sí' : 'Mostrar anulados: No'}
+                {showCancelled
+                  ? "Mostrar anulados: Sí"
+                  : "Mostrar anulados: No"}
               </Text>
             </Pressable>
           </View>
@@ -313,13 +349,13 @@ export default function ExpensesScreen() {
             <Pressable
               onPress={() => handlePressRow(item)}
               style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
+                flexDirection: "row",
+                alignItems: "center",
                 backgroundColor: c.surface,
                 borderRadius: Radius.lg,
                 padding: 14,
                 gap: 12,
-                borderCurve: 'continuous',
+                borderCurve: "continuous",
                 boxShadow: Shadows.sm,
                 opacity: item.cancelled ? 0.5 : pressed ? 0.9 : 1,
               })}
@@ -328,26 +364,42 @@ export default function ExpensesScreen() {
                 <Text
                   style={{
                     fontSize: FontSize.lg,
-                    fontWeight: '700',
+                    fontWeight: "700",
                     color: c.text,
-                    textDecorationLine: item.cancelled ? 'line-through' : 'none',
+                    textDecorationLine: item.cancelled
+                      ? "line-through"
+                      : "none",
                   }}
                 >
                   {item.title}
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <Badge label={getTypeLabel(item.typeValue)} tone={TONE_BY_TYPE[item.typeValue] ?? 'neutral'} />
-                  <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}>{item.date}</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Badge
+                    label={getTypeLabel(item.typeValue)}
+                    tone={TONE_BY_TYPE[item.typeValue] ?? "neutral"}
+                  />
+                  <Text
+                    style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}
+                  >
+                    {item.date}
+                  </Text>
                 </View>
               </View>
               <Text
                 style={{
                   fontSize: FontSize.lg,
-                  fontWeight: '800',
+                  fontWeight: "800",
                   color: c.text,
                   letterSpacing: -0.4,
-                  fontVariant: ['tabular-nums'],
-                  textDecorationLine: item.cancelled ? 'line-through' : 'none',
+                  fontVariant: ["tabular-nums"],
+                  textDecorationLine: item.cancelled ? "line-through" : "none",
                 }}
               >
                 {formatCurrency(item.amount)}
@@ -360,34 +412,46 @@ export default function ExpensesScreen() {
       {toast?.visible && (
         <View
           style={{
-            position: 'absolute',
+            position: "absolute",
             bottom: 24,
             left: 16,
             right: 16,
-            backgroundColor: '#1E293B',
+            backgroundColor: "#1E293B",
             borderRadius: Radius.md,
             padding: 14,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
             boxShadow: Shadows.md,
             zIndex: 999,
           }}
         >
-          <Text style={{ color: '#FFFFFF', fontSize: FontSize.base, fontWeight: '600' }}>
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontSize: FontSize.base,
+              fontWeight: "600",
+            }}
+          >
             {toast.message}
           </Text>
           <Pressable
             onPress={handleUndo}
             style={({ pressed }) => ({
-              backgroundColor: '#334155',
+              backgroundColor: "#334155",
               paddingVertical: 6,
               paddingHorizontal: 12,
               borderRadius: Radius.sm,
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Text style={{ color: c.tint, fontSize: FontSize.sm, fontWeight: '700' }}>
+            <Text
+              style={{
+                color: c.tint,
+                fontSize: FontSize.sm,
+                fontWeight: "700",
+              }}
+            >
               Deshacer
             </Text>
           </Pressable>
@@ -399,7 +463,7 @@ export default function ExpensesScreen() {
 
 interface ActionButtonProps {
   label: string;
-  icon: Parameters<typeof IconSymbol>[0]['name'];
+  icon: Parameters<typeof IconSymbol>[0]["name"];
   accent: string;
   onPress: () => void;
 }
@@ -411,14 +475,14 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
         gap: 8,
         backgroundColor: c.surface,
         borderRadius: Radius.lg,
         paddingVertical: 14,
-        borderCurve: 'continuous',
+        borderCurve: "continuous",
         boxShadow: Shadows.sm,
         opacity: pressed ? 0.8 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
@@ -430,13 +494,17 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
           height: 28,
           borderRadius: 9,
           backgroundColor: `${accent}15`,
-          alignItems: 'center',
-          justifyContent: 'center',
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <IconSymbol name={icon} size={17} color={accent} />
       </View>
-      <Text style={{ fontSize: FontSize.base, fontWeight: '700', color: c.text }}>{label}</Text>
+      <Text
+        style={{ fontSize: FontSize.base, fontWeight: "700", color: c.text }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }

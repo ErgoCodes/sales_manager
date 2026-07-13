@@ -1,37 +1,42 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
-import { Stack, router } from 'expo-router';
-import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { z } from 'zod';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { Stack, router } from "expo-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Pressable, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { z } from "zod";
 
-import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
 import {
   ProductPicker,
   type SelectedProduct,
-} from '@/components/ui/product-picker';
-import { Text } from '@/components/ui/text';
-import { registerEntry } from '@/db/movements';
-import { updateProduct } from '@/db/products';
-import { calculateTransferPrice } from '@/lib/pricing';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { Radius, Semantic, Shadows } from '@/constants/theme';
-import { safeWrite } from '@/lib/safe-write';
+} from "@/components/ui/product-picker";
+import { Text } from "@/components/ui/text";
+import { registerEntry } from "@/db/movements";
+import { updateProduct } from "@/db/products";
+import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { calculateTransferPrice } from "@/lib/pricing";
+import { safeWrite } from "@/lib/safe-write";
 
 const positivePrice = (msg: string) =>
-  z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
+  z.string().refine((v) => v.trim() !== "" && Number(v) > 0, msg);
 
 const schema = z.object({
-  quantity: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
-  unitCostPrice: positivePrice('El costo es obligatorio y debe ser mayor que 0'),
-  date: z.string().min(1, 'La fecha es obligatoria').refine(
-    (v) => v <= format(new Date(), 'yyyy-MM-dd'),
-    'La fecha no puede ser futura'
+  quantity: z.string().refine((v) => Number(v) > 0, "Debe ser mayor que 0"),
+  unitCostPrice: positivePrice(
+    "El costo es obligatorio y debe ser mayor que 0"
   ),
+  date: z
+    .string()
+    .min(1, "La fecha es obligatoria")
+    .refine(
+      (v) => v <= format(new Date(), "yyyy-MM-dd"),
+      "La fecha no puede ser futura"
+    ),
   notes: z.string().optional(),
   newCostPrice: z.string().optional(),
   newCashPrice: z.string().optional(),
@@ -42,7 +47,7 @@ type FormValues = z.infer<typeof schema>;
 export default function StockEntryScreen() {
   const c = useAppColors();
   const [product, setProduct] = useState<SelectedProduct | null>(null);
-  const [productError, setProductError] = useState('');
+  const [productError, setProductError] = useState("");
   const [updatePrices, setUpdatePrices] = useState(false);
 
   const {
@@ -53,30 +58,30 @@ export default function StockEntryScreen() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      quantity: '',
-      unitCostPrice: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      notes: '',
-      newCostPrice: '',
-      newCashPrice: '',
+      quantity: "",
+      unitCostPrice: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      notes: "",
+      newCostPrice: "",
+      newCashPrice: "",
     },
   });
 
   function onProductSelected(p: SelectedProduct) {
     setProduct(p);
-    setProductError('');
+    setProductError("");
     if (p.costPrice != null) {
-      setValue('unitCostPrice', String(p.costPrice));
+      setValue("unitCostPrice", String(p.costPrice));
     }
     if (updatePrices) {
-      if (p.costPrice != null) setValue('newCostPrice', String(p.costPrice));
-      if (p.cashPrice != null) setValue('newCashPrice', String(p.cashPrice));
+      if (p.costPrice != null) setValue("newCostPrice", String(p.costPrice));
+      if (p.cashPrice != null) setValue("newCashPrice", String(p.cashPrice));
     }
   }
 
   const onSubmit = handleSubmit(async (values) => {
     if (!product) {
-      setProductError('Selecciona un producto');
+      setProductError("Selecciona un producto");
       return;
     }
 
@@ -90,8 +95,12 @@ export default function StockEntryScreen() {
       });
 
       if (updatePrices) {
-        const cost = values.newCostPrice ? Number(values.newCostPrice) : undefined;
-        const cash = values.newCashPrice ? Number(values.newCashPrice) : undefined;
+        const cost = values.newCostPrice
+          ? Number(values.newCostPrice)
+          : undefined;
+        const cash = values.newCashPrice
+          ? Number(values.newCashPrice)
+          : undefined;
         if (cost && cost > 0 && cash && cash > 0) {
           await updateProduct(product.id, {
             name: product.name,
@@ -112,8 +121,11 @@ export default function StockEntryScreen() {
   });
 
   return (
-    <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Stack.Screen options={{ title: 'Registrar entrada' }} />
+    <KeyboardAwareScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
+    >
+      <Stack.Screen options={{ title: "Registrar entrada" }} />
 
       <ProductPicker
         label="Producto"
@@ -123,11 +135,20 @@ export default function StockEntryScreen() {
       />
 
       {product ? (
-        <View style={{ borderRadius: Radius.xl, backgroundColor: c.surface, padding: 12, boxShadow: Shadows.sm, gap: 4 }}>
+        <View
+          style={{
+            borderRadius: Radius.xl,
+            backgroundColor: c.surface,
+            padding: 12,
+            boxShadow: Shadows.sm,
+            gap: 4,
+          }}
+        >
           <Text variant="label">Precios actuales</Text>
           <Text variant="caption">
-            Costo: ${product.costPrice ?? '—'} · Efectivo: ${product.cashPrice ?? '—'} ·
-            Transferencia: ${product.transferPrice ?? '—'}
+            Costo: ${product.costPrice ?? "—"} · Efectivo: $
+            {product.cashPrice ?? "—"} · Transferencia: $
+            {product.transferPrice ?? "—"}
           </Text>
         </View>
       ) : null}
@@ -137,7 +158,7 @@ export default function StockEntryScreen() {
         name="quantity"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ''}`}
+            label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ""}`}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -174,7 +195,7 @@ export default function StockEntryScreen() {
             onChange={onChange}
             placeholder="Seleccionar fecha"
             error={errors.date?.message}
-            maxDate={format(new Date(), 'yyyy-MM-dd')}
+            maxDate={format(new Date(), "yyyy-MM-dd")}
           />
         )}
       />
@@ -197,14 +218,25 @@ export default function StockEntryScreen() {
       <Pressable
         onPress={() => setUpdatePrices((v) => !v)}
         hitSlop={8}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text variant="label" style={{ color: updatePrices ? c.transfer : c.textMuted }}>
-          {updatePrices ? '☑' : '☐'} Actualizar precios del catálogo
+        style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+      >
+        <Text
+          variant="label"
+          style={{ color: updatePrices ? c.transfer : c.textMuted }}
+        >
+          {updatePrices ? "☑" : "☐"} Actualizar precios del catálogo
         </Text>
       </Pressable>
 
       {updatePrices ? (
-        <View style={{ gap: 12, borderRadius: Radius.xl, backgroundColor: c.transferSoft, padding: 12 }}>
+        <View
+          style={{
+            gap: 12,
+            borderRadius: Radius.xl,
+            backgroundColor: c.transferSoft,
+            padding: 12,
+          }}
+        >
           <Controller
             control={control}
             name="newCostPrice"
@@ -235,7 +267,7 @@ export default function StockEntryScreen() {
       ) : null}
 
       <Button
-        label={isSubmitting ? 'Registrando…' : 'Registrar entrada'}
+        label={isSubmitting ? "Registrando…" : "Registrar entrada"}
         onPress={onSubmit}
         disabled={isSubmitting}
       />

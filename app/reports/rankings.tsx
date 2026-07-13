@@ -1,21 +1,29 @@
-import { Stack } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Pressable, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Stack } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
-import { currentWeek, PeriodBar, type Period } from '@/components/ui/period-bar';
-import { Colors, FontSize, Radius, Semantic, Shadows } from '@/constants/theme';
-import { getRangeRanking, type ProductRanking, type RankingSortBy } from '@/db/queries';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { exportToExcel } from '@/lib/excel';
-import { formatCurrency } from '@/lib/format';
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+  currentWeek,
+  PeriodBar,
+  type Period,
+} from "@/components/ui/period-bar";
+import {
+  getRangeRanking,
+  type ProductRanking,
+  type RankingSortBy,
+} from "@/db/queries";
+import { FontSize, Radius, Shadows } from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { exportToExcel } from "@/lib/excel";
+import { formatCurrency } from "@/lib/format";
 
 export default function RankingsScreen() {
   const c = useAppColors();
   const [period, setPeriod] = useState<Period>(() => currentWeek());
-  const [sortBy, setSortBy] = useState<RankingSortBy>('quantity');
+  const [sortBy, setSortBy] = useState<RankingSortBy>("quantity");
   const [rows, setRows] = useState<ProductRanking[]>([]);
   const [exporting, setExporting] = useState(false);
 
@@ -30,21 +38,22 @@ export default function RankingsScreen() {
     };
   }, [period, sortBy]);
 
-  const isQuantity = sortBy === 'quantity';
+  const isQuantity = sortBy === "quantity";
   const accent = isQuantity ? c.transfer : c.cash;
-  const metric = (r: ProductRanking) => (isQuantity ? r.totalQuantity : r.totalProfit);
+  const metric = (r: ProductRanking) =>
+    isQuantity ? r.totalQuantity : r.totalProfit;
   const maxMetric = rows.reduce((max, r) => Math.max(max, metric(r)), 0);
 
   const toggles: { key: RankingSortBy; label: string }[] = [
-    { key: 'quantity', label: 'Más vendidos' },
-    { key: 'profit', label: 'Más rentables' },
+    { key: "quantity", label: "Más vendidos" },
+    { key: "profit", label: "Más rentables" },
   ];
 
   const handleExport = useCallback(async () => {
     setExporting(true);
     try {
       const rankRows: (string | number)[][] = [
-        ['Posición', 'Producto', 'Cantidad', 'Ingreso', 'Utilidad', 'Margen %'],
+        ["Posición", "Producto", "Cantidad", "Ingreso", "Utilidad", "Margen %"],
       ];
       rows.forEach((r, i) => {
         rankRows.push([
@@ -56,9 +65,16 @@ export default function RankingsScreen() {
           Number((r.margin * 100).toFixed(1)),
         ]);
       });
-      await exportToExcel(`reporte_rankings_${period.from}.xlsx`, [{ name: 'Ranking', rows: rankRows }]);
+      await exportToExcel(`reporte_rankings_${period.from}.xlsx`, [
+        { name: "Ranking", rows: rankRows },
+      ]);
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "No se pudo exportar el reporte."
+      );
     } finally {
       setExporting(false);
     }
@@ -71,7 +87,7 @@ export default function RankingsScreen() {
       </Animated.View>
 
       <Button
-        label={exporting ? 'Exportando…' : 'Exportar a Excel'}
+        label={exporting ? "Exportando…" : "Exportar a Excel"}
         icon="square.and.arrow.up"
         variant="soft"
         size="sm"
@@ -82,12 +98,12 @@ export default function RankingsScreen() {
       <Animated.View
         entering={FadeInDown.delay(60).duration(360).springify()}
         style={{
-          flexDirection: 'row',
+          flexDirection: "row",
           backgroundColor: c.surface,
           borderRadius: Radius.lg,
           padding: 4,
           gap: 4,
-          borderCurve: 'continuous',
+          borderCurve: "continuous",
           boxShadow: Shadows.sm,
         }}
       >
@@ -101,15 +117,15 @@ export default function RankingsScreen() {
                 flex: 1,
                 paddingVertical: 9,
                 borderRadius: Radius.md,
-                alignItems: 'center',
-                backgroundColor: active ? accent : 'transparent',
+                alignItems: "center",
+                backgroundColor: active ? accent : "transparent",
               }}
             >
               <Text
                 style={{
                   fontSize: FontSize.base,
-                  fontWeight: '700',
-                  color: active ? 'white' : c.textMuted,
+                  fontWeight: "700",
+                  color: active ? "white" : c.textMuted,
                 }}
               >
                 {t.label}
@@ -123,7 +139,7 @@ export default function RankingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <Stack.Screen options={{ title: 'Rankings' }} />
+      <Stack.Screen options={{ title: "Rankings" }} />
       <FlatList
         data={rows}
         keyExtractor={(item) => String(item.productId)}
@@ -141,34 +157,42 @@ export default function RankingsScreen() {
           const value = metric(item);
           const ratio = maxMetric > 0 ? value / maxMetric : 0;
           return (
-            <Animated.View entering={FadeInDown.delay(120 + index * 30).duration(280)}>
+            <Animated.View
+              entering={FadeInDown.delay(120 + index * 30).duration(280)}
+            >
               <View
                 style={{
                   backgroundColor: c.surface,
                   borderRadius: Radius.lg,
                   padding: 14,
                   gap: 10,
-                  borderCurve: 'continuous',
+                  borderCurve: "continuous",
                   boxShadow: Shadows.sm,
                 }}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
                   <View
                     style={{
                       width: 34,
                       height: 34,
                       borderRadius: 12,
                       backgroundColor: index < 3 ? accent : c.surfaceMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     <Text
                       style={{
                         fontSize: FontSize.lg,
-                        fontWeight: '800',
-                        color: index < 3 ? 'white' : c.textMuted,
-                        fontVariant: ['tabular-nums'],
+                        fontWeight: "800",
+                        color: index < 3 ? "white" : c.textMuted,
+                        fontVariant: ["tabular-nums"],
                       }}
                     >
                       {index + 1}
@@ -176,12 +200,22 @@ export default function RankingsScreen() {
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text
-                      style={{ fontSize: FontSize.base, fontWeight: '600', color: c.text }}
+                      style={{
+                        fontSize: FontSize.base,
+                        fontWeight: "600",
+                        color: c.text,
+                      }}
                       numberOfLines={1}
                     >
                       {item.productName}
                     </Text>
-                    <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault, fontVariant: ['tabular-nums'] }}>
+                    <Text
+                      style={{
+                        fontSize: FontSize.sm,
+                        color: c.tabIconDefault,
+                        fontVariant: ["tabular-nums"],
+                      }}
+                    >
                       {isQuantity
                         ? `${item.totalQuantity} vendidos · ${formatCurrency(item.totalRevenue)}`
                         : `margen ${Math.round(item.margin * 100)}% · ${formatCurrency(item.totalRevenue)}`}
@@ -190,12 +224,14 @@ export default function RankingsScreen() {
                   <Text
                     style={{
                       fontSize: 15,
-                      fontWeight: '700',
+                      fontWeight: "700",
                       color: accent,
-                      fontVariant: ['tabular-nums'],
+                      fontVariant: ["tabular-nums"],
                     }}
                   >
-                    {isQuantity ? item.totalQuantity : formatCurrency(item.totalProfit)}
+                    {isQuantity
+                      ? item.totalQuantity
+                      : formatCurrency(item.totalProfit)}
                   </Text>
                 </View>
 
@@ -205,13 +241,13 @@ export default function RankingsScreen() {
                     height: 8,
                     borderRadius: 4,
                     backgroundColor: c.surfaceMuted,
-                    overflow: 'hidden',
+                    overflow: "hidden",
                   }}
                 >
                   <View
                     style={{
                       width: `${Math.max(ratio * 100, 2)}%`,
-                      height: '100%',
+                      height: "100%",
                       borderRadius: 4,
                       backgroundColor: accent,
                     }}

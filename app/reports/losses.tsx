@@ -1,25 +1,39 @@
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Stack } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Pressable, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+import { Stack } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Button } from '@/components/ui/button';
-import { HeroCard } from '@/components/ui/hero-card';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { currentMonth, PeriodBar, type Period } from '@/components/ui/period-bar';
-import { Colors, FontSize, Overlay, Radius, Semantic, Shadows } from '@/constants/theme';
-import { getTypeLabel } from '@/constants/expenses';
-import { getLossesBreakdown, type LossCategory, type LossesBreakdown } from '@/db/queries';
-import { useAppColors } from '@/hooks/use-app-colors';
-import { exportToExcel } from '@/lib/excel';
-import { formatCurrency } from '@/lib/format';
+import { Button } from "@/components/ui/button";
+import { HeroCard } from "@/components/ui/hero-card";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import {
+  currentMonth,
+  PeriodBar,
+  type Period,
+} from "@/components/ui/period-bar";
+import {
+  getLossesBreakdown,
+  type LossCategory,
+  type LossesBreakdown,
+} from "@/db/queries";
+import { getTypeLabel } from "@/drizzle/constants/expenses";
+import {
+  Colors,
+  FontSize,
+  Overlay,
+  Radius,
+  Shadows,
+} from "@/drizzle/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { exportToExcel } from "@/lib/excel";
+import { formatCurrency } from "@/lib/format";
 
 const EMPTY_LOSSES: LossesBreakdown = { categories: [], total: 0 };
 
 function shortDate(iso: string): string {
-  return format(parseISO(iso), 'd MMM', { locale: es });
+  return format(parseISO(iso), "d MMM", { locale: es });
 }
 
 export default function LossesReportScreen() {
@@ -54,16 +68,25 @@ export default function LossesReportScreen() {
   const handleExport = useCallback(async () => {
     setExporting(true);
     try {
-      const lossRows: (string | number)[][] = [['Categoría', 'Concepto', 'Fecha', 'Monto']];
+      const lossRows: (string | number)[][] = [
+        ["Categoría", "Concepto", "Fecha", "Monto"],
+      ];
       for (const cat of data.categories) {
         for (const r of cat.records) {
           lossRows.push([cat.label, r.label, r.date, r.amount]);
         }
       }
-      lossRows.push(['TOTAL', '', '', data.total]);
-      await exportToExcel(`reporte_perdidas_${period.from}.xlsx`, [{ name: 'Pérdidas', rows: lossRows }]);
+      lossRows.push(["TOTAL", "", "", data.total]);
+      await exportToExcel(`reporte_perdidas_${period.from}.xlsx`, [
+        { name: "Pérdidas", rows: lossRows },
+      ]);
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "No se pudo exportar el reporte."
+      );
     } finally {
       setExporting(false);
     }
@@ -76,7 +99,7 @@ export default function LossesReportScreen() {
       </Animated.View>
 
       <Button
-        label={exporting ? 'Exportando…' : 'Exportar a Excel'}
+        label={exporting ? "Exportando…" : "Exportar a Excel"}
         icon="square.and.arrow.up"
         variant="soft"
         size="sm"
@@ -89,10 +112,10 @@ export default function LossesReportScreen() {
           <Text
             style={{
               fontSize: FontSize.xs,
-              fontWeight: '700',
+              fontWeight: "700",
               color: Overlay.text,
               letterSpacing: 1,
-              textTransform: 'uppercase',
+              textTransform: "uppercase",
             }}
           >
             Total de pérdidas y gastos
@@ -101,11 +124,11 @@ export default function LossesReportScreen() {
             selectable
             style={{
               fontSize: 36,
-              fontWeight: '800',
+              fontWeight: "800",
               color: Colors.light.surface,
               letterSpacing: -1,
               marginTop: 4,
-              fontVariant: ['tabular-nums'],
+              fontVariant: ["tabular-nums"],
             }}
           >
             {formatCurrency(data.total)}
@@ -117,10 +140,10 @@ export default function LossesReportScreen() {
         <Text
           style={{
             fontSize: 11,
-            fontWeight: '700',
+            fontWeight: "700",
             color: c.textMuted,
             letterSpacing: 1,
-            textTransform: 'uppercase',
+            textTransform: "uppercase",
           }}
         >
           Categorías
@@ -133,35 +156,43 @@ export default function LossesReportScreen() {
     const isExpanded = expanded.has(item.type);
     const hasRecords = item.records.length > 0;
     return (
-      <Animated.View entering={FadeInDown.delay(160 + index * 30).duration(280)}>
+      <Animated.View
+        entering={FadeInDown.delay(160 + index * 30).duration(280)}
+      >
         <View
           style={{
             backgroundColor: c.surface,
             borderRadius: Radius.lg,
             padding: 14,
-            borderCurve: 'continuous',
+            borderCurve: "continuous",
             boxShadow: Shadows.sm,
           }}
         >
           <Pressable
             onPress={() => hasRecords && toggle(item.type)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
           >
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontSize: FontSize.base, fontWeight: '600', color: c.text }}>
+              <Text
+                style={{
+                  fontSize: FontSize.base,
+                  fontWeight: "600",
+                  color: c.text,
+                }}
+              >
                 {item.label}
               </Text>
               <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}>
-                {getTypeLabel(item.type)} · {item.records.length}{' '}
-                {item.records.length === 1 ? 'registro' : 'registros'}
+                {getTypeLabel(item.type)} · {item.records.length}{" "}
+                {item.records.length === 1 ? "registro" : "registros"}
               </Text>
             </View>
             <Text
               style={{
                 fontSize: 15,
-                fontWeight: '700',
+                fontWeight: "700",
                 color: item.subtotal > 0 ? c.danger : c.tabIconDefault,
-                fontVariant: ['tabular-nums'],
+                fontVariant: ["tabular-nums"],
               }}
             >
               {formatCurrency(item.subtotal)}
@@ -171,7 +202,9 @@ export default function LossesReportScreen() {
                 name="chevron.right"
                 size={16}
                 color={c.tabIconDefault}
-                style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}
+                style={{
+                  transform: [{ rotate: isExpanded ? "90deg" : "0deg" }],
+                }}
               />
             ) : null}
           </Pressable>
@@ -189,20 +222,33 @@ export default function LossesReportScreen() {
               {item.records.map((r) => (
                 <View
                   key={r.id}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
                 >
-                  <Text style={{ fontSize: FontSize.xs, color: c.tabIconDefault, fontVariant: ['tabular-nums'] }}>
+                  <Text
+                    style={{
+                      fontSize: FontSize.xs,
+                      color: c.tabIconDefault,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
                     {shortDate(r.date)}
                   </Text>
-                  <Text style={{ flex: 1, fontSize: FontSize.md, color: c.text }} numberOfLines={1}>
+                  <Text
+                    style={{ flex: 1, fontSize: FontSize.md, color: c.text }}
+                    numberOfLines={1}
+                  >
                     {r.label}
                   </Text>
                   <Text
                     style={{
                       fontSize: FontSize.md,
-                      fontWeight: '600',
+                      fontWeight: "600",
                       color: c.text,
-                      fontVariant: ['tabular-nums'],
+                      fontVariant: ["tabular-nums"],
                     }}
                   >
                     {formatCurrency(r.amount)}
@@ -218,7 +264,7 @@ export default function LossesReportScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <Stack.Screen options={{ title: 'Pérdidas y gastos' }} />
+      <Stack.Screen options={{ title: "Pérdidas y gastos" }} />
       <FlatList
         data={data.categories}
         extraData={expanded}
@@ -232,25 +278,31 @@ export default function LossesReportScreen() {
             entering={FadeInDown.delay(240).duration(320)}
             style={{
               marginTop: 18,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
               backgroundColor: c.surface,
               borderRadius: Radius.lg,
               padding: 16,
-              borderCurve: 'continuous',
+              borderCurve: "continuous",
               boxShadow: Shadows.sm,
             }}
           >
-            <Text style={{ fontSize: FontSize.lg, fontWeight: '600', color: c.text }}>
+            <Text
+              style={{
+                fontSize: FontSize.lg,
+                fontWeight: "600",
+                color: c.text,
+              }}
+            >
               Total general
             </Text>
             <Text
               style={{
                 fontSize: 20,
-                fontWeight: '800',
+                fontWeight: "800",
                 color: c.danger,
-                fontVariant: ['tabular-nums'],
+                fontVariant: ["tabular-nums"],
               }}
             >
               {formatCurrency(data.total)}
