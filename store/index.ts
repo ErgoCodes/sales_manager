@@ -68,4 +68,3 @@ export const useCartStore = create<CartState>((set, get) => ({
     get().items.reduce((sum, i) => sum + i.appliedPrice * i.quantity, 0),
 }));
 
-export const useDailySummaryStore = create(() => ({}));
