@@ -3,7 +3,8 @@ import { format } from 'date-fns';
 import { Stack, router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -118,7 +119,7 @@ export default function OutflowScreen() {
   const isAdjustment = type === 'ajuste';
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
+    <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Stack.Screen options={{ title: 'Salida de almacén' }} />
 
       <Select
@@ -246,6 +247,6 @@ export default function OutflowScreen() {
         onPress={onSubmit}
         disabled={isSubmitting}
       />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
