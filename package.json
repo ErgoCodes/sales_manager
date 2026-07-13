@@ -7,7 +7,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -52,13 +55,22 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.1.0",
     "babel-plugin-inline-import": "^3.0.0",
+    "better-sqlite3": "^12.11.1",
     "drizzle-kit": "^0.27.2",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "jest-expo": "^57.0.1",
     "typescript": "~5.9.2"
   },
   "private": true,
-  "packageManager": "pnpm@11.6.0+sha512.9a36518224080c6fe5165afdcfe79bfa118c29be703f3f462b1e32efe1e98e47e8750b148e08286250aad4113cc7993ca413c4e2cd447752708c2ee5751bc95f"
+  "packageManager": "pnpm@11.6.0+sha512.9a36518224080c6fe5165afdcfe79bfa118c29be703f3f462b1e32efe1e98e47e8750b148e08286250aad4113cc7993ca413c4e2cd447752708c2ee5751bc95f",
+  "jest": {
+    "preset": "jest-expo"
+  }
 }
