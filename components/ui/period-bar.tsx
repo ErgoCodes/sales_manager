@@ -120,6 +120,8 @@ export function PeriodBar({ value, onChange }: PeriodBarProps) {
   const arrowButton = (direction: -1 | 1, onPress: () => void) => (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={direction === -1 ? "Periodo anterior" : "Periodo siguiente"}
       hitSlop={6}
       style={({ pressed }) => ({
         width: 36,
@@ -161,6 +163,8 @@ export function PeriodBar({ value, onChange }: PeriodBarProps) {
             <Pressable
               key={m.key}
               onPress={() => selectMode(m.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               style={{
                 flex: 1,
                 paddingVertical: 8,

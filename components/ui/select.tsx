@@ -42,6 +42,8 @@ export function Select({
             <Pressable
               key={opt.value}
               onPress={() => onChange(opt.value)}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
               style={({ pressed }) => ({
                 borderRadius: Radius.full,
                 borderWidth: 1,
@@ -50,6 +52,8 @@ export function Select({
                 backgroundColor: selected ? c.tint : c.surface,
                 borderColor: selected ? c.tint : c.border,
                 opacity: pressed ? 0.7 : 1,
+                minHeight: 44,
+                justifyContent: "center",
               })}
             >
               <Text

@@ -103,6 +103,8 @@ export function ProductPicker({
           {options.map((item) => (
             <Pressable
               key={item.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.name}, stock ${item.stock} ${item.unitOfMeasure}`}
               style={({ pressed }) => ({
                 paddingHorizontal: 12,
                 paddingVertical: 10,

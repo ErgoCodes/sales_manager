@@ -1,9 +1,9 @@
 import { Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, FlatList, Modal, Pressable, View } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select, type SelectOption } from "@/components/ui/select";
@@ -217,37 +217,12 @@ export default function SalesHistoryScreen() {
             />
           </View>
         </View>
-        <Pressable
+        <Checkbox
+          checked={showCancelled}
           onPress={() => setShowCancelled((v) => !v)}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            alignSelf: "flex-start",
-          }}
-        >
-          <View
-            style={{
-              height: 20,
-              width: 20,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 4,
-              borderWidth: 1,
-              borderColor: showCancelled ? "#0F766E" : c.border,
-              backgroundColor: showCancelled ? "#0F766E" : "transparent",
-            }}
-          >
-            {showCancelled ? (
-              <Text
-                style={{ color: "white", fontSize: 12, fontWeight: "bold" }}
-              >
-                ✓
-              </Text>
-            ) : null}
-          </View>
-          <Text variant="label">Mostrar anuladas</Text>
-        </Pressable>
+          label="Mostrar anuladas"
+          activeColor="#0F766E"
+        />
       </View>
 
       <FlatList
@@ -268,6 +243,8 @@ export default function SalesHistoryScreen() {
           return (
             <Pressable
               onPress={() => openActions(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Venta de ${item.productName}, cantidad ${item.quantity} ${item.unitOfMeasure}, pago en ${item.paymentMethod}`}
               style={({ pressed }) => ({
                 borderRadius: Radius.xl,
                 backgroundColor: c.surface,
@@ -376,7 +353,7 @@ export default function SalesHistoryScreen() {
         onRequestClose={() => setEditing(null)}
       >
         <KeyboardAvoidingView
-          behavior="padding"
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{
             flex: 1,
             justifyContent: "flex-end",
@@ -400,7 +377,12 @@ export default function SalesHistoryScreen() {
               }}
             >
               <Text variant="title">Editar venta</Text>
-              <Pressable hitSlop={8} onPress={() => setEditing(null)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar editor"
+                hitSlop={8}
+                onPress={() => setEditing(null)}
+              >
                 <Text variant="body" style={{ color: c.textMuted }}>
                   Cerrar
                 </Text>

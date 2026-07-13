@@ -43,6 +43,8 @@ function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => ({
         flex: 1,
         backgroundColor: c.surface,

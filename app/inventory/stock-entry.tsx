@@ -3,11 +3,12 @@ import { format } from "date-fns";
 import { Stack, router } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import {
@@ -215,18 +216,12 @@ export default function StockEntryScreen() {
         )}
       />
 
-      <Pressable
+      <Checkbox
+        checked={updatePrices}
         onPress={() => setUpdatePrices((v) => !v)}
-        hitSlop={8}
-        style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-      >
-        <Text
-          variant="label"
-          style={{ color: updatePrices ? c.transfer : c.textMuted }}
-        >
-          {updatePrices ? "☑" : "☐"} Actualizar precios del catálogo
-        </Text>
-      </Pressable>
+        label="Actualizar precios del catálogo"
+        activeColor={c.transfer}
+      />
 
       {updatePrices ? (
         <View

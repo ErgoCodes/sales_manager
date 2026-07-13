@@ -307,6 +307,9 @@ export default function ExpensesScreen() {
 
             <Pressable
               onPress={() => setShowCancelled(!showCancelled)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: showCancelled }}
+              accessibilityLabel={showCancelled ? "Ocultar anulados" : "Mostrar anulados"}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
@@ -348,6 +351,8 @@ export default function ExpensesScreen() {
           <Animated.View entering={FadeInDown.delay(index * 25).duration(260)}>
             <Pressable
               onPress={() => handlePressRow(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Movimiento: ${item.title}, concepto ${item.detail || "sin concepto"}, monto ${item.amount} pesos`}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
@@ -437,6 +442,8 @@ export default function ExpensesScreen() {
           </Text>
           <Pressable
             onPress={handleUndo}
+            accessibilityRole="button"
+            accessibilityLabel="Deshacer acción"
             style={({ pressed }) => ({
               backgroundColor: "#334155",
               paddingVertical: 6,
@@ -473,6 +480,8 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => ({
         flex: 1,
         flexDirection: "row",
