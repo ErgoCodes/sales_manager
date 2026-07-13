@@ -1,6 +1,7 @@
 import { Tabs, router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -37,6 +38,7 @@ function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButto
 
 export default function TabLayout() {
   const c = useAppColors();
+  const insets = useSafeAreaInsets();
   const [businessName, setBusinessName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function TabLayout() {
           borderTopColor: c.border,
           backgroundColor: c.surface,
           paddingTop: 6,
-          height: 64,
+          height: 64 + insets.bottom,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
