@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Uniwind } from 'uniwind';
 
 import { db } from '@/db/client';
@@ -30,34 +31,40 @@ export default function RootLayout() {
 
   if (error) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <Text style={{ textAlign: 'center', color: '#EF4444' }}>
-          Error al preparar la base de datos: {error.message}
-        </Text>
-      </View>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={{ textAlign: 'center', color: '#EF4444' }}>
+            Error al preparar la base de datos: {error.message}
+          </Text>
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   if (!success) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <Text style={{ textAlign: 'center' }}>Preparando la base de datos…</Text>
-      </View>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={{ textAlign: 'center' }}>Preparando la base de datos…</Text>
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <KeyboardProvider>
-      <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="configuration"
-            options={{ presentation: 'modal', title: 'Configuración' }}
-          />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </KeyboardProvider>
+    <SafeAreaProvider>
+      <KeyboardProvider>
+        <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="configuration"
+              options={{ presentation: 'modal', title: 'Configuración' }}
+            />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </KeyboardProvider>
+    </SafeAreaProvider>
   );
 }
