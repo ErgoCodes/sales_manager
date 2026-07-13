@@ -1,3 +1,7 @@
+> [!WARNING]
+> **Documento obsoleto (desde 2026-07-11).** Este plan de roadmap está obsoleto. Muchas de las tareas descritas aquí ya han sido implementadas y el estado actual del proyecto ha avanzado significativamente. La fuente de verdad activa para el seguimiento de tareas es el [tablero de Notion](https://app.notion.com/p/39a19c33c39081fab767c40eb46cc347). Este archivo se conserva únicamente como registro histórico.
+
+
 # 02 · Plan de ejecución del roadmap pendiente
 
 > Cómo llevar a cabo las 9 tareas pendientes del [ROADMAP.md](../ROADMAP.md), aprovechando lo que ya existe en el código. Rutas nuevas en inglés (convención de CLAUDE.md); las rutas en español del ROADMAP están obsoletas.

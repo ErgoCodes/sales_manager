@@ -1,3 +1,7 @@
+> [!WARNING]
+> **Documento obsoleto (desde 2026-07-11).** Este análisis de estado está obsoleto. Muchas de las tareas descritas aquí ya han sido implementadas y el estado actual del proyecto ha avanzado significativamente. La fuente de verdad activa para el seguimiento de tareas es el [tablero de Notion](https://app.notion.com/p/39a19c33c39081fab767c40eb46cc347). Este archivo se conserva únicamente como registro histórico.
+
+
 # 01 · Estado del proyecto
 
 > Resumen ejecutivo del estado de **Mercado Mónaco MVP** a 2026-07-07, basado en [ROADMAP.md](../ROADMAP.md), el historial de git y una revisión del código.
