@@ -23,6 +23,7 @@ import { Colors, Radius, Shadows } from '@/constants/theme';
 import { registerSalesSession, verifySessionStock } from '@/db/sales';
 import { useCartStore } from '@/store';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { safeWrite } from '@/lib/safe-write';
 
 export default function NewSessionScreen() {
   const c = useAppColors();
@@ -146,15 +147,18 @@ export default function NewSessionScreen() {
       }
 
       const received = Number(amountReceived);
-      registerSalesSession(
-        items,
-        date,
-        received > 0 ? { amountReceived: received } : undefined,
+      const result = await safeWrite(() =>
+        registerSalesSession(
+          items,
+          date,
+          received > 0 ? { amountReceived: received } : undefined,
+        ),
+        'No se pudo guardar la sesión',
       );
-      clear();
-      router.back();
-    } catch {
-      Alert.alert('Error', 'No se pudo guardar la sesión.');
+      if (result.ok) {
+        clear();
+        router.back();
+      }
     } finally {
       setSaving(false);
     }

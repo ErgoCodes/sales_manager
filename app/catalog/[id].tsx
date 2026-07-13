@@ -20,6 +20,7 @@ import { isNearExpiration, isStagnant } from '@/lib/product-status';
 import { calculateTransferPrice } from '@/lib/pricing';
 import { useAppColors } from '@/hooks/use-app-colors';
 import { Radius, Semantic, Shadows } from '@/constants/theme';
+import { safeWrite } from '@/lib/safe-write';
 
 const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
@@ -122,20 +123,28 @@ export default function ProductFormScreen() {
       transferPrice: calculateTransferPrice(cash),
       expirationDate: values.expirationDate?.trim() || null,
     };
-    if (isNew) await createProduct(data);
-    else await updateProduct(Number(id), data);
 
-    if (!isNew && rebajaApplied && priceBeforeRebaja > cash && currentStock > 0) {
-      const potentialLoss = (priceBeforeRebaja - cash) * currentStock;
-      await registerExpense({
-        type: 'rebaja_liquidacion',
-        concept: values.name.trim(),
-        amount: potentialLoss,
-        date: format(new Date(), 'yyyy-MM-dd'),
-      });
+    const result = await safeWrite(async () => {
+      if (isNew) {
+        await createProduct(data);
+      } else {
+        await updateProduct(Number(id), data);
+      }
+
+      if (!isNew && rebajaApplied && priceBeforeRebaja > cash && currentStock > 0) {
+        const potentialLoss = (priceBeforeRebaja - cash) * currentStock;
+        await registerExpense({
+          type: 'rebaja_liquidacion',
+          concept: values.name.trim(),
+          amount: potentialLoss,
+          date: format(new Date(), 'yyyy-MM-dd'),
+        });
+      }
+    });
+
+    if (result.ok) {
+      router.back();
     }
-
-    router.back();
   });
 
   return (

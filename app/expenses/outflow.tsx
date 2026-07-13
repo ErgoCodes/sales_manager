@@ -19,6 +19,7 @@ import { OUTFLOW_TYPES, type OutflowType } from '@/constants/expenses';
 import { registerOutflow } from '@/db/movements';
 import { calculateStock } from '@/db/queries';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { safeWrite } from '@/lib/safe-write';
 import { Radius, Shadows, Colors } from '@/constants/theme';
 
 const schema = z.object({
@@ -64,15 +65,19 @@ export default function OutflowScreen() {
 
   async function persist(values: FormValues, signedQuantity: number) {
     if (!product) return;
-    await registerOutflow({
-      productId: product.id,
-      type,
-      quantity: signedQuantity,
-      unitCostPrice: Number(values.unitCostPrice),
-      date: values.date,
-      notes: values.notes || null,
+    const result = await safeWrite(async () => {
+      await registerOutflow({
+        productId: product.id,
+        type,
+        quantity: signedQuantity,
+        unitCostPrice: Number(values.unitCostPrice),
+        date: values.date,
+        notes: values.notes || null,
+      });
     });
-    router.back();
+    if (result.ok) {
+      router.back();
+    }
   }
 
   const onSubmit = handleSubmit(async (values) => {

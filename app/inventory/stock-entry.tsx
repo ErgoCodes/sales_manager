@@ -19,6 +19,7 @@ import { updateProduct } from '@/db/products';
 import { calculateTransferPrice } from '@/lib/pricing';
 import { useAppColors } from '@/hooks/use-app-colors';
 import { Radius, Semantic, Shadows } from '@/constants/theme';
+import { safeWrite } from '@/lib/safe-write';
 
 const positivePrice = (msg: string) =>
   z.string().refine((v) => v.trim() !== '' && Number(v) > 0, msg);
@@ -75,31 +76,35 @@ export default function StockEntryScreen() {
       return;
     }
 
-    await registerEntry({
-      productId: product.id,
-      quantity: Number(values.quantity),
-      unitCostPrice: Number(values.unitCostPrice),
-      date: values.date,
-      notes: values.notes || null,
+    const result = await safeWrite(async () => {
+      await registerEntry({
+        productId: product.id,
+        quantity: Number(values.quantity),
+        unitCostPrice: Number(values.unitCostPrice),
+        date: values.date,
+        notes: values.notes || null,
+      });
+
+      if (updatePrices) {
+        const cost = values.newCostPrice ? Number(values.newCostPrice) : undefined;
+        const cash = values.newCashPrice ? Number(values.newCashPrice) : undefined;
+        if (cost && cost > 0 && cash && cash > 0) {
+          await updateProduct(product.id, {
+            name: product.name,
+            unitOfMeasure: product.unitOfMeasure,
+            category: null,
+            lowStockThreshold: null,
+            costPrice: cost,
+            cashPrice: cash,
+            transferPrice: calculateTransferPrice(cash),
+          });
+        }
+      }
     });
 
-    if (updatePrices) {
-      const cost = values.newCostPrice ? Number(values.newCostPrice) : undefined;
-      const cash = values.newCashPrice ? Number(values.newCashPrice) : undefined;
-      if (cost && cost > 0 && cash && cash > 0) {
-        await updateProduct(product.id, {
-          name: product.name,
-          unitOfMeasure: product.unitOfMeasure,
-          category: null,
-          lowStockThreshold: null,
-          costPrice: cost,
-          cashPrice: cash,
-          transferPrice: calculateTransferPrice(cash),
-        });
-      }
+    if (result.ok) {
+      router.back();
     }
-
-    router.back();
   });
 
   return (

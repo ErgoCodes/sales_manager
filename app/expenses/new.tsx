@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { EXPENSE_TYPES, type ExpenseType } from '@/constants/expenses';
 import { registerExpense } from '@/db/expenses';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { safeWrite } from '@/lib/safe-write';
 
 const schema = z.object({
   amount: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
@@ -40,13 +41,18 @@ export default function NewExpenseScreen() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    await registerExpense({
-      type,
-      concept: values.concept || null,
-      amount: Number(values.amount),
-      date: values.date,
+    const result = await safeWrite(async () => {
+      await registerExpense({
+        type,
+        concept: values.concept || null,
+        amount: Number(values.amount),
+        date: values.date,
+      });
     });
-    router.back();
+
+    if (result.ok) {
+      router.back();
+    }
   });
 
   return (

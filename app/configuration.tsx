@@ -13,6 +13,7 @@ import { Text } from '@/components/ui/text';
 import { CONFIG_KEYS, getAllConfig, getConfig, setConfig } from '@/db/config';
 import { BackupCancelledError, exportBackup, pickAndValidateBackupFile, restoreBackup } from '@/lib/backup';
 import { useAppColors } from '@/hooks/use-app-colors';
+import { safeWrite } from '@/lib/safe-write';
 import { Semantic, Radius } from '@/constants/theme';
 
 const nonNegativeNumber = (msg: string) =>
@@ -71,13 +72,17 @@ export default function ConfigurationScreen() {
   }, []);
 
   const onSubmit = handleSubmit(async (values) => {
-    await Promise.all([
-      setConfig(CONFIG_KEYS.businessName, values.businessName.trim()),
-      setConfig(CONFIG_KEYS.cashDiscountPercent, String(Number(values.cashDiscountPercent))),
-      setConfig(CONFIG_KEYS.generalStockThreshold, String(Number(values.generalStockThreshold))),
-      setConfig(CONFIG_KEYS.stagnantDiscountPercent, String(Number(values.stagnantDiscountPercent))),
-    ]);
-    setSaved(true);
+    const result = await safeWrite(() =>
+      Promise.all([
+        setConfig(CONFIG_KEYS.businessName, values.businessName.trim()),
+        setConfig(CONFIG_KEYS.cashDiscountPercent, String(Number(values.cashDiscountPercent))),
+        setConfig(CONFIG_KEYS.generalStockThreshold, String(Number(values.generalStockThreshold))),
+        setConfig(CONFIG_KEYS.stagnantDiscountPercent, String(Number(values.stagnantDiscountPercent))),
+      ])
+    );
+    if (result.ok) {
+      setSaved(true);
+    }
   });
 
   async function handleExportBackup() {

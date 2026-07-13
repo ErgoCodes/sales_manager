@@ -46,6 +46,9 @@ export async function verifySessionStock(
  * `saleSessions` row is created snapshotting the cash total, amount received
  * and change, and every line of this ticket is linked to it via `sessionId`.
  * Without it, behaviour is unchanged and rows keep `sessionId = null`.
+ *
+ * NOTE: This function is synchronous because Drizzle's sync transaction API for expo-sqlite
+ * guarantees atomicity and thread-safety without async/await interleaving.
  */
 export function registerSalesSession(
   items: CartItem[],
@@ -84,7 +87,11 @@ export function registerSalesSession(
         .where(eq(products.id, item.productId))
         .all();
 
-      const costAtSale = prod?.averageCost ?? item.costAtSale;
+      if (!prod) {
+        throw new Error(`Producto ${item.productId} no encontrado`);
+      }
+
+      const costAtSale = prod.averageCost;
       const profit = (item.appliedPrice - costAtSale) * item.quantity;
 
       tx.insert(sales)
