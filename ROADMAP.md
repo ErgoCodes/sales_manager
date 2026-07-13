@@ -84,7 +84,7 @@
 - [x] Crear pantalla de inicio (`app/(tabs)/index.tsx`) con widget de resumen del día
   - Mostrar: total efectivo, total transferencia, total/utilidad, alertas de stock bajo (`resumenDelDia` + `contarStockBajo` en `db/queries.ts`)
   - Datos reales desde DB (aunque estén vacíos al inicio)
-- [x] Crear pantalla de Configuración (`app/configuracion.tsx`)
+- [x] Crear pantalla de Configuración (`app/configuration.tsx`)
   - Campos: nombre del negocio, % descuento por efectivo (default 10%), umbral de stock general (default 5) — umbrales por categoría se refinan en T-07
   - Persistir en tabla `configuracion` (`db/config.ts`: getConfig/setConfig/getAllConfig + react-hook-form + zod)
 - [x] Navegación fluida: cualquier módulo accesible desde inicio en ≤2 toques
@@ -103,18 +103,18 @@
 
 > Pantalla para crear y editar los 20-50 productos del mercado.
 
-- [x] Pantalla lista de productos (`app/catalogo/index.tsx`) — accesible vía botón en tab Inventario
+- [x] Pantalla lista de productos (`app/catalog/index.tsx`) — accesible vía botón en tab Inventario
   - Buscador por nombre
-  - Filtro por categoría (chips, lista fija en `constants/catalogo.ts`)
+  - Filtro por categoría (chips, lista fija en `constants/catalog.ts`)
   - Mostrar stock actual calculado junto a cada producto (`calcularStockTodos` en lote)
-- [x] Formulario nuevo/editar producto (`app/catalogo/[id].tsx`)
+- [x] Formulario nuevo/editar producto (`app/catalog/[id].tsx`)
   - Campos: nombre (texto), unidad de medida (selector `components/ui/select.tsx`), categoría (selector), umbral de alerta de stock
   - Validar con Zod: nombre no vacío, umbral > 0 (entero)
   - Integrar con react-hook-form
 - [x] Opción archivar/desactivar producto (soft delete — `activo = false`) + toggle "Mostrar archivados" + Restaurar
   - Producto archivado no aparece en ventas pero sí en historial
 - [x] Botón editar en cada ítem de la lista
-- [x] Capa de datos `db/productos.ts` (crear/actualizar/archivar/restaurar/listar/get)
+- [x] Capa de datos `db/products.ts` (crear/actualizar/archivar/restaurar/listar/get)
 
 **Depende de:** T-01, T-02
 
@@ -132,7 +132,7 @@
 - [x] Cálculo automático en tiempo real del `precio_transferencia`: `efectivo × 1.10` redondeado al múltiplo de 5 más cercano
   - Función: `Math.round((efectivo * 1.10) / 5) * 5`
 - [x] Mostrar los tres precios calculados antes de guardar (bloque resumen)
-- [x] Guardar los tres precios en tabla `productos` (DatosProducto ampliado en db/productos.ts)
+- [x] Guardar los tres precios en tabla `productos` (DatosProducto ampliado en db/products.ts)
 - [x] Test de redondeo: efectivo=47 → transferencia=50 ✓; efectivo=20 → transferencia=20 ✓
 
 **Depende de:** T-03
@@ -162,7 +162,7 @@
 
 > Yamile registra cada compra. Costo siempre obligatorio.
 
-- [x] Pantalla nueva entrada (`app/inventario/entrada.tsx`)
+- [x] Pantalla nueva entrada (`app/inventory/stock-entry.tsx`)
   - Selector de producto (`components/ui/product-picker.tsx`, reutilizable en T-09)
   - Campo cantidad
   - Mostrar precios actuales del producto (costo, efectivo, transferencia) al seleccionar
@@ -170,9 +170,9 @@
 - [x] Campo `precio_costo_unitario`: pre-rellenado con último costo del producto, editable y obligatorio (zod)
 - [x] Campo fecha (default hoy, editable)
 - [x] Campo notas (opcional)
-- [x] Al confirmar: insertar movimiento tipo `entrada` + recalcular y persistir `costo_promedio` del producto (`db/movimientos.ts`)
+- [x] Al confirmar: insertar movimiento tipo `entrada` + recalcular y persistir `costo_promedio` del producto (`db/movements.ts`)
 - [x] Si se actualiza precio de venta en la entrada → actualizar catálogo (toggle + `actualizarProducto`)
-- [x] Historial de entradas (`app/inventario/historial.tsx`): filtrable por producto y fecha
+- [x] Historial de entradas (`app/inventory/history.tsx`): filtrable por producto y fecha
 
 **Depende de:** T-03, T-04
 
@@ -184,11 +184,11 @@
 
 > El inventario es la pantalla operativa diaria de Yamile.
 
-- [x] Pantalla de inventario (reescrita en `app/(tabs)/inventario.tsx` — reemplaza landing)
+- [x] Pantalla de inventario (reescrita en `app/(tabs)/inventory.tsx` — reemplaza landing)
   - Lista todos los productos con stock actual, costo promedio, valor por producto, total del inventario al pie
   - Catálogo e Historial accesibles vía menú ≡ en header; FAB "+ Entrada" abajo-derecha
 - [x] Indicador visual (fondo `bg-red-50` + badge "⚠ bajo umbral") para productos bajo umbral
-- [x] Umbrales por categoría: Bebidas ≤24, Granos ≤6; resto usa umbral del producto o general (`getUmbralProducto` en `constants/catalogo.ts`)
+- [x] Umbrales por categoría: Bebidas ≤24, Granos ≤6; resto usa umbral del producto o general (`getUmbralProducto` en `constants/catalog.ts`)
 - [x] Filtro rápido "Solo stock bajo" (toggle en JS)
 - [x] Stock se recalcula al hacer focus (`useFocusEffect`) sin recargar manualmente
 
@@ -221,7 +221,7 @@
 
 > Pantalla principal de uso diario. Diseño decide si la app se usa o se abandona.
 
-- [x] Pantalla de captura en lote (`app/ventas/nueva-sesion.tsx`)
+- [x] Pantalla de captura en lote (`app/sales/new-session.tsx`)
   - Buscador de producto siempre visible arriba (ProductPicker reutilizado)
   - Lista de ventas de la sesión en curso abajo (FlatList virtualizada)
   - Total acumulado en vivo: efectivo / transferencia / total (Zustand `useCartStore`)
