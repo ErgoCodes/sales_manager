@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { Stack, router } from 'expo-router';
-import { useState } from 'react';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, Pressable, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -17,7 +17,7 @@ import {
 import { Select } from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
 import { OUTFLOW_TYPES, type OutflowType } from '@/constants/expenses';
-import { registerOutflow } from '@/db/movements';
+import { getOutflowById, registerOutflow, updateOutflow } from '@/db/movements';
 import { calculateStock } from '@/db/queries';
 import { useAppColors } from '@/hooks/use-app-colors';
 import { safeWrite } from '@/lib/safe-write';
@@ -28,7 +28,10 @@ const schema = z.object({
   unitCostPrice: z
     .string()
     .refine((v) => v.trim() !== '' && Number(v) > 0, 'El costo es obligatorio y debe ser mayor que 0'),
-  date: z.string().min(1, 'La fecha es obligatoria'),
+  date: z.string().min(1, 'La fecha es obligatoria').refine(
+    (v) => v <= format(new Date(), 'yyyy-MM-dd'),
+    'La fecha no puede ser futura'
+  ),
   notes: z.string().optional(),
 });
 
@@ -40,12 +43,15 @@ export default function OutflowScreen() {
   const [productError, setProductError] = useState('');
   const [type, setType] = useState<OutflowType>('merma');
   const [direction, setDirection] = useState<'decrease' | 'increase'>('decrease');
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEdit = !!id;
 
   const {
     control,
     handleSubmit,
     setValue,
     getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -57,6 +63,35 @@ export default function OutflowScreen() {
     },
   });
 
+  useEffect(() => {
+    if (id) {
+      (async () => {
+        const row = await getOutflowById(Number(id));
+        if (row) {
+          setProduct({
+            id: row.productId,
+            name: row.productName,
+            unitOfMeasure: row.unitOfMeasure,
+            costPrice: row.costPrice,
+            cashPrice: row.cashPrice,
+            transferPrice: row.transferPrice,
+            averageCost: row.averageCost,
+          });
+          setType(row.type as OutflowType);
+          if (row.type === 'ajuste') {
+            setDirection(row.quantity >= 0 ? 'increase' : 'decrease');
+          }
+          reset({
+            quantity: String(Math.abs(row.quantity)),
+            unitCostPrice: String(row.unitCostPrice),
+            date: row.date,
+            notes: row.notes ?? '',
+          });
+        }
+      })();
+    }
+  }, [id, reset]);
+
   function onProductSelected(p: SelectedProduct) {
     setProduct(p);
     setProductError('');
@@ -67,15 +102,26 @@ export default function OutflowScreen() {
   async function persist(values: FormValues, signedQuantity: number) {
     if (!product) return;
     const result = await safeWrite(async () => {
-      await registerOutflow({
-        productId: product.id,
-        type,
-        quantity: signedQuantity,
-        unitCostPrice: Number(values.unitCostPrice),
-        date: values.date,
-        notes: values.notes || null,
-      });
-    });
+      if (isEdit) {
+        await updateOutflow(Number(id), {
+          productId: product.id,
+          type,
+          quantity: signedQuantity,
+          unitCostPrice: Number(values.unitCostPrice),
+          date: values.date,
+          notes: values.notes || null,
+        });
+      } else {
+        await registerOutflow({
+          productId: product.id,
+          type,
+          quantity: signedQuantity,
+          unitCostPrice: Number(values.unitCostPrice),
+          date: values.date,
+          notes: values.notes || null,
+        });
+      }
+    }, isEdit ? 'Error al guardar cambios' : 'No se pudo guardar');
     if (result.ok) {
       router.back();
     }
@@ -120,7 +166,7 @@ export default function OutflowScreen() {
 
   return (
     <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Stack.Screen options={{ title: 'Salida de almacén' }} />
+      <Stack.Screen options={{ title: isEdit ? 'Editar salida' : 'Salida de almacén' }} />
 
       <Select
         label="Tipo de salida"
@@ -223,6 +269,7 @@ export default function OutflowScreen() {
             onChange={onChange}
             placeholder="Seleccionar fecha"
             error={errors.date?.message}
+            maxDate={format(new Date(), 'yyyy-MM-dd')}
           />
         )}
       />
@@ -243,7 +290,7 @@ export default function OutflowScreen() {
       />
 
       <Button
-        label={isSubmitting ? 'Registrando…' : 'Registrar salida'}
+        label={isSubmitting ? (isEdit ? 'Guardando…' : 'Registrando…') : isEdit ? 'Guardar cambios' : 'Registrar salida'}
         onPress={onSubmit}
         disabled={isSubmitting}
       />

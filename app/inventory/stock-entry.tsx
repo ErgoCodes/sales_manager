@@ -28,7 +28,10 @@ const positivePrice = (msg: string) =>
 const schema = z.object({
   quantity: z.string().refine((v) => Number(v) > 0, 'Debe ser mayor que 0'),
   unitCostPrice: positivePrice('El costo es obligatorio y debe ser mayor que 0'),
-  date: z.string().min(1, 'La fecha es obligatoria'),
+  date: z.string().min(1, 'La fecha es obligatoria').refine(
+    (v) => v <= format(new Date(), 'yyyy-MM-dd'),
+    'La fecha no puede ser futura'
+  ),
   notes: z.string().optional(),
   newCostPrice: z.string().optional(),
   newCashPrice: z.string().optional(),
@@ -171,6 +174,7 @@ export default function StockEntryScreen() {
             onChange={onChange}
             placeholder="Seleccionar fecha"
             error={errors.date?.message}
+            maxDate={format(new Date(), 'yyyy-MM-dd')}
           />
         )}
       />

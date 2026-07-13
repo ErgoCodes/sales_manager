@@ -14,6 +14,7 @@ interface DatePickerProps {
   placeholder?: string;
   error?: string;
   clearable?: boolean;
+  maxDate?: string;
 }
 
 function formatDateCompact(iso: string): string {
@@ -25,7 +26,7 @@ function formatDateCompact(iso: string): string {
   }
 }
 
-export function DatePicker({ label, value, onChange, placeholder, error, clearable }: DatePickerProps) {
+export function DatePicker({ label, value, onChange, placeholder, error, clearable, maxDate }: DatePickerProps) {
   const c = useAppColors();
   const [isOpen, setIsOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => {
@@ -69,6 +70,10 @@ export function DatePicker({ label, value, onChange, placeholder, error, clearab
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const selectedDate = value && value.length > 0 ? value : null;
+
+  const isNextMonthDisabled = maxDate
+    ? format(startOfMonth(addMonths(displayMonth, 1)), 'yyyy-MM-dd') > maxDate
+    : false;
 
   return (
     <>
@@ -132,6 +137,7 @@ export function DatePicker({ label, value, onChange, placeholder, error, clearab
               </Text>
               <Pressable
                 onPress={handleNextMonth}
+                disabled={isNextMonthDisabled}
                 hitSlop={6}
                 style={({ pressed }) => ({
                   width: 36,
@@ -140,6 +146,7 @@ export function DatePicker({ label, value, onChange, placeholder, error, clearab
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: pressed ? c.surfaceMuted : 'transparent',
+                  opacity: isNextMonthDisabled ? 0.3 : pressed ? 0.7 : 1,
                 })}
               >
                 <IconSymbol name="chevron.right" size={18} color={c.textMuted} />
@@ -179,11 +186,13 @@ export function DatePicker({ label, value, onChange, placeholder, error, clearab
                   const dateStr = format(day, 'yyyy-MM-dd');
                   const isSelected = dateStr === selectedDate;
                   const isToday = dateStr === today;
+                  const isDisabled = maxDate ? dateStr > maxDate : false;
 
                   return (
                     <Pressable
                       key={dateStr}
                       onPress={() => handleSelectDate(day)}
+                      disabled={isDisabled}
                       style={({ pressed }) => ({
                         width: '14.285%',
                         aspectRatio: 1,
@@ -191,7 +200,7 @@ export function DatePicker({ label, value, onChange, placeholder, error, clearab
                         justifyContent: 'center',
                         borderRadius: Radius.md,
                         backgroundColor: isSelected ? c.tint : isToday ? c.surfaceMuted : 'transparent',
-                        opacity: pressed ? 0.7 : 1,
+                        opacity: isDisabled ? 0.3 : pressed ? 0.7 : 1,
                       })}
                     >
                       <Text

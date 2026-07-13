@@ -15,6 +15,13 @@
       "when": 1783527353973,
       "tag": "0001_even_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783527353974,
+      "tag": "0002_cancelled_fields",
+      "breakpoints": true
     }
   ]
 }
