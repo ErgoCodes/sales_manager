@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from './client';
 import { CONFIG_KEYS, getConfig } from './config';
 import { expenses, products, sales, warehouseMovements } from './schema';
+import { getProductThreshold } from '@/constants/catalog';
 
 export async function calculateStock(productId: number): Promise<number> {
   const [movRow] = await db
@@ -412,14 +413,15 @@ export async function countLowStock(): Promise<number> {
   );
 
   const activeProducts = await db
-    .select({ id: products.id, lowStockThreshold: products.lowStockThreshold })
+    .select({ id: products.id, lowStockThreshold: products.lowStockThreshold, category: products.category })
     .from(products)
     .where(eq(products.active, true));
 
+  const stocks = await calculateAllStocks();
   let count = 0;
   for (const p of activeProducts) {
-    const stock = await calculateStock(p.id);
-    const threshold = p.lowStockThreshold ?? generalThreshold;
+    const stock = stocks.get(p.id) ?? 0;
+    const threshold = getProductThreshold(p, generalThreshold);
     if (stock < threshold) count += 1;
   }
   return count;

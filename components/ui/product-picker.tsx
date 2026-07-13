@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { listProducts, type ProductWithStock } from '@/db/products';
@@ -31,16 +31,27 @@ export function ProductPicker({ label, value, onChange, error }: ProductPickerPr
   const [options, setOptions] = useState<ProductWithStock[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSearch = useCallback(async (text: string) => {
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const latest = useRef('');
+
+  const handleSearch = useCallback((text: string) => {
     setSearch(text);
+    latest.current = text;
+    clearTimeout(timer.current);
+
     if (text.trim().length === 0) {
       setOptions([]);
       setIsOpen(false);
       return;
     }
-    const results = await listProducts({ search: text });
-    setOptions(results);
-    setIsOpen(true);
+
+    timer.current = setTimeout(async () => {
+      const results = await listProducts({ search: text });
+      if (latest.current === text) {
+        setOptions(results);
+        setIsOpen(true);
+      }
+    }, 250);
   }, []);
 
   function handleSelect(p: ProductWithStock) {
