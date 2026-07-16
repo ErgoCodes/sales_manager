@@ -14,6 +14,12 @@ interface EntryData {
 }
 
 export async function registerEntry(data: EntryData): Promise<void> {
+  const newAverageCost = await recalculateAverageCost(
+    data.productId,
+    data.quantity,
+    data.unitCostPrice,
+  );
+
   await db.insert(warehouseMovements).values({
     productId: data.productId,
     type: 'entrada',
@@ -23,12 +29,6 @@ export async function registerEntry(data: EntryData): Promise<void> {
     salePrice: data.salePrice ?? null,
     notes: data.notes ?? null,
   });
-
-  const newAverageCost = await recalculateAverageCost(
-    data.productId,
-    data.quantity,
-    data.unitCostPrice,
-  );
 
   await db
     .update(products)
