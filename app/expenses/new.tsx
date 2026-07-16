@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -93,80 +93,83 @@ export default function NewExpenseScreen() {
   });
 
   return (
-    <KeyboardAwareScrollView
+    <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, gap: 16 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={100}
     >
-      <Stack.Screen
-        options={{ title: isEdit ? "Editar gasto" : "Nuevo gasto" }}
-      />
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        <Stack.Screen
+          options={{ title: isEdit ? "Editar gasto" : "Nuevo gasto" }}
+        />
 
-      <Select
-        label="Tipo de gasto"
-        options={EXPENSE_TYPES}
-        value={type}
-        onChange={(v) => setType(v as ExpenseType)}
-      />
+        <Select
+          label="Tipo de gasto"
+          options={EXPENSE_TYPES}
+          value={type}
+          onChange={(v) => setType(v as ExpenseType)}
+        />
 
-      <Controller
-        control={control}
-        name="concept"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Concepto (opcional)"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ej. Salario de junio"
-            error={errors.concept?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="concept"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Concepto (opcional)"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ej. Salario de junio"
+              error={errors.concept?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="amount"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Monto"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Ej. 5000"
-            error={errors.amount?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="amount"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Monto"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 5000"
+              error={errors.amount?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="date"
-        render={({ field: { onChange, value } }) => (
-          <DatePicker
-            label="Fecha"
-            value={value}
-            onChange={onChange}
-            placeholder="Seleccionar fecha"
-            error={errors.date?.message}
-            maxDate={format(new Date(), "yyyy-MM-dd")}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="date"
+          render={({ field: { onChange, value } }) => (
+            <DatePicker
+              label="Fecha"
+              value={value}
+              onChange={onChange}
+              placeholder="Seleccionar fecha"
+              error={errors.date?.message}
+              maxDate={format(new Date(), "yyyy-MM-dd")}
+            />
+          )}
+        />
 
-      <Button
-        label={
-          isSubmitting
-            ? isEdit
-              ? "Guardando…"
-              : "Registrando…"
-            : isEdit
-              ? "Guardar cambios"
-              : "Registrar gasto"
-        }
-        onPress={onSubmit}
-        disabled={isSubmitting}
-      />
-    </KeyboardAwareScrollView>
+        <Button
+          label={
+            isSubmitting
+              ? isEdit
+                ? "Guardando…"
+                : "Registrando…"
+              : isEdit
+                ? "Guardar cambios"
+                : "Registrar gasto"
+          }
+          onPress={onSubmit}
+          disabled={isSubmitting}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
