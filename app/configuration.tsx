@@ -170,124 +170,124 @@ export default function ConfigurationScreen() {
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Controller
-        control={control}
-        name="businessName"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Nombre del negocio"
-            value={String(value ?? "")}
-            onChangeText={(t) => {
-              onChange(t);
-              setSaved(false);
+        <Controller
+          control={control}
+          name="businessName"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Nombre del negocio"
+              value={String(value ?? "")}
+              onChangeText={(t) => {
+                onChange(t);
+                setSaved(false);
+              }}
+              onBlur={onBlur}
+              placeholder="Mercado Mónaco"
+              error={errors.businessName?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="cashDiscountPercent"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="% descuento por efectivo"
+              value={String(value ?? "")}
+              onChangeText={(t) => {
+                onChange(t);
+                setSaved(false);
+              }}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="10"
+              error={errors.cashDiscountPercent?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="generalStockThreshold"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Umbral de stock bajo (general)"
+              value={String(value ?? "")}
+              onChangeText={(t) => {
+                onChange(t);
+                setSaved(false);
+              }}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="5"
+              error={errors.generalStockThreshold?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="stagnantDiscountPercent"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="% descuento por producto estancado/vencimiento"
+              value={String(value ?? "")}
+              onChangeText={(t) => {
+                onChange(t);
+                setSaved(false);
+              }}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="15"
+              error={errors.stagnantDiscountPercent?.message}
+            />
+          )}
+        />
+
+        <Button
+          label={isSubmitting ? "Guardando…" : "Guardar"}
+          onPress={onSubmit}
+          disabled={isSubmitting}
+        />
+
+        {saved ? (
+          <View
+            style={{
+              borderRadius: Radius.md,
+              backgroundColor: c.cashSoft,
+              padding: 12,
             }}
-            onBlur={onBlur}
-            placeholder="Mercado Mónaco"
-            error={errors.businessName?.message}
-          />
-        )}
-      />
+          >
+            <Text variant="label" style={{ color: c.cash }}>
+              ✓ Configuración guardada
+            </Text>
+          </View>
+        ) : null}
 
-      <Controller
-        control={control}
-        name="cashDiscountPercent"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="% descuento por efectivo"
-            value={String(value ?? "")}
-            onChangeText={(t) => {
-              onChange(t);
-              setSaved(false);
-            }}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="10"
-            error={errors.cashDiscountPercent?.message}
-          />
-        )}
-      />
-
-      <Controller
-        control={control}
-        name="generalStockThreshold"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Umbral de stock bajo (general)"
-            value={String(value ?? "")}
-            onChangeText={(t) => {
-              onChange(t);
-              setSaved(false);
-            }}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="5"
-            error={errors.generalStockThreshold?.message}
-          />
-        )}
-      />
-
-      <Controller
-        control={control}
-        name="stagnantDiscountPercent"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="% descuento por producto estancado/vencimiento"
-            value={String(value ?? "")}
-            onChangeText={(t) => {
-              onChange(t);
-              setSaved(false);
-            }}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="15"
-            error={errors.stagnantDiscountPercent?.message}
-          />
-        )}
-      />
-
-      <Button
-        label={isSubmitting ? "Guardando…" : "Guardar"}
-        onPress={onSubmit}
-        disabled={isSubmitting}
-      />
-
-      {saved ? (
-        <View
-          style={{
-            borderRadius: Radius.md,
-            backgroundColor: c.cashSoft,
-            padding: 12,
-          }}
-        >
-          <Text variant="label" style={{ color: c.cash }}>
-            ✓ Configuración guardada
+        <Text variant="heading">Respaldo</Text>
+        <Card style={{ gap: 12 }}>
+          <Text variant="caption">
+            Último respaldo:{" "}
+            {lastBackup
+              ? format(parseISO(lastBackup), "d 'de' MMMM 'de' yyyy", {
+                  locale: es,
+                })
+              : "Nunca"}
           </Text>
-        </View>
-      ) : null}
-
-      <Text variant="heading">Respaldo</Text>
-      <Card style={{ gap: 12 }}>
-        <Text variant="caption">
-          Último respaldo:{" "}
-          {lastBackup
-            ? format(parseISO(lastBackup), "d 'de' MMMM 'de' yyyy", {
-                locale: es,
-              })
-            : "Nunca"}
-        </Text>
-        <Button
-          label={exporting ? "Exportando…" : "Exportar respaldo"}
-          variant="soft"
-          onPress={handleExportBackup}
-          disabled={exporting || restoring}
-        />
-        <Button
-          label={restoring ? "Restaurando…" : "Restaurar respaldo"}
-          variant="destructive"
-          onPress={handleRestoreBackup}
-          disabled={exporting || restoring}
-        />
-      </Card>
+          <Button
+            label={exporting ? "Exportando…" : "Exportar respaldo"}
+            variant="soft"
+            onPress={handleExportBackup}
+            disabled={exporting || restoring}
+          />
+          <Button
+            label={restoring ? "Restaurando…" : "Restaurar respaldo"}
+            variant="destructive"
+            onPress={handleRestoreBackup}
+            disabled={exporting || restoring}
+          />
+        </Card>
       </ScrollView>
     </KeyboardAvoidingView>
   );
