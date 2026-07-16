@@ -110,6 +110,7 @@ export function registerSalesSession(
           profit,
           date,
           discountPercent: item.discountPercent,
+          isCostSale: item.isCostSale ?? false,
           cancelled: false,
           sessionId,
         })

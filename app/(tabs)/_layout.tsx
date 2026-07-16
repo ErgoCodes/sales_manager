@@ -74,7 +74,7 @@ export default function TabLayout() {
           headerTitle: businessName || 'Inicio',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
           headerRight: () => (
-            <View style={{ marginRight: 16 }}>
+            <View className="mr-4">
               <HeaderIconButton
                 name="gearshape.fill"
                 onPress={() => router.push('/configuration')}
@@ -91,7 +91,7 @@ export default function TabLayout() {
           headerShown: true,
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="shippingbox.fill" color={color} />,
           headerRight: () => (
-            <View style={{ flexDirection: 'row', gap: 8, marginRight: 16 }}>
+            <View className="flex-row gap-2 mr-4">
               <HeaderIconButton
                 name="square.grid.2x2"
                 onPress={() => router.push('/catalog')}
@@ -113,7 +113,7 @@ export default function TabLayout() {
           headerShown: true,
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="cart.fill" color={color} />,
           headerRight: () => (
-            <View style={{ marginRight: 16 }}>
+            <View className="mr-4">
               <HeaderIconButton
                 name="clock.arrow.circlepath"
                 onPress={() => router.push('/sales/history')}

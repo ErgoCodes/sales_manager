@@ -1,3 +1,58 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0F766E;
+  --color-primary-soft: #CCFBF1;
+  --color-background: #FAFAF9;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F1F5F9;
+  --color-text-strong: #0F172A;
+  --color-text-muted: #64748B;
+  --color-border: #E2E8F0;
+  --color-icon: #64748B;
+  --color-tab-default: #94A3B8;
+
+  --color-cash: #059669;
+  --color-cash-soft: #D1FAE5;
+  --color-transfer: #4F46E5;
+  --color-transfer-soft: #E0E7FF;
+  --color-cost: #D97706;
+  --color-cost-soft: #FEF3C7;
+  --color-danger: #DC2626;
+  --color-danger-soft: #FEE2E2;
+  --color-warning: #F59E0B;
+  --color-warning-soft: #FEF3C7;
+  --color-neutral: #475569;
+  --color-neutral-soft: #F1F5F9;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+.dark {
+  --color-primary: #5EEAD4;
+  --color-primary-soft: #134E4A;
+  --color-background: #0B1220;
+  --color-surface: #111827;
+  --color-surface-muted: #1F2937;
+  --color-text-strong: #ECEDEE;
+  --color-text-muted: #94A3B8;
+  --color-border: #1F2937;
+  --color-icon: #9BA1A6;
+  --color-tab-default: #475569;
+
+  --color-cash: #34D399;
+  --color-cash-soft: #064E3B;
+  --color-transfer: #818CF8;
+  --color-transfer-soft: #312E81;
+  --color-cost: #FBBF24;
+  --color-cost-soft: #78350F;
+  --color-danger: #F87171;
+  --color-danger-soft: #7F1D1D;
+  --color-warning: #FBBF24;
+  --color-warning-soft: #78350F;
+  --color-neutral: #94A3B8;
+  --color-neutral-soft: #1F2937;
+}

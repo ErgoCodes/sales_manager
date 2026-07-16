@@ -60,6 +60,7 @@ export const sales = sqliteTable(
     profit: real('utilidad').notNull(),
     date: text('fecha').notNull(),
     discountPercent: real('descuento_pct').notNull().default(0),
+    isCostSale: integer('es_venta_costo', { mode: 'boolean' }).notNull().default(false),
     cancelled: integer('anulada', { mode: 'boolean' }).notNull().default(false),
     // Nullable: las ventas sin cobro en efectivo registrado quedan sin sesión.
     sessionId: integer('sesion_id').references(() => saleSessions.id),

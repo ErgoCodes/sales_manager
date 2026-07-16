@@ -70,14 +70,7 @@ function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
       >
         <IconSymbol name={icon} size={20} color={accent} />
       </View>
-      <Text
-        style={{
-          fontSize: FontSize.sm,
-          fontWeight: "600",
-          color: c.text,
-          textAlign: "center",
-        }}
-      >
+      <Text className="text-[14px] font-semibold text-text-strong text-center">
         {label}
       </Text>
     </Pressable>
@@ -114,31 +107,17 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16 }}
+      className="flex-1 bg-background"
+      contentContainerClassName="p-4 pb-8 gap-4"
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
       {/* Greeting */}
       <Animated.View entering={FadeInDown.duration(380).springify()}>
-        <Text
-          style={{
-            fontSize: FontSize.md,
-            color: c.tabIconDefault,
-            fontWeight: "500",
-            letterSpacing: 0.3,
-          }}
-        >
+        <Text className="text-[15px] text-tab-default font-medium tracking-wide">
           {todayCap}
         </Text>
-        <Text
-          style={{
-            fontSize: FontSize["2xl"],
-            fontWeight: "700",
-            color: c.text,
-            marginTop: 2,
-          }}
-        >
+        <Text className="text-[24px] font-bold text-text-strong mt-0.5">
           Resumen del día
         </Text>
       </Animated.View>
@@ -146,13 +125,7 @@ export default function HomeScreen() {
       {/* HERO Card */}
       <Animated.View entering={FadeInDown.delay(60).duration(380).springify()}>
         <HeroCard onPress={() => router.push("/(tabs)/sales")} padding={22}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <View className="flex-row items-center justify-between">
             <Text
               style={{
                 fontSize: FontSize.xs,
@@ -244,7 +217,7 @@ export default function HomeScreen() {
       {/* Stats grid */}
       <Animated.View
         entering={FadeInDown.delay(120).duration(380).springify()}
-        style={{ flexDirection: "row", gap: 12 }}
+        className="flex-row gap-3"
       >
         <StatCard
           label="Efectivo"
@@ -265,21 +238,12 @@ export default function HomeScreen() {
       {/* Quick actions */}
       <Animated.View
         entering={FadeInDown.delay(180).duration(380).springify()}
-        style={{ gap: 10 }}
+        className="gap-2.5"
       >
-        <Text
-          style={{
-            fontSize: FontSize.xs,
-            fontWeight: "700",
-            color: c.textMuted,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-            marginLeft: 4,
-          }}
-        >
+        <Text className="text-[13px] font-bold text-text-muted tracking-wide uppercase ml-1">
           Acciones rápidas
         </Text>
-        <View style={{ flexDirection: "row", gap: 10 }}>
+        <View className="flex-row gap-2.5">
           <QuickAction
             icon="cart.fill"
             label="Nueva venta"
@@ -336,7 +300,7 @@ export default function HomeScreen() {
                 color={c.surface}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <View className="flex-1">
               <Text
                 style={{
                   fontSize: FontSize.base,
@@ -389,12 +353,7 @@ export default function HomeScreen() {
               />
             </View>
             <Text
-              style={{
-                fontSize: FontSize.md,
-                color: c.textMuted,
-                fontWeight: "500",
-                flex: 1,
-              }}
+              className="text-[15px] text-text-muted font-medium flex-1"
             >
               Inventario en orden — sin alertas
             </Text>

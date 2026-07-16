@@ -241,19 +241,14 @@ export default function ExpensesScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background }}>
+    <View className="flex-1 bg-background">
       <FlatList
         data={rows}
         keyExtractor={(r) => r.key}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingTop: 14,
-          paddingBottom: 40,
-          gap: 10,
-        }}
+        contentContainerClassName="px-4 pt-3.5 pb-10 gap-2.5"
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View style={{ gap: 14, marginBottom: 4 }}>
+          <View className="gap-3.5 mb-1">
             <HeroCard padding={18}>
               <Text
                 style={{
@@ -290,7 +285,7 @@ export default function ExpensesScreen() {
               </Text>
             </HeroCard>
 
-            <View style={{ flexDirection: "row", gap: 10 }}>
+            <View className="flex-row gap-2.5">
               <ActionButton
                 label="Gasto"
                 icon="dollarsign.circle.fill"
@@ -365,7 +360,7 @@ export default function ExpensesScreen() {
                 opacity: item.cancelled ? 0.5 : pressed ? 0.9 : 1,
               })}
             >
-              <View style={{ flex: 1, gap: 6 }}>
+              <View className="flex-1 gap-1.5">
                 <Text
                   style={{
                     fontSize: FontSize.lg,
@@ -378,14 +373,7 @@ export default function ExpensesScreen() {
                 >
                   {item.title}
                 </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    flexWrap: "wrap",
-                  }}
-                >
+                <View className="flex-row items-center gap-2 flex-wrap">
                   <Badge
                     label={getTypeLabel(item.typeValue)}
                     tone={TONE_BY_TYPE[item.typeValue] ?? "neutral"}
@@ -432,11 +420,7 @@ export default function ExpensesScreen() {
           }}
         >
           <Text
-            style={{
-              color: "#FFFFFF",
-              fontSize: FontSize.base,
-              fontWeight: "600",
-            }}
+            className="text-white text-[16px] font-semibold"
           >
             {toast.message}
           </Text>
@@ -510,7 +494,7 @@ function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
         <IconSymbol name={icon} size={17} color={accent} />
       </View>
       <Text
-        style={{ fontSize: FontSize.base, fontWeight: "700", color: c.text }}
+        className="text-[16px] font-bold text-text-strong"
       >
         {label}
       </Text>

@@ -88,16 +88,8 @@ export default function InventoryScreen() {
         : products;
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background }}>
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: 14,
-          paddingBottom: 10,
-          flexDirection: "row",
-          gap: 8,
-        }}
-      >
+    <View className="flex-1 bg-background">
+      <View className="px-4 pt-3.5 pb-2.5 flex-row gap-2">
         <Chip
           label="Todos"
           active={filter === "all"}
@@ -123,11 +115,7 @@ export default function InventoryScreen() {
       <FlatList
         data={filteredList}
         keyExtractor={(p) => String(p.id)}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingBottom: 120,
-          gap: 10,
-        }}
+        contentContainerClassName="px-4 pb-[120px] gap-2.5"
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           products.length === 0 ? (
@@ -209,21 +197,10 @@ export default function InventoryScreen() {
                   borderLeftColor: c.danger,
                 }}
               >
-                <View style={{ flex: 1, gap: 6 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                      flexWrap: "wrap",
-                    }}
-                  >
+                <View className="flex-1 gap-1.5">
+                  <View className="flex-row items-center gap-2 flex-wrap">
                     <Text
-                      style={{
-                        fontSize: FontSize.lg,
-                        fontWeight: "700",
-                        color: c.text,
-                      }}
+                      className="text-[18px] font-bold text-text-strong"
                     >
                       {item.name}
                     </Text>
@@ -240,40 +217,28 @@ export default function InventoryScreen() {
                   {item.category ? (
                     <Badge label={item.category} tone="neutral" />
                   ) : null}
-                  <View style={{ flexDirection: "row", gap: 14, marginTop: 4 }}>
-                    <Text style={{ fontSize: FontSize.sm, color: c.textMuted }}>
+                  <View className="flex-row gap-3.5 mt-1">
+                    <Text className="text-[14px] text-text-muted">
                       Costo prom:{" "}
                       <Text
-                        style={{
-                          fontWeight: "600",
-                          color: c.text,
-                          fontVariant: ["tabular-nums"],
-                        }}
+                        className="font-semibold text-text-strong"
+                        style={{ fontVariant: ["tabular-nums"] }}
                       >
                         {formatCurrency(item.averageCost ?? 0)}
                       </Text>
                     </Text>
-                    <Text style={{ fontSize: FontSize.sm, color: c.textMuted }}>
+                    <Text className="text-[14px] text-text-muted">
                       Valor:{" "}
                       <Text
-                        style={{
-                          fontWeight: "600",
-                          color: c.text,
-                          fontVariant: ["tabular-nums"],
-                        }}
+                        className="font-semibold text-text-strong"
+                        style={{ fontVariant: ["tabular-nums"] }}
                       >
                         {formatCurrency(item.value)}
                       </Text>
                     </Text>
                   </View>
                 </View>
-                <View
-                  style={{
-                    alignItems: "flex-end",
-                    justifyContent: "center",
-                    minWidth: 64,
-                  }}
-                >
+                <View className="items-end justify-center min-w-[64px]">
                   <Text
                     style={{
                       fontSize: FontSize["2xl"],
@@ -286,13 +251,7 @@ export default function InventoryScreen() {
                     {item.stock}
                   </Text>
                   <Text
-                    style={{
-                      fontSize: FontSize.xs,
-                      color: c.tabIconDefault,
-                      fontWeight: "600",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
+                    className="text-[13px] text-tab-default font-semibold uppercase tracking-wide"
                   >
                     {item.unitOfMeasure}
                   </Text>

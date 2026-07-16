@@ -170,6 +170,7 @@ describe('db/queries', () => {
         quantity: 2,
         appliedPrice: 90,
         paymentMethod: 'efectivo' as const,
+        isCostSale: false,
         discountPercent: 10,
         costAtSale: 50,
         profit: 80,
