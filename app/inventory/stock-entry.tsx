@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Stack, router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import {
   type SelectedProduct,
 } from "@/components/ui/product-picker";
 import { Text } from "@/components/ui/text";
+import { CONFIG_KEYS, getConfig } from "@/db/config";
 import { registerEntry } from "@/db/movements";
 import { updateProduct } from "@/db/products";
 import { Radius, Shadows } from "@/drizzle/constants/theme";
@@ -49,6 +50,16 @@ export default function StockEntryScreen() {
   const [product, setProduct] = useState<SelectedProduct | null>(null);
   const [productError, setProductError] = useState("");
   const [updatePrices, setUpdatePrices] = useState(false);
+  const [transferSurchargePct, setTransferSurchargePct] = useState(10);
+
+  useEffect(() => {
+    (async () => {
+      const surchargeStr = await getConfig(CONFIG_KEYS.transferSurchargePercent);
+      if (surchargeStr) {
+        setTransferSurchargePct(Number(surchargeStr));
+      }
+    })();
+  }, []);
 
   const {
     control,
@@ -109,7 +120,7 @@ export default function StockEntryScreen() {
             lowStockThreshold: null,
             costPrice: cost,
             cashPrice: cash,
-            transferPrice: calculateTransferPrice(cash),
+            transferPrice: calculateTransferPrice(cash, transferSurchargePct),
           });
         }
       }

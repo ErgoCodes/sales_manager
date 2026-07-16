@@ -1,3 +1,3 @@
-export function calculateTransferPrice(cashPrice: number): number {
-  return Math.round((cashPrice * 1.1) / 5) * 5;
+export function calculateTransferPrice(cashPrice: number, surchargePercent: number = 10): number {
+  return Math.round((cashPrice * (1 + surchargePercent / 100)) / 5) * 5;
 }
