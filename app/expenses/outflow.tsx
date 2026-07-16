@@ -3,8 +3,7 @@ import { format } from "date-fns";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Alert, Pressable, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -176,10 +175,12 @@ export default function OutflowScreen() {
   const isAdjustment = type === "ajuste";
 
   return (
-    <KeyboardAwareScrollView
+    <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, gap: 16 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={100}
     >
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Stack.Screen
         options={{ title: isEdit ? "Editar salida" : "Salida de almacén" }}
       />
@@ -335,6 +336,7 @@ export default function OutflowScreen() {
         onPress={onSubmit}
         disabled={isSubmitting}
       />
-    </KeyboardAwareScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
