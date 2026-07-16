@@ -7,8 +7,9 @@ export interface CartItem {
   name: string;
   unitOfMeasure: string;
   quantity: number;
-  paymentMethod: 'efectivo' | 'transferencia' | 'costo';
+  paymentMethod: 'efectivo' | 'transferencia';
   appliedPrice: number;
+  isCostSale: boolean;
   discountPercent: number;
   costAtSale: number;
   profit: number;
@@ -61,7 +62,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   totalCost: () =>
     get()
-      .items.filter((i) => i.paymentMethod === 'costo')
+      .items.filter((i) => i.isCostSale)
       .reduce((sum, i) => sum + i.appliedPrice * i.quantity, 0),
 
   grandTotal: () =>

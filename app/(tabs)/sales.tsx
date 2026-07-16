@@ -61,14 +61,14 @@ export default function SalesScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background }}>
+    <View className="flex-1 bg-background">
       <FlatList
         data={breakdown}
         keyExtractor={(item) => String(item.productId)}
-        contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}
+        contentContainerClassName="p-4 pb-[120px] gap-3"
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View style={{ gap: 14, marginBottom: 4 }}>
+          <View className="gap-3.5 mb-1">
             <Animated.View entering={FadeInDown.duration(360).springify()}>
               <DateBar date={date} onChange={setDate} />
             </Animated.View>
@@ -102,14 +102,7 @@ export default function SalesScreen() {
                 >
                   {formatCurrency(summary.total)}
                 </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    marginTop: 6,
-                  }}
-                >
+                <View className="flex-row items-center gap-1.5 mt-1.5">
                   <IconSymbol
                     name="sparkles"
                     size={13}
@@ -137,7 +130,7 @@ export default function SalesScreen() {
             {/* Mini stats row */}
             <Animated.View
               entering={FadeInDown.delay(120).duration(360).springify()}
-              style={{ flexDirection: "row", gap: 10 }}
+              className="flex-row gap-2.5"
             >
               <StatCard
                 icon="dollarsign.circle.fill"
@@ -158,30 +151,16 @@ export default function SalesScreen() {
             {breakdown.length > 0 ? (
               <Animated.View
                 entering={FadeInDown.delay(180).duration(360).springify()}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginTop: 6,
-                }}
+                className="flex-row items-center justify-between mt-1.5"
               >
                 <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "700",
-                    color: c.textMuted,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                  }}
+                  className="text-[11px] font-bold text-text-muted tracking-wide uppercase"
                 >
                   Productos vendidos
                 </Text>
                 <Text
-                  style={{
-                    fontSize: FontSize.sm,
-                    color: c.tabIconDefault,
-                    fontVariant: ["tabular-nums"],
-                  }}
+                  className="text-[14px] text-tab-default"
+                  style={{ fontVariant: ["tabular-nums"] }}
                 >
                   {breakdown.length} · {totalUnits} unidades
                 </Text>
@@ -217,46 +196,28 @@ export default function SalesScreen() {
               }}
             >
               <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 14,
-                  backgroundColor: c.surfaceMuted,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="w-10 h-10 rounded-[14px] bg-surface-muted items-center justify-center"
               >
                 <IconSymbol name="bag.fill" size={18} color={c.tint} />
               </View>
-              <View style={{ flex: 1, gap: 2 }}>
+              <View className="flex-1 gap-0.5">
                 <Text
-                  style={{
-                    fontSize: FontSize.base,
-                    fontWeight: "600",
-                    color: c.text,
-                  }}
+                  className="text-[16px] font-semibold text-text-strong"
                   numberOfLines={1}
                 >
                   {item.productName}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: FontSize.sm,
-                    color: c.tabIconDefault,
-                    fontVariant: ["tabular-nums"],
-                  }}
+                  className="text-[14px] text-tab-default"
+                  style={{ fontVariant: ["tabular-nums"] }}
                 >
                   {item.totalQuantity} vendidos
                 </Text>
               </View>
-              <View style={{ alignItems: "flex-end", gap: 2 }}>
+              <View className="items-end gap-0.5">
                 <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: "700",
-                    color: c.text,
-                    fontVariant: ["tabular-nums"],
-                  }}
+                  className="text-[15px] font-bold text-text-strong"
+                  style={{ fontVariant: ["tabular-nums"] }}
                 >
                   {formatCurrency(item.totalRevenue)}
                 </Text>

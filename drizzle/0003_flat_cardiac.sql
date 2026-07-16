@@ -1,0 +1,1 @@
+ALTER TABLE `ventas` ADD `es_venta_costo` integer DEFAULT false NOT NULL;

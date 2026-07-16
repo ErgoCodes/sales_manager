@@ -62,18 +62,20 @@ export default function NewSessionScreen() {
     setTimeout(() => quantityRef.current?.focus(), 100);
   }
 
-  function addToCart(paymentMethod: "efectivo" | "transferencia" | "costo") {
+  function addToCart(
+    paymentMethod: "efectivo" | "transferencia",
+    isCostSale = false,
+  ) {
     if (!product) return;
     const qty = Number(quantity);
     if (!qty || qty <= 0) return;
 
-    const effectiveDiscount =
-      paymentMethod === "costo" ? 0 : discountPercentNum;
+    const effectiveDiscount = isCostSale ? 0 : discountPercentNum;
 
     let appliedPrice: number;
     let profit: number;
-    if (paymentMethod === "costo") {
-      appliedPrice = product.costPrice ?? product.averageCost;
+    if (isCostSale) {
+      appliedPrice = product.costPrice!;
       profit = 0;
     } else {
       const basePrice =
@@ -91,6 +93,7 @@ export default function NewSessionScreen() {
       quantity: qty,
       paymentMethod,
       appliedPrice,
+      isCostSale,
       discountPercent: effectiveDiscount,
       costAtSale: product.averageCost,
       profit,
@@ -309,24 +312,61 @@ export default function NewSessionScreen() {
             ) : null}
 
             {workerSale ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Agregar al costo por ${(product.costPrice ?? product.averageCost).toFixed(2)} pesos`}
-                style={({ pressed }) => ({
-                  borderRadius: Radius.lg,
-                  backgroundColor: c.cost,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                  opacity: pressed ? 0.8 : 1,
-                })}
-                onPress={() => addToCart("costo")}
-              >
+              !product.costPrice || product.costPrice <= 0 ? (
                 <Text
-                  style={{ color: "white", fontWeight: "600", fontSize: 14 }}
+                  style={{
+                    color: c.danger,
+                    fontSize: 13,
+                    fontWeight: "500",
+                    textAlign: "center",
+                    paddingVertical: 8,
+                  }}
                 >
-                  A costo ${(product.costPrice ?? product.averageCost).toFixed(2)}
+                  Este producto no tiene precio de costo registrado. Actualízalo
+                  en el catálogo antes de vender a costo.
                 </Text>
-              </Pressable>
+              ) : (
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Efectivo al costo por ${product.costPrice.toFixed(2)} pesos`}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      borderRadius: Radius.lg,
+                      backgroundColor: c.cash,
+                      paddingVertical: 12,
+                      alignItems: "center",
+                      opacity: pressed ? 0.8 : 1,
+                    })}
+                    onPress={() => addToCart("efectivo", true)}
+                  >
+                    <Text
+                      style={{ color: "white", fontWeight: "600", fontSize: 14 }}
+                    >
+                      Efectivo al costo ${product.costPrice.toFixed(2)}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Transferencia al costo por ${product.costPrice.toFixed(2)} pesos`}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      borderRadius: Radius.lg,
+                      backgroundColor: c.transfer,
+                      paddingVertical: 12,
+                      alignItems: "center",
+                      opacity: pressed ? 0.8 : 1,
+                    })}
+                    onPress={() => addToCart("transferencia", true)}
+                  >
+                    <Text
+                      style={{ color: "white", fontWeight: "600", fontSize: 14 }}
+                    >
+                      Transfer. al costo ${product.costPrice.toFixed(2)}
+                    </Text>
+                  </Pressable>
+                </View>
+              )
             ) : (
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <Pressable
@@ -436,13 +476,11 @@ export default function NewSessionScreen() {
                 borderRadius: Radius.full,
                 paddingHorizontal: 8,
                 paddingVertical: 2,
-                marginRight: 12,
+                marginRight: item.isCostSale ? 4 : 12,
                 backgroundColor:
                   item.paymentMethod === "efectivo"
                     ? c.cashSoft
-                    : item.paymentMethod === "transferencia"
-                      ? c.transferSoft
-                      : c.costSoft,
+                    : c.transferSoft,
               }}
             >
               <Text
@@ -451,18 +489,27 @@ export default function NewSessionScreen() {
                   color:
                     item.paymentMethod === "efectivo"
                       ? c.cash
-                      : item.paymentMethod === "transferencia"
-                        ? c.transfer
-                        : c.cost,
+                      : c.transfer,
                 }}
               >
-                {item.paymentMethod === "efectivo"
-                  ? "E"
-                  : item.paymentMethod === "transferencia"
-                    ? "T"
-                    : "C"}
+                {item.paymentMethod === "efectivo" ? "E" : "T"}
               </Text>
             </View>
+            {item.isCostSale ? (
+              <View
+                style={{
+                  borderRadius: Radius.full,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  marginRight: 12,
+                  backgroundColor: c.costSoft,
+                }}
+              >
+                <Text variant="caption" style={{ color: c.cost }}>
+                  C
+                </Text>
+              </View>
+            ) : null}
              <Pressable
               onPress={() => removeItem(item.key)}
               accessibilityRole="button"

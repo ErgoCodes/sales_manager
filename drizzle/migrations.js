@@ -4,12 +4,14 @@ import journal from './meta/_journal.json';
 import m0000 from './0000_dark_payback.sql';
 import m0001 from './0001_even_ghost_rider.sql';
 import m0002 from './0002_cancelled_fields.sql';
+import m0003 from './0003_flat_cardiac.sql';
 
   export default {
     journal,
     migrations: {
       m0000,
       m0001,
-      m0002
+      m0002,
+      m0003
     }
   }
