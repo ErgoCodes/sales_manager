@@ -3,8 +3,7 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Alert, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -165,10 +164,12 @@ export default function ConfigurationScreen() {
   }
 
   return (
-    <KeyboardAwareScrollView
+    <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, gap: 16 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={100}
     >
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Controller
         control={control}
         name="businessName"
@@ -287,6 +288,7 @@ export default function ConfigurationScreen() {
           disabled={exporting || restoring}
         />
       </Card>
-    </KeyboardAwareScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
