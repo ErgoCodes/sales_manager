@@ -170,220 +170,220 @@ export default function ProductFormScreen() {
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Stack.Screen
-        options={{ title: isNew ? "Nuevo producto" : "Editar producto" }}
-      />
+        <Stack.Screen
+          options={{ title: isNew ? "Nuevo producto" : "Editar producto" }}
+        />
 
-      <Controller
-        control={control}
-        name="name"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Nombre"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ej. Refresco de cola"
-            error={errors.name?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Nombre"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ej. Refresco de cola"
+              error={errors.name?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="unitOfMeasure"
-        render={({ field: { onChange, value } }) => (
-          <Select
-            label="Unidad de medida"
-            options={UNITS_OF_MEASURE}
-            value={value}
-            onChange={onChange}
-            error={errors.unitOfMeasure?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="unitOfMeasure"
+          render={({ field: { onChange, value } }) => (
+            <Select
+              label="Unidad de medida"
+              options={UNITS_OF_MEASURE}
+              value={value}
+              onChange={onChange}
+              error={errors.unitOfMeasure?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="category"
-        render={({ field: { onChange, value } }) => (
-          <Select
-            label="Categoría"
-            options={CATEGORY_OPTIONS}
-            value={value}
-            onChange={onChange}
-            error={errors.category?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="category"
+          render={({ field: { onChange, value } }) => (
+            <Select
+              label="Categoría"
+              options={CATEGORY_OPTIONS}
+              value={value}
+              onChange={onChange}
+              error={errors.category?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="lowStockThreshold"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Umbral de alerta de stock"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Ej. 5"
-            error={errors.lowStockThreshold?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="lowStockThreshold"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Umbral de alerta de stock"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 5"
+              error={errors.lowStockThreshold?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="costPrice"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Precio de costo"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Ej. 100"
-            error={errors.costPrice?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="costPrice"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Precio de costo"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 100"
+              error={errors.costPrice?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="cashPrice"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Precio efectivo"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Ej. 130"
-            error={errors.cashPrice?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="cashPrice"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Precio efectivo"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 130"
+              error={errors.cashPrice?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="expirationDate"
-        render={({ field: { onChange, value } }) => (
-          <DatePicker
-            label="Fecha de vencimiento (opcional)"
-            value={value}
-            onChange={onChange}
-            placeholder="Seleccionar fecha"
-            error={errors.expirationDate?.message}
-            clearable
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="expirationDate"
+          render={({ field: { onChange, value } }) => (
+            <DatePicker
+              label="Fecha de vencimiento (opcional)"
+              value={value}
+              onChange={onChange}
+              placeholder="Seleccionar fecha"
+              error={errors.expirationDate?.message}
+              clearable
+            />
+          )}
+        />
 
-      {suggested > 0 ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: Radius.md,
-            backgroundColor: c.transferSoft,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-          }}
-        >
-          <Text variant="caption" style={{ flex: 1, color: c.transfer }}>
-            ≈ Sugerido: ${suggested} (costo + 30%)
-          </Text>
-          <Pressable
-            hitSlop={8}
-            onPress={() => setValue("cashPrice", String(suggested))}
-          >
-            <Text variant="label" style={{ color: c.transfer }}>
-              Usar sugerido
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {!isNew &&
-      !rebajaApplied &&
-      stagnantInfo &&
-      (stagnantInfo.stagnant || stagnantInfo.nearExpiration) &&
-      cashNum > 0 ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: Radius.md,
-            backgroundColor: c.warningSoft,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-          }}
-        >
-          <Text variant="caption" style={{ flex: 1, color: c.warning }}>
-            {stagnantInfo.stagnant && stagnantInfo.nearExpiration
-              ? "Producto estancado y próximo a vencer."
-              : stagnantInfo.stagnant
-                ? "Producto estancado (sin ventas en 7 días)."
-                : "Producto próximo a vencer."}{" "}
-            Sugerencia: ${suggestedRebaja} (−{discountPct}%)
-          </Text>
-          <Pressable
-            hitSlop={8}
-            onPress={() => {
-              setPriceBeforeRebaja(cashNum);
-              setRebajaApplied(true);
-              setValue("cashPrice", String(suggestedRebaja));
+        {suggested > 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              borderRadius: Radius.md,
+              backgroundColor: c.transferSoft,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
             }}
           >
-            <Text variant="label" style={{ color: c.warning }}>
-              Sugerir rebaja
+            <Text variant="caption" style={{ flex: 1, color: c.transfer }}>
+              ≈ Sugerido: ${suggested} (costo + 30%)
             </Text>
-          </Pressable>
-        </View>
-      ) : null}
+            <Pressable
+              hitSlop={8}
+              onPress={() => setValue("cashPrice", String(suggested))}
+            >
+              <Text variant="label" style={{ color: c.transfer }}>
+                Usar sugerido
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
-      <View
-        style={{
-          borderRadius: Radius.xl,
-          backgroundColor: c.surface,
-          padding: 16,
-          boxShadow: Shadows.sm,
-          gap: 8,
-        }}
-      >
-        <Text variant="label">Resumen de precios</Text>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text variant="body">Costo</Text>
-          <Text variant="body">{costNum > 0 ? `$${costNum}` : "—"}</Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text variant="body">Efectivo</Text>
-          <Text variant="body">{cashNum > 0 ? `$${cashNum}` : "—"}</Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text variant="body" style={{ fontWeight: "600" }}>
-            Transferencia
-          </Text>
-          <Text variant="body" style={{ fontWeight: "600" }}>
-            {transferNum > 0 ? `$${transferNum}` : "—"}
-          </Text>
-        </View>
-      </View>
+        {!isNew &&
+        !rebajaApplied &&
+        stagnantInfo &&
+        (stagnantInfo.stagnant || stagnantInfo.nearExpiration) &&
+        cashNum > 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              borderRadius: Radius.md,
+              backgroundColor: c.warningSoft,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
+          >
+            <Text variant="caption" style={{ flex: 1, color: c.warning }}>
+              {stagnantInfo.stagnant && stagnantInfo.nearExpiration
+                ? "Producto estancado y próximo a vencer."
+                : stagnantInfo.stagnant
+                  ? "Producto estancado (sin ventas en 7 días)."
+                  : "Producto próximo a vencer."}{" "}
+              Sugerencia: ${suggestedRebaja} (−{discountPct}%)
+            </Text>
+            <Pressable
+              hitSlop={8}
+              onPress={() => {
+                setPriceBeforeRebaja(cashNum);
+                setRebajaApplied(true);
+                setValue("cashPrice", String(suggestedRebaja));
+              }}
+            >
+              <Text variant="label" style={{ color: c.warning }}>
+                Sugerir rebaja
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
-      <Button
-        label={
-          isSubmitting
-            ? "Guardando…"
-            : isNew
-              ? "Crear producto"
-              : "Guardar cambios"
-        }
-        onPress={onSubmit}
-        disabled={isSubmitting}
-      />
+        <View
+          style={{
+            borderRadius: Radius.xl,
+            backgroundColor: c.surface,
+            padding: 16,
+            boxShadow: Shadows.sm,
+            gap: 8,
+          }}
+        >
+          <Text variant="label">Resumen de precios</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text variant="body">Costo</Text>
+            <Text variant="body">{costNum > 0 ? `$${costNum}` : "—"}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text variant="body">Efectivo</Text>
+            <Text variant="body">{cashNum > 0 ? `$${cashNum}` : "—"}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text variant="body" style={{ fontWeight: "600" }}>
+              Transferencia
+            </Text>
+            <Text variant="body" style={{ fontWeight: "600" }}>
+              {transferNum > 0 ? `$${transferNum}` : "—"}
+            </Text>
+          </View>
+        </View>
+
+        <Button
+          label={
+            isSubmitting
+              ? "Guardando…"
+              : isNew
+                ? "Crear producto"
+                : "Guardar cambios"
+          }
+          onPress={onSubmit}
+          disabled={isSubmitting}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
