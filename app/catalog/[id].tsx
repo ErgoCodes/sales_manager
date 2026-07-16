@@ -79,6 +79,7 @@ export default function ProductFormScreen() {
     nearExpiration: boolean;
   } | null>(null);
   const [discountPct, setDiscountPct] = useState(15);
+  const [transferSurchargePct, setTransferSurchargePct] = useState(10);
   const [currentStock, setCurrentStock] = useState(0);
   const [rebajaApplied, setRebajaApplied] = useState(false);
   const [priceBeforeRebaja, setPriceBeforeRebaja] = useState(0);
@@ -99,13 +100,15 @@ export default function ProductFormScreen() {
         expirationDate: p.expirationDate ?? "",
       });
 
-      const [stock, lastSaleDate, pctStr] = await Promise.all([
+      const [stock, lastSaleDate, pctStr, surchargeStr] = await Promise.all([
         calculateStock(Number(id)),
         getLastSaleDate(Number(id)),
         getConfig(CONFIG_KEYS.stagnantDiscountPercent),
+        getConfig(CONFIG_KEYS.transferSurchargePercent),
       ]);
       setCurrentStock(stock);
       setDiscountPct(Number(pctStr ?? 15));
+      setTransferSurchargePct(Number(surchargeStr ?? 10));
       setStagnantInfo({
         stagnant: isStagnant({ stock, lastSaleDate }),
         nearExpiration: isNearExpiration({ expirationDate: p.expirationDate }),
@@ -117,7 +120,7 @@ export default function ProductFormScreen() {
   const cashStr = watch("cashPrice");
   const costNum = Number(costStr) || 0;
   const cashNum = Number(cashStr) || 0;
-  const transferNum = cashNum > 0 ? calculateTransferPrice(cashNum) : 0;
+  const transferNum = cashNum > 0 ? calculateTransferPrice(cashNum, transferSurchargePct) : 0;
   const suggested = costNum > 0 ? Math.round(costNum * 1.3 * 100) / 100 : 0;
   const suggestedRebaja =
     cashNum > 0 ? Math.round(cashNum * (1 - discountPct / 100)) : 0;
@@ -131,7 +134,7 @@ export default function ProductFormScreen() {
       lowStockThreshold: Number(values.lowStockThreshold),
       costPrice: Number(values.costPrice),
       cashPrice: cash,
-      transferPrice: calculateTransferPrice(cash),
+      transferPrice: calculateTransferPrice(cash, transferSurchargePct),
       expirationDate: values.expirationDate?.trim() || null,
     };
 

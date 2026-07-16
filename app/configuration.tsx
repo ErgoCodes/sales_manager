@@ -32,6 +32,7 @@ const schema = z.object({
     "Debe ser un número entero"
   ),
   stagnantDiscountPercent: nonNegativeNumber("Debe ser un número ≥ 0"),
+  transferSurchargePercent: nonNegativeNumber("Debe ser un número ≥ 0"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -55,6 +56,7 @@ export default function ConfigurationScreen() {
       cashDiscountPercent: "10",
       generalStockThreshold: "5",
       stagnantDiscountPercent: "15",
+      transferSurchargePercent: "10",
     },
   });
 
@@ -66,6 +68,7 @@ export default function ConfigurationScreen() {
         cashDiscountPercent: cfg[CONFIG_KEYS.cashDiscountPercent],
         generalStockThreshold: cfg[CONFIG_KEYS.generalStockThreshold],
         stagnantDiscountPercent: cfg[CONFIG_KEYS.stagnantDiscountPercent],
+        transferSurchargePercent: cfg[CONFIG_KEYS.transferSurchargePercent],
       });
     })();
   }, [reset]);
@@ -91,6 +94,10 @@ export default function ConfigurationScreen() {
         setConfig(
           CONFIG_KEYS.stagnantDiscountPercent,
           String(Number(values.stagnantDiscountPercent))
+        ),
+        setConfig(
+          CONFIG_KEYS.transferSurchargePercent,
+          String(Number(values.transferSurchargePercent))
         ),
       ])
     );
@@ -241,6 +248,25 @@ export default function ConfigurationScreen() {
               keyboardType="numeric"
               placeholder="15"
               error={errors.stagnantDiscountPercent?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="transferSurchargePercent"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="% recargo por transferencia"
+              value={String(value ?? "")}
+              onChangeText={(t) => {
+                onChange(t);
+                setSaved(false);
+              }}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="10"
+              error={errors.transferSurchargePercent?.message}
             />
           )}
         />

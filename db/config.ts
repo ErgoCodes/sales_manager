@@ -8,6 +8,7 @@ export const CONFIG_KEYS = {
   cashDiscountPercent: 'descuento_efectivo_pct',
   generalStockThreshold: 'umbral_stock_general',
   stagnantDiscountPercent: 'descuento_estancado_pct',
+  transferSurchargePercent: 'recargo_transferencia_pct',
   // Flag one-shot: '1' cuando ya se programó el recordatorio semanal (T-17).
   weeklyReminderScheduled: 'recordatorio_semanal_programado',
   // Flag one-shot: '1' cuando ya se programó el recordatorio de respaldo (TSK-6).
@@ -21,6 +22,7 @@ export const CONFIG_DEFAULTS: Record<string, string> = {
   [CONFIG_KEYS.cashDiscountPercent]: '10',
   [CONFIG_KEYS.generalStockThreshold]: '5',
   [CONFIG_KEYS.stagnantDiscountPercent]: '15',
+  [CONFIG_KEYS.transferSurchargePercent]: '10',
 };
 
 export async function getConfig(key: string): Promise<string | null> {
