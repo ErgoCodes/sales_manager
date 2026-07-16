@@ -3,8 +3,7 @@ import { format } from "date-fns";
 import { Stack, router } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -122,150 +121,153 @@ export default function StockEntryScreen() {
   });
 
   return (
-    <KeyboardAwareScrollView
+    <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, gap: 16 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={100}
     >
-      <Stack.Screen options={{ title: "Registrar entrada" }} />
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        <Stack.Screen options={{ title: "Registrar entrada" }} />
 
-      <ProductPicker
-        label="Producto"
-        value={product}
-        onChange={onProductSelected}
-        error={productError}
-      />
+        <ProductPicker
+          label="Producto"
+          value={product}
+          onChange={onProductSelected}
+          error={productError}
+        />
 
-      {product ? (
-        <View
-          style={{
-            borderRadius: Radius.xl,
-            backgroundColor: c.surface,
-            padding: 12,
-            boxShadow: Shadows.sm,
-            gap: 4,
-          }}
-        >
-          <Text variant="label">Precios actuales</Text>
-          <Text variant="caption">
-            Costo: ${product.costPrice ?? "—"} · Efectivo: $
-            {product.cashPrice ?? "—"} · Transferencia: $
-            {product.transferPrice ?? "—"}
-          </Text>
-        </View>
-      ) : null}
+        {product ? (
+          <View
+            style={{
+              borderRadius: Radius.xl,
+              backgroundColor: c.surface,
+              padding: 12,
+              boxShadow: Shadows.sm,
+              gap: 4,
+            }}
+          >
+            <Text variant="label">Precios actuales</Text>
+            <Text variant="caption">
+              Costo: ${product.costPrice ?? "—"} · Efectivo: $
+              {product.cashPrice ?? "—"} · Transferencia: $
+              {product.transferPrice ?? "—"}
+            </Text>
+          </View>
+        ) : null}
 
-      <Controller
-        control={control}
-        name="quantity"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ""}`}
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Ej. 10"
-            error={errors.quantity?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="quantity"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ""}`}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 10"
+              error={errors.quantity?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="unitCostPrice"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Precio costo unitario"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Obligatorio"
-            error={errors.unitCostPrice?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="unitCostPrice"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Precio costo unitario"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Obligatorio"
+              error={errors.unitCostPrice?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="date"
-        render={({ field: { onChange, value } }) => (
-          <DatePicker
-            label="Fecha"
-            value={value}
-            onChange={onChange}
-            placeholder="Seleccionar fecha"
-            error={errors.date?.message}
-            maxDate={format(new Date(), "yyyy-MM-dd")}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="date"
+          render={({ field: { onChange, value } }) => (
+            <DatePicker
+              label="Fecha"
+              value={value}
+              onChange={onChange}
+              placeholder="Seleccionar fecha"
+              error={errors.date?.message}
+              maxDate={format(new Date(), "yyyy-MM-dd")}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="notes"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Notas (opcional)"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ej. Proveedor ABC"
-            multiline
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="notes"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Notas (opcional)"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ej. Proveedor ABC"
+              multiline
+            />
+          )}
+        />
 
-      <Checkbox
-        checked={updatePrices}
-        onPress={() => setUpdatePrices((v) => !v)}
-        label="Actualizar precios del catálogo"
-        activeColor={c.transfer}
-      />
+        <Checkbox
+          checked={updatePrices}
+          onPress={() => setUpdatePrices((v) => !v)}
+          label="Actualizar precios del catálogo"
+          activeColor={c.transfer}
+        />
 
-      {updatePrices ? (
-        <View
-          style={{
-            gap: 12,
-            borderRadius: Radius.xl,
-            backgroundColor: c.transferSoft,
-            padding: 12,
-          }}
-        >
-          <Controller
-            control={control}
-            name="newCostPrice"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Nuevo precio costo"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                keyboardType="numeric"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="newCashPrice"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Nuevo precio efectivo"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                keyboardType="numeric"
-              />
-            )}
-          />
-        </View>
-      ) : null}
+        {updatePrices ? (
+          <View
+            style={{
+              gap: 12,
+              borderRadius: Radius.xl,
+              backgroundColor: c.transferSoft,
+              padding: 12,
+            }}
+          >
+            <Controller
+              control={control}
+              name="newCostPrice"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Nuevo precio costo"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  keyboardType="numeric"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="newCashPrice"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Nuevo precio efectivo"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  keyboardType="numeric"
+                />
+              )}
+            />
+          </View>
+        ) : null}
 
-      <Button
-        label={isSubmitting ? "Registrando…" : "Registrar entrada"}
-        onPress={onSubmit}
-        disabled={isSubmitting}
-      />
-    </KeyboardAwareScrollView>
+        <Button
+          label={isSubmitting ? "Registrando…" : "Registrar entrada"}
+          onPress={onSubmit}
+          disabled={isSubmitting}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
