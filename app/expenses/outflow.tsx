@@ -181,161 +181,161 @@ export default function OutflowScreen() {
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Stack.Screen
-        options={{ title: isEdit ? "Editar salida" : "Salida de almacén" }}
-      />
+        <Stack.Screen
+          options={{ title: isEdit ? "Editar salida" : "Salida de almacén" }}
+        />
 
-      <Select
-        label="Tipo de salida"
-        options={OUTFLOW_TYPES}
-        value={type}
-        onChange={(v) => setType(v as OutflowType)}
-      />
+        <Select
+          label="Tipo de salida"
+          options={OUTFLOW_TYPES}
+          value={type}
+          onChange={(v) => setType(v as OutflowType)}
+        />
 
-      <ProductPicker
-        label="Producto"
-        value={product}
-        onChange={onProductSelected}
-        error={productError}
-      />
+        <ProductPicker
+          label="Producto"
+          value={product}
+          onChange={onProductSelected}
+          error={productError}
+        />
 
-      {product ? (
-        <View
-          style={{
-            borderRadius: Radius.xl,
-            backgroundColor: c.surface,
-            padding: 12,
-            boxShadow: Shadows.sm,
-            gap: 4,
-          }}
-        >
-          <Text variant="label">Costo promedio actual</Text>
-          <Text variant="caption">
-            $
-            {product.averageCost > 0
-              ? product.averageCost
-              : (product.costPrice ?? "—")}{" "}
-            · {product.unitOfMeasure}
-          </Text>
-        </View>
-      ) : null}
-
-      {isAdjustment ? (
-        <View style={{ gap: 6 }}>
-          <Text variant="label">Dirección del ajuste</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {(
-              [
-                { value: "decrease", label: "Disminuir" },
-                { value: "increase", label: "Aumentar" },
-              ] as const
-            ).map((opt) => {
-              const selected = opt.value === direction;
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => setDirection(opt.value)}
-                  style={({ pressed }) => ({
-                    borderRadius: Radius.full,
-                    borderWidth: 1,
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    backgroundColor: selected ? c.tint : c.surface,
-                    borderColor: selected ? c.tint : c.border,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Text
-                    style={{
-                      color: selected ? Colors.light.surface : c.text,
-                      fontWeight: "500",
-                    }}
-                  >
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+        {product ? (
+          <View
+            style={{
+              borderRadius: Radius.xl,
+              backgroundColor: c.surface,
+              padding: 12,
+              boxShadow: Shadows.sm,
+              gap: 4,
+            }}
+          >
+            <Text variant="label">Costo promedio actual</Text>
+            <Text variant="caption">
+              $
+              {product.averageCost > 0
+                ? product.averageCost
+                : (product.costPrice ?? "—")}{" "}
+              · {product.unitOfMeasure}
+            </Text>
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      <Controller
-        control={control}
-        name="quantity"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ""}`}
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Ej. 3"
-            error={errors.quantity?.message}
-          />
-        )}
-      />
+        {isAdjustment ? (
+          <View style={{ gap: 6 }}>
+            <Text variant="label">Dirección del ajuste</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {(
+                [
+                  { value: "decrease", label: "Disminuir" },
+                  { value: "increase", label: "Aumentar" },
+                ] as const
+              ).map((opt) => {
+                const selected = opt.value === direction;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => setDirection(opt.value)}
+                    style={({ pressed }) => ({
+                      borderRadius: Radius.full,
+                      borderWidth: 1,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      backgroundColor: selected ? c.tint : c.surface,
+                      borderColor: selected ? c.tint : c.border,
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <Text
+                      style={{
+                        color: selected ? Colors.light.surface : c.text,
+                        fontWeight: "500",
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
-      <Controller
-        control={control}
-        name="unitCostPrice"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Costo unitario"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="numeric"
-            placeholder="Obligatorio"
-            hint="Se usa para valorar la pérdida en los reportes."
-            error={errors.unitCostPrice?.message}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="quantity"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ""}`}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 3"
+              error={errors.quantity?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="date"
-        render={({ field: { onChange, value } }) => (
-          <DatePicker
-            label="Fecha"
-            value={value}
-            onChange={onChange}
-            placeholder="Seleccionar fecha"
-            error={errors.date?.message}
-            maxDate={format(new Date(), "yyyy-MM-dd")}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="unitCostPrice"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Costo unitario"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Obligatorio"
+              hint="Se usa para valorar la pérdida en los reportes."
+              error={errors.unitCostPrice?.message}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="notes"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Notas (opcional)"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ej. Producto vencido"
-            multiline
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="date"
+          render={({ field: { onChange, value } }) => (
+            <DatePicker
+              label="Fecha"
+              value={value}
+              onChange={onChange}
+              placeholder="Seleccionar fecha"
+              error={errors.date?.message}
+              maxDate={format(new Date(), "yyyy-MM-dd")}
+            />
+          )}
+        />
 
-      <Button
-        label={
-          isSubmitting
-            ? isEdit
-              ? "Guardando…"
-              : "Registrando…"
-            : isEdit
-              ? "Guardar cambios"
-              : "Registrar salida"
-        }
-        onPress={onSubmit}
-        disabled={isSubmitting}
-      />
+        <Controller
+          control={control}
+          name="notes"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Notas (opcional)"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ej. Producto vencido"
+              multiline
+            />
+          )}
+        />
+
+        <Button
+          label={
+            isSubmitting
+              ? isEdit
+                ? "Guardando…"
+                : "Registrando…"
+              : isEdit
+                ? "Guardar cambios"
+                : "Registrar salida"
+          }
+          onPress={onSubmit}
+          disabled={isSubmitting}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
