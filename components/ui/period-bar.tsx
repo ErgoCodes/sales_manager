@@ -1,5 +1,7 @@
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import {
-  addDays,
   addMonths,
   addWeeks,
   endOfMonth,
@@ -10,7 +12,8 @@ import {
   startOfWeek,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, FontSize, Radius, Shadows } from "@/drizzle/constants/theme";
@@ -85,6 +88,7 @@ interface PeriodBarProps {
  */
 export function PeriodBar({ value, onChange }: PeriodBarProps) {
   const c = useAppColors();
+  const [pickerTarget, setPickerTarget] = useState<"from" | "to" | null>(null);
 
   const modes: { key: PeriodMode; label: string }[] = [
     { key: "week", label: "Semana" },
@@ -104,17 +108,6 @@ export function PeriodBar({ value, onChange }: PeriodBarProps) {
     if (value.mode === "week") onChange(makeWeek(addWeeks(ref, direction)));
     else if (value.mode === "month")
       onChange(makeMonth(addMonths(ref, direction)));
-  };
-
-  const stepEndpoint = (endpoint: "from" | "to", direction: -1 | 1) => {
-    const nextDate = format(addDays(parseISO(value[endpoint]), direction), ISO);
-    const next: Period = { ...value, [endpoint]: nextDate };
-    // Mantener el rango coherente (from <= to).
-    if (next.from > next.to) {
-      if (endpoint === "from") next.to = next.from;
-      else next.from = next.to;
-    }
-    onChange(next);
   };
 
   const arrowButton = (direction: -1 | 1, onPress: () => void) => (
@@ -188,43 +181,66 @@ export function PeriodBar({ value, onChange }: PeriodBarProps) {
       </View>
 
       {value.mode === "custom" ? (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {(["from", "to"] as const).map((endpoint) => (
-            <View
-              key={endpoint}
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: c.surface,
-                borderRadius: Radius.lg,
-                padding: 6,
-                borderCurve: "continuous",
-                boxShadow: Shadows.sm,
+        <>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {(["from", "to"] as const).map((endpoint) => (
+              <Pressable
+                key={endpoint}
+                onPress={() => setPickerTarget(endpoint)}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: c.surface,
+                  borderRadius: Radius.lg,
+                  padding: 10,
+                  borderCurve: "continuous",
+                  boxShadow: Shadows.sm,
+                }}
+              >
+                <View style={{ flex: 1, alignItems: "center", gap: 1 }}>
+                  <Text
+                    style={{ fontSize: FontSize.xs, color: c.tabIconDefault }}
+                  >
+                    {endpoint === "from" ? "Desde" : "Hasta"}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: FontSize.md,
+                      fontWeight: "700",
+                      color: c.tint,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
+                    {format(parseISO(value[endpoint]), "d MMM yyyy", { locale: es })}
+                  </Text>
+                </View>
+                <IconSymbol name="calendar" size={16} color={c.tabIconDefault} />
+              </Pressable>
+            ))}
+          </View>
+          {pickerTarget && (
+            <DateTimePicker
+              value={parseISO(value[pickerTarget])}
+              mode="date"
+              display={Platform.OS === "ios" ? "inline" : "default"}
+              onChange={(event: DateTimePickerEvent, date?: Date) => {
+                if (Platform.OS === "android") setPickerTarget(null);
+                if (event.type === "dismissed" || !date) return;
+                const iso = format(date, ISO);
+                const next: Period = { ...value, [pickerTarget]: iso };
+                // Validar que from <= to siempre.
+                if (pickerTarget === "from" && next.from > next.to) {
+                  next.to = next.from;
+                } else if (pickerTarget === "to" && next.to < next.from) {
+                  next.from = next.to;
+                }
+                onChange(next);
+                if (Platform.OS === "ios") setPickerTarget(null);
               }}
-            >
-              {arrowButton(-1, () => stepEndpoint(endpoint, -1))}
-              <View style={{ flex: 1, alignItems: "center", gap: 1 }}>
-                <Text
-                  style={{ fontSize: FontSize.xs, color: c.tabIconDefault }}
-                >
-                  {endpoint === "from" ? "Desde" : "Hasta"}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: FontSize.md,
-                    fontWeight: "700",
-                    color: c.text,
-                    fontVariant: ["tabular-nums"],
-                  }}
-                >
-                  {format(parseISO(value[endpoint]), "d MMM", { locale: es })}
-                </Text>
-              </View>
-              {arrowButton(1, () => stepEndpoint(endpoint, 1))}
-            </View>
-          ))}
-        </View>
+            />
+          )}
+        </>
       ) : (
         <View
           style={{

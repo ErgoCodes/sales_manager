@@ -210,7 +210,7 @@ describe('db/queries', () => {
   });
 
   describe('registerSalesSession', () => {
-    it('calculates profit = 15 when selling a 45 cost item for 60 even if averageCost was 0', async () => {
+    it('calculates profit = 15 using costPrice (45) not averageCost when selling for 60', async () => {
       db.insert(products)
         .values({
           id: 1,
