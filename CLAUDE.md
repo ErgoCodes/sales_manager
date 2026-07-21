@@ -35,7 +35,7 @@ No test runner is configured yet.
 
 ## Naming Convention
 
-All code identifiers (file names, variables, functions, types, constants) must be in English. User-facing UI labels remain in Spanish (the app is for a Spanish-speaking user). DB column names in SQL strings (e.g., `'precio_costo'`) stay as-is to avoid migrations; only the JS/TS identifiers are English.
+All code identifiers (file names, variables, functions, types, constants) must be in English. Git branch names must also be in English. User-facing UI labels remain in Spanish (the app is for a Spanish-speaking user). DB column names in SQL strings (e.g., `'precio_costo'`) stay as-is to avoid migrations; only the JS/TS identifiers are English.
 
 ## Architecture
 

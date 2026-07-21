@@ -23,6 +23,19 @@ Conjunto de documentos generados el 2026-07-07 a partir del análisis del [ROADM
 | [11 · Editar/eliminar gastos + fecha futura](11-editar-eliminar-gastos.md) | Editar y eliminar gastos registrados; bloquear fecha futura en gastos | MEDIA | ~1 día |
 | [12 · Visión: plataforma multi-negocio](12-vision-multiplataforma.md) | Etapa 2 a futuro: multi-tenant, backend, sync offline-first — preguntas abiertas de diseño | BAJA | lectura |
 
+## Feedback de la clienta (2026-07-19)
+
+Bugs y features detectados por Yamile probando la app (conversación de WhatsApp). Cada doc apunta a su tarea en el tablero de Notion (PRJ-2).
+
+| Doc | Tema | Prioridad | Esfuerzo |
+|---|---|---|---|
+| [13 · Utilidad y costo promedio inflados](13-utilidad-costo-promedio.md) | La utilidad usa `costo_promedio` (arranca en 0 y se diluye) en vez de `precio_costo`; afecta ventas y ranking "Más rentables" | ALTA | ~1.5-2 días |
+| [14 · Retiro/merma rebajan mal el inventario](14-retiro-dueno-rebaja-inventario.md) | Doble negación de signo: retiro del dueño suma al stock en vez de restar | ALTA | ~½ día |
+| [15 · Total "Pérdidas y gastos del mes"](15-perdidas-gastos-mes-total.md) | Coherencia UI: la lista no filtra por mes/tipo y no cuadra con el total | MEDIA | ~½-1 día |
+| [16 · Resumen de entradas por producto y fecha](16-resumen-entradas-producto-fecha.md) | Nuevo reporte agregado de entradas de inventario (patrón de rankings + Excel) | MEDIA | ~1 día |
+| [17 · Constancia de salidas por producto](17-constancia-salidas-por-producto.md) | Añadir cantidad/unidad y tipo "otro concepto" al reporte de salidas | MEDIA | ~1 día |
+| [18 · Resumen de venta por método de pago](18-resumen-venta-por-metodo-pago.md) | Agrupar productos por efectivo/transferencia en el resumen del carrito | MEDIA | ~½-1 día |
+
 ## Orden de ataque recomendado
 
 1. **Primero, una tarde de deuda crítica** antes de seguir con features — son arreglos pequeños que protegen todo lo demás:
