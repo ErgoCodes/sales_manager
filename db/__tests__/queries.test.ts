@@ -252,7 +252,8 @@ describe('db/queries', () => {
         .run();
 
       // Legacy inflated sale recorded with costAtSale = 22.50 and profit = 37.50
-      db.insert(sales)
+      const [{ saleId }] = db
+        .insert(sales)
         .values({
           productId: 1,
           quantity: 1,
@@ -262,7 +263,8 @@ describe('db/queries', () => {
           profit: 37.50,
           date: '2026-07-19T10:00:00Z',
         })
-        .run();
+        .returning({ saleId: sales.id })
+        .all();
 
       const result = await runAverageCostBackfill();
       expect(result.updatedProducts).toBe(1);
@@ -271,7 +273,8 @@ describe('db/queries', () => {
       const [p] = db.select().from(products).where(eq(products.id, 1)).all();
       expect(p.averageCost).toBe(45);
 
-      const [s] = db.select().from(sales).where(eq(sales.id, 1)).all();
+      const [s] = db.select().from(sales).where(eq(sales.id, saleId)).all();
+      expect(s).toBeDefined();
       expect(s.costAtSale).toBe(45);
       expect(s.profit).toBe(15);
     });
