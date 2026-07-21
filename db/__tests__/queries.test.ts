@@ -154,6 +154,17 @@ describe('db/queries', () => {
         })
         .run();
 
+      // Owner withdrawal 1
+      db.insert(warehouseMovements)
+        .values({
+          productId: 1,
+          type: 'retiro_owner',
+          quantity: 1,
+          unitCostPrice: 10,
+          date: '2026-07-02T11:00:00Z',
+        })
+        .run();
+
       // Adjust -1
       db.insert(warehouseMovements)
         .values({
@@ -193,8 +204,8 @@ describe('db/queries', () => {
         .run();
 
       const stock = await calculateStock(1);
-      // 10 (entrada) - 2 (merma) + (-1) (ajuste) - 3 (sale) = 4
-      expect(stock).toBe(4);
+      // 10 (entrada) - 2 (merma) - 1 (retiro_owner) + (-1) (ajuste) - 3 (sale) = 3
+      expect(stock).toBe(3);
     });
   });
 

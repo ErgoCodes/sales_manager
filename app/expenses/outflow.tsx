@@ -147,7 +147,7 @@ export default function OutflowScreen() {
     // Ajuste puede subir o bajar el stock; merma y retiro siempre lo bajan.
     const magnitude = Number(values.quantity);
     const signedQuantity =
-      type === "ajuste" && direction === "increase" ? magnitude : -magnitude;
+      type === "ajuste" ? (direction === "increase" ? magnitude : -magnitude) : magnitude;
 
     // Advertir (sin bloquear) si el stock quedaría negativo.
     if (signedQuantity < 0) {
