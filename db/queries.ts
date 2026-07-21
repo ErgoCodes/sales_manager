@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getProductThreshold } from "@/drizzle/constants/catalog";
+import { effectiveUnitCost } from "../lib/pricing";
 import { db } from "./client";
 import { CONFIG_KEYS, getConfig } from "./config";
 import { expenses, products, sales, warehouseMovements } from "./schema";
@@ -69,14 +70,15 @@ export async function recalculateAverageCost(
   const currentStock = await calculateStock(productId);
 
   const [prod] = await db
-    .select({ averageCost: products.averageCost })
+    .select({ averageCost: products.averageCost, costPrice: products.costPrice })
     .from(products)
     .where(eq(products.id, productId));
 
-  const currentAverageCost = prod?.averageCost ?? 0;
+  const currentAverageCost = prod ? effectiveUnitCost(prod) : 0;
   const denominator = currentStock + newQuantity;
 
   if (denominator <= 0) return newCost;
+  if (currentStock <= 0 || currentAverageCost <= 0) return newCost;
 
   return (
     (currentStock * currentAverageCost + newQuantity * newCost) / denominator

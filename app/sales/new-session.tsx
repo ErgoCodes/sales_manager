@@ -15,6 +15,7 @@ import { Text } from "@/components/ui/text";
 import { registerSalesSession, verifySessionStock } from "@/db/sales";
 import { Colors, Radius, Shadows } from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
+import { effectiveUnitCost } from "@/lib/pricing";
 import { safeWrite } from "@/lib/safe-write";
 import { useCartStore } from "@/store";
 
@@ -41,16 +42,15 @@ export default function NewSessionScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const quantityRef = useRef<TextInput>(null);
-  const discountPercentNum =
-    discountPercent === "" ? 0 : Number(discountPercent);
+
+  const discountPercentNum = discountPercent === "" ? 0 : Number(discountPercent);
 
   function handleDiscountChange(text: string) {
-    const cleaned = text.replace(/[^0-9]/g, "");
-    if (cleaned === "") {
-      setDiscountPercent("");
-      return;
+    const cleaned = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
+    const num = Number(cleaned);
+    if (cleaned === "" || (num >= 0 && num <= 100)) {
+      setDiscountPercent(cleaned);
     }
-    setDiscountPercent(String(Math.min(100, Number(cleaned))));
   }
 
   function onProductSelected(p: SelectedProduct) {
@@ -59,18 +59,19 @@ export default function NewSessionScreen() {
     setWorkerSale(false);
     setDiscountExpanded(false);
     setDiscountPercent("");
-    setTimeout(() => quantityRef.current?.focus(), 100);
+    setTimeout(() => quantityRef.current?.focus(), 50);
   }
 
   function addToCart(
     paymentMethod: "efectivo" | "transferencia",
-    isCostSale = false,
+    isCostSale: boolean = false
   ) {
     if (!product) return;
     const qty = Number(quantity);
     if (!qty || qty <= 0) return;
 
     const effectiveDiscount = isCostSale ? 0 : discountPercentNum;
+    const unitCost = effectiveUnitCost(product);
 
     let appliedPrice: number;
     let profit: number;
@@ -83,7 +84,7 @@ export default function NewSessionScreen() {
           ? (product.cashPrice ?? 0)
           : (product.transferPrice ?? 0);
       appliedPrice = basePrice * (1 - effectiveDiscount / 100);
-      profit = (appliedPrice - product.averageCost) * qty;
+      profit = (appliedPrice - unitCost) * qty;
     }
 
     addItem({
@@ -95,7 +96,7 @@ export default function NewSessionScreen() {
       appliedPrice,
       isCostSale,
       discountPercent: effectiveDiscount,
-      costAtSale: product.averageCost,
+      costAtSale: unitCost,
       profit,
     });
 
@@ -248,7 +249,7 @@ export default function NewSessionScreen() {
             <Text variant="caption">
               Efectivo: ${product.cashPrice ?? "—"} · Transferencia: $
               {product.transferPrice ?? "—"} · Costo prom: $
-              {product.averageCost.toFixed(2)}
+              {effectiveUnitCost(product).toFixed(2)}
             </Text>
 
             <View style={{ gap: 4 }}>

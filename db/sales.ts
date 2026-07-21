@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { CartItem } from '@/store';
+import { effectiveUnitCost } from '../lib/pricing';
 
 import { db } from './client';
 import { calculateAllStocks } from './queries';
@@ -88,7 +89,10 @@ export function registerSalesSession(
 
     for (const item of items) {
       const [prod] = tx
-        .select({ averageCost: products.averageCost })
+        .select({
+          averageCost: products.averageCost,
+          costPrice: products.costPrice,
+        })
         .from(products)
         .where(eq(products.id, item.productId))
         .all();
@@ -97,8 +101,10 @@ export function registerSalesSession(
         throw new Error(`Producto ${item.productId} no encontrado`);
       }
 
-      const costAtSale = prod.averageCost;
-      const profit = (item.appliedPrice - costAtSale) * item.quantity;
+      const costAtSale = effectiveUnitCost(prod);
+      const profit = item.isCostSale
+        ? 0
+        : (item.appliedPrice - costAtSale) * item.quantity;
 
       tx.insert(sales)
         .values({
@@ -212,6 +218,7 @@ export async function updateSale(id: number, changes: SaleChanges): Promise<void
       quantity: sales.quantity,
       appliedPrice: sales.appliedPrice,
       costAtSale: sales.costAtSale,
+      isCostSale: sales.isCostSale,
     })
     .from(sales)
     .where(eq(sales.id, id));
@@ -220,7 +227,9 @@ export async function updateSale(id: number, changes: SaleChanges): Promise<void
 
   const quantity = changes.quantity ?? current.quantity;
   const appliedPrice = changes.appliedPrice ?? current.appliedPrice;
-  const profit = (appliedPrice - current.costAtSale) * quantity;
+  const profit = current.isCostSale
+    ? 0
+    : (appliedPrice - current.costAtSale) * quantity;
 
   await db
     .update(sales)
@@ -231,4 +240,82 @@ export async function updateSale(id: number, changes: SaleChanges): Promise<void
       profit,
     })
     .where(eq(sales.id, id));
+}
+
+/**
+ * One-pass backfill function to fix products with averageCost = 0 (or lower than costPrice)
+ * and sales with diluted/zero costAtSale and profit.
+ */
+export async function runAverageCostBackfill(): Promise<{
+  updatedProducts: number;
+  updatedSales: number;
+}> {
+  const allProducts = await db
+    .select({
+      id: products.id,
+      averageCost: products.averageCost,
+      costPrice: products.costPrice,
+    })
+    .from(products);
+
+  let updatedProducts = 0;
+  for (const p of allProducts) {
+    if ((!p.averageCost || p.averageCost <= 0) && p.costPrice && p.costPrice > 0) {
+      await db
+        .update(products)
+        .set({ averageCost: p.costPrice })
+        .where(eq(products.id, p.id));
+      updatedProducts++;
+    }
+  }
+
+  const freshProducts = await db
+    .select({
+      id: products.id,
+      averageCost: products.averageCost,
+      costPrice: products.costPrice,
+    })
+    .from(products);
+
+  const productMap = new Map<number, { averageCost: number; costPrice: number | null }>();
+  for (const p of freshProducts) {
+    productMap.set(p.id, { averageCost: p.averageCost, costPrice: p.costPrice });
+  }
+
+  const allSales = await db
+    .select({
+      id: sales.id,
+      productId: sales.productId,
+      appliedPrice: sales.appliedPrice,
+      quantity: sales.quantity,
+      costAtSale: sales.costAtSale,
+      isCostSale: sales.isCostSale,
+    })
+    .from(sales);
+
+  let updatedSales = 0;
+  for (const s of allSales) {
+    const prod = productMap.get(s.productId);
+    if (!prod) continue;
+
+    const targetCost = effectiveUnitCost(prod);
+    if (targetCost <= 0) continue;
+
+    if (s.costAtSale === 0 || s.costAtSale < targetCost) {
+      const correctProfit = s.isCostSale
+        ? 0
+        : (s.appliedPrice - targetCost) * s.quantity;
+
+      await db
+        .update(sales)
+        .set({
+          costAtSale: targetCost,
+          profit: correctProfit,
+        })
+        .where(eq(sales.id, s.id));
+      updatedSales++;
+    }
+  }
+
+  return { updatedProducts, updatedSales };
 }

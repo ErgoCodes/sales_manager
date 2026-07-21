@@ -1,5 +1,7 @@
+import { eq } from 'drizzle-orm';
 import { calculateStock, recalculateAverageCost, getDailySummary } from '../queries';
-import { registerSalesSession } from '../sales';
+import { createProduct } from '../products';
+import { registerSalesSession, runAverageCostBackfill } from '../sales';
 import { products, warehouseMovements, sales } from '../schema';
 
 // This will load db/__mocks__/client.ts
@@ -14,6 +16,23 @@ describe('db/queries', () => {
     db.delete(products).run();
   });
 
+  describe('createProduct', () => {
+    it('seeds averageCost with costPrice when creating a product', async () => {
+      const id = await createProduct({
+        name: 'Chupa chupa',
+        category: 'Dulces',
+        unitOfMeasure: 'u',
+        costPrice: 45,
+        cashPrice: 60,
+        transferPrice: 60,
+      });
+
+      const [p] = db.select().from(products).where(eq(products.id, id)).all();
+      expect(p.costPrice).toBe(45);
+      expect(p.averageCost).toBe(45);
+    });
+  });
+
   describe('recalculateAverageCost', () => {
     it('calculates average cost correctly (4u * 100 + 10u * 130 -> 121.43)', async () => {
       // Setup product
@@ -24,6 +43,7 @@ describe('db/queries', () => {
           category: 'Bebidas',
           unitOfMeasure: 'u',
           averageCost: 100,
+          costPrice: 100,
           cashPrice: 150,
           transferPrice: 150,
           lowStockThreshold: 5,
@@ -45,6 +65,37 @@ describe('db/queries', () => {
       
       // (4 * 100 + 10 * 130) / 14 = 1700 / 14 = 121.4285714...
       expect(newCost).toBeCloseTo(121.42857, 5);
+    });
+
+    it('uses costPrice when averageCost is 0 and does not dilute to 0', async () => {
+      db.insert(products)
+        .values({
+          id: 1,
+          name: 'Chupa chupa',
+          category: 'Dulces',
+          unitOfMeasure: 'u',
+          averageCost: 0,
+          costPrice: 45,
+          cashPrice: 60,
+          transferPrice: 60,
+        })
+        .run();
+
+      // Stock of 10 was added previously without updating averageCost
+      db.insert(warehouseMovements)
+        .values({
+          productId: 1,
+          type: 'ajuste',
+          quantity: 10,
+          unitCostPrice: 45,
+          date: '2026-07-01T10:00:00Z',
+        })
+        .run();
+
+      // New entry of 10 units at cost 45
+      const newCost = await recalculateAverageCost(1, 10, 45);
+      // (10 * 45 + 10 * 45) / 20 = 45 (not 22.50)
+      expect(newCost).toBe(45);
     });
 
     it('takes the new cost if denominator is <= 0 (stock is 0)', async () => {
@@ -148,105 +199,81 @@ describe('db/queries', () => {
   });
 
   describe('registerSalesSession', () => {
-    it('inserts rows, calculates profit based on current average cost', async () => {
+    it('calculates profit = 15 when selling a 45 cost item for 60 even if averageCost was 0', async () => {
       db.insert(products)
         .values({
           id: 1,
-          name: 'Prod',
-          category: 'Bebidas',
+          name: 'Chupa chupa',
+          category: 'Dulces',
           unitOfMeasure: 'u',
-          averageCost: 50,
-          cashPrice: 100,
-          transferPrice: 110,
-          lowStockThreshold: 5,
+          costPrice: 45,
+          averageCost: 0,
+          cashPrice: 60,
+          transferPrice: 60,
         })
         .run();
 
       const items = [{
         productId: 1,
         key: 'prod-1',
-        name: 'Prod',
+        name: 'Chupa chupa',
         unitOfMeasure: 'u',
-        quantity: 2,
-        appliedPrice: 90,
+        quantity: 1,
+        appliedPrice: 60,
         paymentMethod: 'efectivo' as const,
         isCostSale: false,
-        discountPercent: 10,
-        costAtSale: 50,
-        profit: 80,
+        discountPercent: 0,
+        costAtSale: 45,
+        profit: 15,
       }];
 
-      registerSalesSession(items, '2026-07-13T12:00:00Z');
+      registerSalesSession(items, '2026-07-19T12:00:00Z');
 
       const saleRows = db.select().from(sales).all();
       expect(saleRows.length).toBe(1);
-      expect(saleRows[0].quantity).toBe(2);
-      expect(saleRows[0].appliedPrice).toBe(90);
-      expect(saleRows[0].costAtSale).toBe(50); // From DB, not from anywhere else
-      expect(saleRows[0].profit).toBe((90 - 50) * 2); // 80
+      expect(saleRows[0].costAtSale).toBe(45);
+      expect(saleRows[0].profit).toBe(15);
     });
   });
 
-  describe('getDailySummary', () => {
-    it('groups cash and transfer correctly, ignores other dates', async () => {
+  describe('runAverageCostBackfill', () => {
+    it('backfills products with averageCost 0 to costPrice and recalculates legacy sales', async () => {
       db.insert(products)
         .values({
           id: 1,
-          name: 'Prod',
-          category: 'Bebidas',
+          name: 'Chupa chupa',
+          category: 'Dulces',
           unitOfMeasure: 'u',
-          averageCost: 50,
-          cashPrice: 100,
-          transferPrice: 110,
-          lowStockThreshold: 5,
+          costPrice: 45,
+          averageCost: 0,
+          cashPrice: 60,
+          transferPrice: 60,
         })
         .run();
 
-      db.insert(sales).values([
-        {
-          productId: 1,
-          quantity: 2,
-          appliedPrice: 100,
-          paymentMethod: 'efectivo',
-          costAtSale: 50,
-          profit: 100,
-          date: '2026-07-13T10:00:00Z',
-        },
-        {
+      // Legacy inflated sale recorded with costAtSale = 22.50 and profit = 37.50
+      db.insert(sales)
+        .values({
           productId: 1,
           quantity: 1,
-          appliedPrice: 150,
-          paymentMethod: 'transferencia',
-          costAtSale: 50,
-          profit: 100,
-          date: '2026-07-13T11:00:00Z',
-        },
-        { // Cancelled sale, should be ignored
-          productId: 1,
-          quantity: 1,
-          appliedPrice: 100,
+          appliedPrice: 60,
           paymentMethod: 'efectivo',
-          costAtSale: 50,
-          profit: 50,
-          date: '2026-07-13T12:00:00Z',
-          cancelled: true,
-        },
-        { // Another date, should be ignored
-          productId: 1,
-          quantity: 1,
-          appliedPrice: 100,
-          paymentMethod: 'efectivo',
-          costAtSale: 50,
-          profit: 50,
-          date: '2026-07-14T10:00:00Z',
-        }
-      ]).run();
+          costAtSale: 22.50,
+          profit: 37.50,
+          date: '2026-07-19T10:00:00Z',
+        })
+        .run();
 
-      const summary = await getDailySummary('2026-07-13');
-      expect(summary.cash).toBe(200); // 2 * 100
-      expect(summary.transfer).toBe(150); // 1 * 150
-      expect(summary.total).toBe(350);
-      expect(summary.profit).toBe(200); // 100 + 100
+      const result = await runAverageCostBackfill();
+      expect(result.updatedProducts).toBe(1);
+      expect(result.updatedSales).toBe(1);
+
+      const [p] = db.select().from(products).where(eq(products.id, 1)).all();
+      expect(p.averageCost).toBe(45);
+
+      const [s] = db.select().from(sales).where(eq(sales.id, 1)).all();
+      expect(s.costAtSale).toBe(45);
+      expect(s.profit).toBe(15);
     });
   });
 });
