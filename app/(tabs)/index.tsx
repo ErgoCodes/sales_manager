@@ -13,13 +13,6 @@ import {
   getDailySummary,
   type DailySummary,
 } from "@/db/queries";
-import {
-  Colors,
-  FontSize,
-  Overlay,
-  Radius,
-  Shadows,
-} from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { formatCurrency } from "@/lib/format";
 
@@ -39,34 +32,16 @@ interface QuickActionProps {
 }
 
 function QuickAction({ icon, label, onPress, accent, bg }: QuickActionProps) {
-  const c = useAppColors();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => ({
-        flex: 1,
-        backgroundColor: c.surface,
-        borderRadius: Radius.xl,
-        paddingVertical: 14,
-        alignItems: "center",
-        gap: 8,
-        borderCurve: "continuous",
-        boxShadow: Shadows.md,
-        opacity: pressed ? 0.7 : 1,
-      })}
+      className="flex-1 bg-surface rounded-2xl py-3.5 items-center gap-2 shadow-md active:opacity-70"
     >
       <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: Radius.md,
-          backgroundColor: bg,
-          alignItems: "center",
-          justifyContent: "center",
-          borderCurve: "continuous",
-        }}
+        className="w-10 h-10 rounded-xl items-center justify-center"
+        style={{ backgroundColor: bg }}
       >
         <IconSymbol name={icon} size={20} color={accent} />
       </View>
@@ -126,87 +101,37 @@ export default function HomeScreen() {
       <Animated.View entering={FadeInDown.delay(60).duration(380).springify()}>
         <HeroCard onPress={() => router.push("/(tabs)/sales")} padding={22}>
           <View className="flex-row items-center justify-between">
-            <Text
-              style={{
-                fontSize: FontSize.xs,
-                fontWeight: "700",
-                letterSpacing: 1,
-                color: Overlay.text,
-                textTransform: "uppercase",
-              }}
-            >
+            <Text className="text-[13px] font-bold text-white/75 tracking-[1px] uppercase">
               Total del día
             </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                backgroundColor: Overlay.medium,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 999,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: FontSize.xs,
-                  fontWeight: "600",
-                  color: Colors.light.surface,
-                }}
-              >
+            <View className="flex-row items-center gap-1 bg-white/15 px-2.5 py-1 rounded-full">
+              <Text className="text-[13px] font-semibold text-white">
                 Ver desglose
               </Text>
               <IconSymbol
                 name="arrow.up.right"
                 size={11}
-                color={Colors.light.surface}
+                color="#FFFFFF"
               />
             </View>
           </View>
 
           <Text
             selectable
-            style={{
-              fontSize: FontSize["4xl"],
-              fontWeight: "800",
-              color: Colors.light.surface,
-              letterSpacing: -1.2,
-              marginTop: 6,
-              fontVariant: ["tabular-nums"],
-            }}
+            style={{ fontVariant: ["tabular-nums"] }}
+            className="text-[42px] font-extrabold text-white tracking-[-1.2px] mt-1.5"
           >
             {formatCurrency(summary.total)}
           </Text>
 
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              marginTop: 8,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: Overlay.medium,
-            }}
-          >
-            <IconSymbol name="sparkles" size={14} color={Overlay.textStrong} />
-            <Text
-              style={{
-                fontSize: FontSize.md,
-                color: Overlay.textStrong,
-                fontWeight: "500",
-              }}
-            >
+          <View className="flex-row items-center gap-2 mt-2 pt-3 border-t border-white/15">
+            <IconSymbol name="sparkles" size={14} color="rgba(255,255,255,0.85)" />
+            <Text className="text-[15px] text-white/85 font-medium">
               Utilidad
             </Text>
             <Text
-              style={{
-                fontSize: FontSize.md,
-                fontWeight: "700",
-                color: Colors.light.surface,
-                fontVariant: ["tabular-nums"],
-              }}
+              style={{ fontVariant: ["tabular-nums"] }}
+              className="text-[15px] font-bold text-white"
             >
               {formatCurrency(summary.profit)}
             </Text>
@@ -273,27 +198,9 @@ export default function HomeScreen() {
         {lowStockCount > 0 ? (
           <Pressable
             onPress={() => router.push("/(tabs)/inventory")}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              backgroundColor: c.dangerSoft,
-              borderRadius: Radius.xl,
-              padding: 14,
-              borderCurve: "continuous",
-              opacity: pressed ? 0.85 : 1,
-            })}
+            className="flex-row items-center gap-3 bg-semantic-danger-soft rounded-2xl p-3.5 active:opacity-85"
           >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: Radius.md,
-                backgroundColor: c.danger,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <View className="w-10 h-10 rounded-xl bg-semantic-danger items-center justify-center">
               <IconSymbol
                 name="exclamationmark.triangle.fill"
                 size={20}
@@ -301,60 +208,26 @@ export default function HomeScreen() {
               />
             </View>
             <View className="flex-1">
-              <Text
-                style={{
-                  fontSize: FontSize.base,
-                  fontWeight: "700",
-                  color: c.dangerDark,
-                }}
-              >
+              <Text className="text-[16px] font-bold text-semantic-danger-dark">
                 Stock bajo en {lowStockCount} producto
                 {lowStockCount > 1 ? "s" : ""}
               </Text>
-              <Text
-                style={{
-                  fontSize: FontSize.sm,
-                  color: c.dangerDark,
-                  marginTop: 2,
-                }}
-              >
+              <Text className="text-[14px] text-semantic-danger-dark mt-0.5">
                 Toca para revisar el inventario
               </Text>
             </View>
             <IconSymbol name="chevron.right" size={18} color={c.danger} />
           </Pressable>
         ) : (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-              backgroundColor: c.surface,
-              borderRadius: Radius.xl,
-              padding: 14,
-              borderCurve: "continuous",
-              boxShadow: Shadows.sm,
-            }}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: Radius.md,
-                backgroundColor: c.cashSoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+          <View className="flex-row items-center gap-2.5 bg-surface rounded-2xl p-3.5 shadow-sm">
+            <View className="w-9 h-9 rounded-xl bg-semantic-cash-soft items-center justify-center">
               <IconSymbol
                 name="checkmark.circle.fill"
                 size={20}
                 color={c.cash}
               />
             </View>
-            <Text
-              className="text-[15px] text-text-muted font-medium flex-1"
-            >
+            <Text className="text-[15px] text-text-muted font-medium flex-1">
               Inventario en orden — sin alertas
             </Text>
           </View>

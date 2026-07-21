@@ -21,13 +21,6 @@ import {
   sumLossOutflowsValue,
 } from "@/db/movements";
 import { getTypeLabel } from "@/drizzle/constants/expenses";
-import {
-  Colors,
-  FontSize,
-  Overlay,
-  Radius,
-  Shadows,
-} from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { formatCurrency } from "@/lib/format";
 import { safeWrite } from "@/lib/safe-write";
@@ -252,37 +245,17 @@ export default function ExpensesScreen() {
         ListHeaderComponent={
           <View className="gap-3.5 mb-1">
             <HeroCard padding={18}>
-              <Text
-                style={{
-                  fontSize: FontSize.xs,
-                  fontWeight: "700",
-                  color: Overlay.text,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                }}
-              >
+              <Text className="text-[13px] font-bold text-white/75 tracking-[1px] uppercase">
                 Pérdidas y gastos del mes
               </Text>
               <Text
                 selectable
-                style={{
-                  fontSize: FontSize["3xl"],
-                  fontWeight: "800",
-                  color: Colors.light.surface,
-                  letterSpacing: -0.8,
-                  marginTop: 6,
-                  fontVariant: ["tabular-nums"],
-                }}
+                style={{ fontVariant: ["tabular-nums"] }}
+                className="text-[30px] font-extrabold text-white tracking-[-0.8px] mt-1.5"
               >
                 {formatCurrency(monthTotal)}
               </Text>
-              <Text
-                style={{
-                  fontSize: FontSize.sm,
-                  color: Overlay.text,
-                  marginTop: 4,
-                }}
-              >
+              <Text className="text-[14px] text-white/75 mt-1">
                 Gastos + mermas y retiros valorados
               </Text>
             </HeroCard>
@@ -307,16 +280,7 @@ export default function ExpensesScreen() {
               accessibilityRole="button"
               accessibilityState={{ selected: showCancelled }}
               accessibilityLabel={showCancelled ? "Ocultar anulados" : "Mostrar anulados"}
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                paddingVertical: 8,
-                opacity: pressed ? 0.7 : 1,
-                alignSelf: "flex-end",
-                marginTop: 4,
-              })}
+              className="flex-row items-center justify-center gap-1.5 py-2 self-end mt-1 active:opacity-70"
             >
               <IconSymbol
                 name={showCancelled ? "eye.fill" : "eye.slash.fill"}
@@ -324,11 +288,11 @@ export default function ExpensesScreen() {
                 color={showCancelled ? c.tint : c.tabIconDefault}
               />
               <Text
-                style={{
-                  fontSize: FontSize.sm,
-                  fontWeight: "600",
-                  color: showCancelled ? c.tint : c.tabIconDefault,
-                }}
+                className={
+                  showCancelled
+                    ? "text-[14px] font-semibold text-primary"
+                    : "text-[14px] font-semibold text-tab-default"
+                }
               >
                 {showCancelled
                   ? "Mostrar anulados: Sí"
@@ -350,28 +314,11 @@ export default function ExpensesScreen() {
               onPress={() => handlePressRow(item)}
               accessibilityRole="button"
               accessibilityLabel={`Movimiento: ${item.title}, concepto ${item.detail || "sin concepto"}, monto ${item.amount} pesos`}
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: c.surface,
-                borderRadius: Radius.lg,
-                padding: 14,
-                gap: 12,
-                borderCurve: "continuous",
-                boxShadow: Shadows.sm,
-                opacity: item.cancelled ? 0.5 : pressed ? 0.9 : 1,
-              })}
+              className={`flex-row items-center bg-surface rounded-2xl p-3.5 gap-3 shadow-sm active:opacity-90 ${item.cancelled ? "opacity-50" : ""}`}
             >
               <View className="flex-1 gap-1.5">
                 <Text
-                  style={{
-                    fontSize: FontSize.lg,
-                    fontWeight: "700",
-                    color: c.text,
-                    textDecorationLine: item.cancelled
-                      ? "line-through"
-                      : "none",
-                  }}
+                  className={`text-[18px] font-bold text-text-strong ${item.cancelled ? "line-through" : ""}`}
                 >
                   {item.title}
                 </Text>
@@ -380,22 +327,14 @@ export default function ExpensesScreen() {
                     label={getTypeLabel(item.typeValue)}
                     tone={TONE_BY_TYPE[item.typeValue] ?? "neutral"}
                   />
-                  <Text
-                    style={{ fontSize: FontSize.sm, color: c.tabIconDefault }}
-                  >
+                  <Text className="text-[14px] text-tab-default">
                     {item.date}
                   </Text>
                 </View>
               </View>
               <Text
-                style={{
-                  fontSize: FontSize.lg,
-                  fontWeight: "800",
-                  color: c.text,
-                  letterSpacing: -0.4,
-                  fontVariant: ["tabular-nums"],
-                  textDecorationLine: item.cancelled ? "line-through" : "none",
-                }}
+                style={{ fontVariant: ["tabular-nums"] }}
+                className={`text-[18px] font-extrabold text-text-strong tracking-[-0.4px] ${item.cancelled ? "line-through" : ""}`}
               >
                 {formatCurrency(item.amount)}
               </Text>
@@ -405,46 +344,17 @@ export default function ExpensesScreen() {
       />
 
       {toast?.visible && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: 24,
-            left: 16,
-            right: 16,
-            backgroundColor: "#1E293B",
-            borderRadius: Radius.md,
-            padding: 14,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            boxShadow: Shadows.md,
-            zIndex: 999,
-          }}
-        >
-          <Text
-            className="text-white text-[16px] font-semibold"
-          >
+        <View className="absolute bottom-6 left-4 right-4 bg-slate-800 rounded-xl p-3.5 flex-row items-center justify-between shadow-md z-50">
+          <Text className="text-white text-[16px] font-semibold">
             {toast.message}
           </Text>
           <Pressable
             onPress={handleUndo}
             accessibilityRole="button"
             accessibilityLabel="Deshacer acción"
-            style={({ pressed }) => ({
-              backgroundColor: "#334155",
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: Radius.sm,
-              opacity: pressed ? 0.7 : 1,
-            })}
+            className="bg-slate-700 py-1.5 px-3 rounded-lg active:opacity-70"
           >
-            <Text
-              style={{
-                color: c.tint,
-                fontSize: FontSize.sm,
-                fontWeight: "700",
-              }}
-            >
+            <Text className="text-primary text-[14px] font-bold">
               Deshacer
             </Text>
           </Pressable>
@@ -462,42 +372,20 @@ interface ActionButtonProps {
 }
 
 function ActionButton({ label, icon, accent, onPress }: ActionButtonProps) {
-  const c = useAppColors();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => ({
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        backgroundColor: c.surface,
-        borderRadius: Radius.lg,
-        paddingVertical: 14,
-        borderCurve: "continuous",
-        boxShadow: Shadows.sm,
-        opacity: pressed ? 0.8 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-      })}
+      className="flex-1 flex-row items-center justify-center gap-2 bg-surface rounded-2xl py-3.5 shadow-sm active:opacity-80 active:scale-[0.98]"
     >
       <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 9,
-          backgroundColor: `${accent}15`,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="w-7 h-7 rounded-[9px] items-center justify-center"
+        style={{ backgroundColor: `${accent}15` }}
       >
         <IconSymbol name={icon} size={17} color={accent} />
       </View>
-      <Text
-        className="text-[16px] font-bold text-text-strong"
-      >
+      <Text className="text-[16px] font-bold text-text-strong">
         {label}
       </Text>
     </Pressable>

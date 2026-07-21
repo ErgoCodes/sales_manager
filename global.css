@@ -20,10 +20,14 @@
   --color-cost-soft: #FEF3C7;
   --color-danger: #DC2626;
   --color-danger-soft: #FEE2E2;
+  --color-danger-dark: #991B1B;
   --color-warning: #F59E0B;
   --color-warning-soft: #FEF3C7;
+  --color-warning-dark: #92400E;
   --color-neutral: #475569;
   --color-neutral-soft: #F1F5F9;
+  --color-low-stock-bg: #FFFBFB;
+  --color-teal-soft: #CCFBF1;
 
   --radius-sm: 8px;
   --radius-md: 12px;

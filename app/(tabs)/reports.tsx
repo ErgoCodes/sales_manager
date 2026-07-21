@@ -4,7 +4,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { Badge } from "@/components/ui/badge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FontSize, Radius, Shadows } from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 type IconName = Parameters<typeof IconSymbol>[0]["name"];
@@ -32,44 +31,19 @@ function ReportCard({
       <Pressable
         onPress={onPress}
         disabled={disabled}
-        style={({ pressed }) => ({
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 14,
-          backgroundColor: c.surface,
-          borderRadius: Radius.lg,
-          padding: 16,
-          borderCurve: "continuous",
-          boxShadow: Shadows.sm,
-          opacity: disabled ? 0.55 : pressed ? 0.85 : 1,
-        })}
+        className={`flex-row items-center gap-3.5 bg-surface rounded-2xl p-4 shadow-sm active:opacity-85 ${disabled ? "opacity-55" : ""}`}
       >
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            backgroundColor: c.surfaceMuted,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <View className="w-[44px] h-[44px] rounded-[14px] bg-surface-muted items-center justify-center">
           <IconSymbol name={icon} size={22} color={c.tint} />
         </View>
-        <View style={{ flex: 1, gap: 3 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text
-              style={{
-                fontSize: FontSize.base,
-                fontWeight: "700",
-                color: c.text,
-              }}
-            >
+        <View className="flex-1 gap-0.5">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-[16px] font-bold text-text-strong">
               {title}
             </Text>
             {disabled ? <Badge tone="neutral" label="Próximamente" /> : null}
           </View>
-          <Text style={{ fontSize: FontSize.sm, color: c.textMuted }}>
+          <Text className="text-[14px] text-text-muted">
             {subtitle}
           </Text>
         </View>
@@ -82,11 +56,10 @@ function ReportCard({
 }
 
 export default function ReportsScreen() {
-  const c = useAppColors();
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, gap: 12 }}
+      className="flex-1 bg-background"
+      contentContainerClassName="p-4 gap-3"
       showsVerticalScrollIndicator={false}
     >
       <ReportCard
