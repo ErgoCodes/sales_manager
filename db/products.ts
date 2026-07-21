@@ -46,7 +46,13 @@ export async function getProduct(id: number): Promise<Product | undefined> {
 }
 
 export async function createProduct(data: ProductData): Promise<number> {
-  const [row] = await db.insert(products).values(data).returning({ id: products.id });
+  const [row] = await db
+    .insert(products)
+    .values({
+      ...data,
+      averageCost: data.costPrice ?? 0,
+    })
+    .returning({ id: products.id });
   return row.id;
 }
 

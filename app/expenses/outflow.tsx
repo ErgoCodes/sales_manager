@@ -20,6 +20,7 @@ import { calculateStock } from "@/db/queries";
 import { OUTFLOW_TYPES, type OutflowType } from "@/drizzle/constants/expenses";
 import { Colors, Radius, Shadows } from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
+import { effectiveUnitCost } from "@/lib/pricing";
 import { safeWrite } from "@/lib/safe-write";
 
 const schema = z.object({
@@ -102,7 +103,7 @@ export default function OutflowScreen() {
   function onProductSelected(p: SelectedProduct) {
     setProduct(p);
     setProductError("");
-    const cost = p.averageCost > 0 ? p.averageCost : (p.costPrice ?? 0);
+    const cost = effectiveUnitCost(p);
     if (cost > 0) setValue("unitCostPrice", String(cost));
   }
 
@@ -212,9 +213,9 @@ export default function OutflowScreen() {
             <Text variant="label">Costo promedio actual</Text>
             <Text variant="caption">
               $
-              {product.averageCost > 0
-                ? product.averageCost
-                : (product.costPrice ?? "—")}{" "}
+              {effectiveUnitCost(product) > 0
+                ? effectiveUnitCost(product)
+                : "—"}{" "}
               · {product.unitOfMeasure}
             </Text>
           </View>
