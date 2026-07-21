@@ -111,10 +111,17 @@ export default function ReportsScreen() {
         onPress={() => router.push("/reports/rankings")}
       />
       <ReportCard
+        icon="shippingbox.fill"
+        title="Entradas de inventario"
+        subtitle="Resumen de compras por producto"
+        delay={180}
+        onPress={() => router.push("/reports/stock-entries")}
+      />
+      <ReportCard
         icon="creditcard.fill"
         title="Pérdidas y gastos"
         subtitle="Desglose por categoría"
-        delay={180}
+        delay={240}
         onPress={() => router.push("/reports/losses")}
       />
     </ScrollView>

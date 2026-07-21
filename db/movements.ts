@@ -115,6 +115,58 @@ export async function restoreOutflow(id: number): Promise<void> {
   await db.update(warehouseMovements).set({ cancelled: false }).where(eq(warehouseMovements.id, id));
 }
 
+export interface EntrySummary {
+  productId: number;
+  productName: string;
+  unitOfMeasure: string;
+  totalQuantity: number;
+  totalCostValue: number;
+  entriesCount: number;
+  lastEntryDate: string;
+}
+
+/**
+ * Agrupa las entradas de inventario (tipo = 'entrada', cancelled = false) por producto
+ * en un rango de fechas opcional. Devuelve cantidad total, valor total a costo,
+ * cantidad de entradas y fecha de la última entrada, ordenadas por valor total descendente.
+ */
+export async function getEntriesSummaryByProduct(
+  from?: string,
+  to?: string,
+): Promise<EntrySummary[]> {
+  const conditions = [
+    eq(warehouseMovements.type, 'entrada'),
+    eq(warehouseMovements.cancelled, false),
+  ];
+  if (from)
+    conditions.push(sql`date(${warehouseMovements.date}) >= date(${from})`);
+  if (to)
+    conditions.push(sql`date(${warehouseMovements.date}) <= date(${to})`);
+
+  const totalQuantity = sql<number>`COALESCE(SUM(${warehouseMovements.quantity}), 0)`;
+  const totalCostValue = sql<number>`COALESCE(SUM(${warehouseMovements.quantity} * ${warehouseMovements.unitCostPrice}), 0)`;
+  const entriesCount = sql<number>`COUNT(*)`;
+  const lastEntryDate = sql<string>`MAX(${warehouseMovements.date})`;
+
+  const rows = await db
+    .select({
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      totalQuantity,
+      totalCostValue,
+      entriesCount,
+      lastEntryDate,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(and(...conditions))
+    .groupBy(warehouseMovements.productId)
+    .orderBy(desc(totalCostValue));
+
+  return rows;
+}
+
 export interface EntryWithProduct {
   id: number;
   productId: number;
@@ -133,7 +185,10 @@ interface ListOptions {
 }
 
 export async function listEntries(opts: ListOptions = {}): Promise<EntryWithProduct[]> {
-  const conditions = [eq(warehouseMovements.type, 'entrada')];
+  const conditions = [
+    eq(warehouseMovements.type, 'entrada'),
+    eq(warehouseMovements.cancelled, false),
+  ];
   if (opts.productId) conditions.push(eq(warehouseMovements.productId, opts.productId));
   if (opts.dateFrom)
     conditions.push(sql`date(${warehouseMovements.date}) >= date(${opts.dateFrom})`);
