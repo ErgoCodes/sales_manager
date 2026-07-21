@@ -143,7 +143,7 @@ export default function StockEntriesReportScreen() {
             TOTAL REPOSICIONES
           </Text>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-            <Text style={{ fontSize: FontSize.xxl, fontWeight: "800", color: c.text, fontVariant: ["tabular-nums"] }}>
+            <Text style={{ fontSize: FontSize["2xl"], fontWeight: "800", color: c.text, fontVariant: ["tabular-nums"] }}>
               {formatCurrency(totalCostSum)}
             </Text>
             <Text style={{ fontSize: FontSize.sm, color: c.tabIconDefault, fontVariant: ["tabular-nums"] }}>
