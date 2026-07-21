@@ -79,7 +79,7 @@ export default function NewSessionScreen() {
     if (!qty || qty <= 0) return;
 
     const effectiveDiscount = isCostSale ? 0 : discountPercentNum;
-    const unitCost = effectiveUnitCost(product);
+    const unitCost = product.costPrice ?? 0;
 
     let appliedPrice: number;
     let profit: number;
@@ -276,8 +276,8 @@ export default function NewSessionScreen() {
             </View>
             <Text variant="caption">
               Efectivo: ${product.cashPrice ?? "—"} · Transferencia: $
-              {product.transferPrice ?? "—"} · Costo prom: $
-              {effectiveUnitCost(product).toFixed(2)}
+              {product.transferPrice ?? "—"} · Costo: $
+              {(product.costPrice ?? 0).toFixed(2)}
             </Text>
 
             <View style={{ gap: 4 }}>

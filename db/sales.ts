@@ -101,7 +101,7 @@ export function registerSalesSession(
         throw new Error(`Producto ${item.productId} no encontrado`);
       }
 
-      const costAtSale = effectiveUnitCost(prod);
+      const costAtSale = prod.costPrice ?? 0;
       const profit = item.isCostSale
         ? 0
         : (item.appliedPrice - costAtSale) * item.quantity;
@@ -298,7 +298,7 @@ export async function runAverageCostBackfill(): Promise<{
     const prod = productMap.get(s.productId);
     if (!prod) continue;
 
-    const targetCost = effectiveUnitCost(prod);
+    const targetCost = prod.costPrice ?? 0;
     if (targetCost <= 0) continue;
 
     if (s.costAtSale === 0 || s.costAtSale < targetCost) {
