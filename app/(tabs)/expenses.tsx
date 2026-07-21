@@ -32,7 +32,7 @@ import { useAppColors } from "@/hooks/use-app-colors";
 import { formatCurrency } from "@/lib/format";
 import { safeWrite } from "@/lib/safe-write";
 
-const OUTFLOW_FILTER = ["merma", "retiro_owner", "ajuste"];
+const OUTFLOW_FILTER = ["merma", "retiro_owner"];
 
 const TONE_BY_TYPE: Record<string, BadgeTone> = {
   merma: "danger",
@@ -191,9 +191,11 @@ export default function ExpensesScreen() {
         const monthEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
         const [expenses, movements, expSum, lossSum] = await Promise.all([
-          listExpenses({ includeCancelled: showCancelled }),
+          listExpenses({ dateFrom: monthStart, dateTo: monthEnd, includeCancelled: showCancelled }),
           listMovements({
             types: OUTFLOW_FILTER,
+            dateFrom: monthStart,
+            dateTo: monthEnd,
             includeCancelled: showCancelled,
           }),
           sumExpenses(monthStart, monthEnd),
