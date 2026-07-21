@@ -15,13 +15,6 @@ import {
   type DailySummary,
   type ProductDaySummary,
 } from "@/db/queries";
-import {
-  Colors,
-  FontSize,
-  Overlay,
-  Radius,
-  Shadows,
-} from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { formatCurrency } from "@/lib/format";
 
@@ -78,27 +71,13 @@ export default function SalesScreen() {
               entering={FadeInDown.delay(60).duration(360).springify()}
             >
               <HeroCard padding={20}>
-                <Text
-                  style={{
-                    fontSize: FontSize.xs,
-                    fontWeight: "700",
-                    color: Overlay.text,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                  }}
-                >
+                <Text className="text-[13px] font-bold text-white/75 tracking-[1px] uppercase">
                   Total vendido
                 </Text>
                 <Text
                   selectable
-                  style={{
-                    fontSize: 36,
-                    fontWeight: "800",
-                    color: Colors.light.surface,
-                    letterSpacing: -1,
-                    marginTop: 4,
-                    fontVariant: ["tabular-nums"],
-                  }}
+                  style={{ fontVariant: ["tabular-nums"] }}
+                  className="text-[36px] font-extrabold text-white tracking-[-1px] mt-1"
                 >
                   {formatCurrency(summary.total)}
                 </Text>
@@ -106,20 +85,14 @@ export default function SalesScreen() {
                   <IconSymbol
                     name="sparkles"
                     size={13}
-                    color={Overlay.textStrong}
+                    color="rgba(255,255,255,0.85)"
                   />
-                  <Text
-                    style={{ fontSize: FontSize.md, color: Overlay.textStrong }}
-                  >
+                  <Text className="text-[15px] text-white/85">
                     Utilidad
                   </Text>
                   <Text
-                    style={{
-                      fontSize: FontSize.md,
-                      fontWeight: "700",
-                      color: Colors.light.surface,
-                      fontVariant: ["tabular-nums"],
-                    }}
+                    style={{ fontVariant: ["tabular-nums"] }}
+                    className="text-[15px] font-bold text-white"
                   >
                     {formatCurrency(summary.profit)}
                   </Text>
@@ -153,9 +126,7 @@ export default function SalesScreen() {
                 entering={FadeInDown.delay(180).duration(360).springify()}
                 className="flex-row items-center justify-between mt-1.5"
               >
-                <Text
-                  className="text-[11px] font-bold text-text-muted tracking-wide uppercase"
-                >
+                <Text className="text-[11px] font-bold text-text-muted tracking-wide uppercase">
                   Productos vendidos
                 </Text>
                 <Text
@@ -183,21 +154,8 @@ export default function SalesScreen() {
           <Animated.View
             entering={FadeInDown.delay(220 + index * 30).duration(280)}
           >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: c.surface,
-                borderRadius: Radius.lg,
-                padding: 14,
-                gap: 12,
-                borderCurve: "continuous",
-                boxShadow: Shadows.sm,
-              }}
-            >
-              <View
-                className="w-10 h-10 rounded-[14px] bg-surface-muted items-center justify-center"
-              >
+            <View className="flex-row items-center bg-surface rounded-2xl p-3.5 gap-3 shadow-sm">
+              <View className="w-10 h-10 rounded-[14px] bg-surface-muted items-center justify-center">
                 <IconSymbol name="bag.fill" size={18} color={c.tint} />
               </View>
               <View className="flex-1 gap-0.5">
@@ -222,12 +180,8 @@ export default function SalesScreen() {
                   {formatCurrency(item.totalRevenue)}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 11,
-                    color: c.cash,
-                    fontWeight: "600",
-                    fontVariant: ["tabular-nums"],
-                  }}
+                  style={{ fontVariant: ["tabular-nums"] }}
+                  className="text-[11px] text-semantic-cash font-semibold"
                 >
                   +{formatCurrency(item.totalProfit)}
                 </Text>
@@ -239,31 +193,10 @@ export default function SalesScreen() {
 
       <Pressable
         onPress={() => router.push("/sales/new-session")}
-        style={({ pressed }) => ({
-          position: "absolute",
-          bottom: 24,
-          right: 20,
-          height: 56,
-          paddingHorizontal: 22,
-          borderRadius: Radius.xl,
-          backgroundColor: Colors.light.tint,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 8,
-          borderCurve: "continuous",
-          boxShadow: Shadows.lg,
-          opacity: pressed ? 0.88 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
-        })}
+        className="absolute bottom-6 right-5 h-[56px] px-[22px] rounded-2xl bg-primary flex-row items-center gap-2 shadow-lg active:opacity-88 active:scale-[0.97]"
       >
-        <IconSymbol name="plus" size={22} color={Colors.light.surface} />
-        <Text
-          style={{
-            color: Colors.light.surface,
-            fontSize: 15,
-            fontWeight: "700",
-          }}
-        >
+        <IconSymbol name="plus" size={22} color="#FFFFFF" />
+        <Text className="text-white text-[15px] font-bold">
           Vender
         </Text>
       </Pressable>

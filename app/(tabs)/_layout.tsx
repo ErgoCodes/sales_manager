@@ -22,15 +22,7 @@ function HeaderIconButton({ name, onPress, accessibilityLabel }: HeaderIconButto
       hitSlop={10}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}
-      style={({ pressed }) => ({
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: pressed ? c.border : c.surfaceMuted,
-        borderCurve: 'continuous',
-      })}
+      className="w-[38px] h-[38px] rounded-xl items-center justify-center bg-surface-muted active:bg-border"
     >
       <IconSymbol name={name} size={20} color={c.tint} />
     </Pressable>

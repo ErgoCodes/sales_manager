@@ -12,13 +12,6 @@ import { CONFIG_KEYS, getConfig } from "@/db/config";
 import { listProducts, type ProductWithStock } from "@/db/products";
 import { getLastSaleDates } from "@/db/queries";
 import { getProductThreshold } from "@/drizzle/constants/catalog";
-import {
-  Colors,
-  FontSize,
-  Overlay,
-  Radius,
-  Shadows,
-} from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { formatCurrency } from "@/lib/format";
 import { isNearExpiration, isStagnant } from "@/lib/product-status";
@@ -139,37 +132,17 @@ export default function InventoryScreen() {
         ListFooterComponent={
           products.length > 0 ? (
             <HeroCard padding={18} style={{ marginTop: 14 }}>
-              <Text
-                style={{
-                  fontSize: FontSize.xs,
-                  fontWeight: "700",
-                  color: Overlay.text,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                }}
-              >
+              <Text className="text-[13px] font-bold text-white/75 tracking-[1px] uppercase">
                 Valor total del inventario
               </Text>
               <Text
                 selectable
-                style={{
-                  fontSize: FontSize["3xl"],
-                  fontWeight: "800",
-                  color: Colors.light.surface,
-                  letterSpacing: -0.8,
-                  marginTop: 6,
-                  fontVariant: ["tabular-nums"],
-                }}
+                style={{ fontVariant: ["tabular-nums"] }}
+                className="text-[30px] font-extrabold text-white tracking-[-0.8px] mt-1.5"
               >
                 {formatCurrency(totalInventory)}
               </Text>
-              <Text
-                style={{
-                  fontSize: FontSize.sm,
-                  color: Overlay.text,
-                  marginTop: 4,
-                }}
-              >
+              <Text className="text-[14px] text-white/75 mt-1">
                 {products.length} producto{products.length !== 1 ? "s" : ""} en
                 stock
               </Text>
@@ -182,26 +155,14 @@ export default function InventoryScreen() {
               onPress={() => router.push(`/catalog/${item.id}`)}
               accessibilityRole="button"
               accessibilityLabel={`Editar producto ${item.name}, stock actual ${item.stock} ${item.unitOfMeasure}`}
-              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+              className="active:opacity-85"
             >
               <View
-                style={{
-                  flexDirection: "row",
-                  backgroundColor: item.isLow ? c.lowStockBg : c.surface,
-                  borderRadius: Radius.lg,
-                  padding: 14,
-                  gap: 12,
-                  borderCurve: "continuous",
-                  boxShadow: Shadows.sm,
-                  borderLeftWidth: item.isLow ? 4 : 0,
-                  borderLeftColor: c.danger,
-                }}
+                className={`flex-row rounded-2xl p-3.5 gap-3 shadow-sm ${item.isLow ? "bg-semantic-low-stock-bg border-l-4 border-semantic-danger" : "bg-surface"}`}
               >
                 <View className="flex-1 gap-1.5">
                   <View className="flex-row items-center gap-2 flex-wrap">
-                    <Text
-                      className="text-[18px] font-bold text-text-strong"
-                    >
+                    <Text className="text-[18px] font-bold text-text-strong">
                       {item.name}
                     </Text>
                     {item.isLow ? (
@@ -240,25 +201,16 @@ export default function InventoryScreen() {
                 </View>
                 <View className="items-end justify-center min-w-[64px]">
                   <Text
-                    style={{
-                      fontSize: FontSize["2xl"],
-                      fontWeight: "800",
-                      color: item.isLow ? c.danger : c.text,
-                      letterSpacing: -0.5,
-                      fontVariant: ["tabular-nums"],
-                    }}
+                    style={{ fontVariant: ["tabular-nums"] }}
+                    className={`text-[24px] font-extrabold tracking-[-0.5px] ${item.isLow ? "text-semantic-danger" : "text-text-strong"}`}
                   >
                     {item.stock}
                   </Text>
-                  <Text
-                    className="text-[13px] text-tab-default font-semibold uppercase tracking-wide"
-                  >
+                  <Text className="text-[13px] text-tab-default font-semibold uppercase tracking-wide">
                     {item.unitOfMeasure}
                   </Text>
                   {item.isLow ? (
-                    <Text
-                      style={{ fontSize: 10, color: c.danger, marginTop: 2 }}
-                    >
+                    <Text className="text-[10px] text-semantic-danger mt-0.5">
                       min {item.threshold}
                     </Text>
                   ) : null}
@@ -273,23 +225,9 @@ export default function InventoryScreen() {
         onPress={() => router.push("/inventory/stock-entry")}
         accessibilityRole="button"
         accessibilityLabel="Agregar entrada de stock"
-        style={({ pressed }) => ({
-          position: "absolute",
-          bottom: 24,
-          right: 20,
-          width: 60,
-          height: 60,
-          borderRadius: Radius.xl,
-          backgroundColor: Colors.light.tint,
-          alignItems: "center",
-          justifyContent: "center",
-          borderCurve: "continuous",
-          boxShadow: Shadows.lg,
-          opacity: pressed ? 0.85 : 1,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-        })}
+        className="absolute bottom-6 right-5 w-[60px] h-[60px] rounded-2xl bg-primary items-center justify-center shadow-lg active:opacity-85 active:scale-[0.96]"
       >
-        <IconSymbol name="plus" size={28} color={Colors.light.surface} />
+        <IconSymbol name="plus" size={28} color="#FFFFFF" />
       </Pressable>
     </View>
   );
