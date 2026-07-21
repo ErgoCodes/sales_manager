@@ -1,6 +1,14 @@
 import { Stack, router } from "expo-router";
 import { useRef, useState } from "react";
-import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SectionList,
+  TextInput,
+  View,
+} from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -175,6 +183,26 @@ export default function NewSessionScreen() {
   const receivedNum = amountReceived === "" ? null : Number(amountReceived);
   const changeAmount = receivedNum === null ? null : receivedNum - cashDue;
 
+  const cashItems = items.filter((item) => item.paymentMethod === "efectivo");
+  const transferItems = items.filter(
+    (item) => item.paymentMethod === "transferencia"
+  );
+
+  const sections = [
+    {
+      title: "Efectivo",
+      method: "efectivo" as const,
+      subtotal: totalCash(),
+      data: cashItems,
+    },
+    {
+      title: "Transferencia",
+      method: "transferencia" as const,
+      subtotal: totalTransfer(),
+      data: transferItems,
+    },
+  ].filter((section) => section.data.length > 0);
+
   function addBill(bill: number) {
     const current = amountReceived === "" ? 0 : Number(amountReceived);
     setAmountReceived(String(current + bill));
@@ -189,7 +217,7 @@ export default function NewSessionScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={100}
     >
       <Stack.Screen options={{ title: "Nueva venta" }} />
@@ -423,20 +451,63 @@ export default function NewSessionScreen() {
         ) : null}
       </View>
 
-      <FlatList
-        data={items}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.key}
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingVertical: 12,
-          gap: 8,
         }}
+        stickySectionHeadersEnabled={false}
         ListEmptyComponent={
           <View style={{ alignItems: "center", paddingVertical: 48 }}>
             <Text variant="caption">Selecciona un producto para comenzar</Text>
           </View>
         }
+        renderSectionHeader={({ section: { title, method, subtotal } }) => (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingTop: 8,
+              paddingBottom: 6,
+              paddingHorizontal: 4,
+            }}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: method === "efectivo" ? c.cash : c.transfer,
+                }}
+              />
+              <Text
+                variant="label"
+                style={{
+                  color: method === "efectivo" ? c.cash : c.transfer,
+                  fontWeight: "600",
+                }}
+              >
+                {title}
+              </Text>
+            </View>
+            <Text
+              variant="label"
+              style={{
+                color: method === "efectivo" ? c.cash : c.transfer,
+                fontWeight: "600",
+              }}
+            >
+              ${formatAmount(subtotal)}
+            </Text>
+          </View>
+        )}
         renderItem={({ item }) => (
           <View
             style={{
@@ -446,6 +517,7 @@ export default function NewSessionScreen() {
               backgroundColor: c.surface,
               paddingHorizontal: 16,
               paddingVertical: 12,
+              marginBottom: 8,
               boxShadow: Shadows.sm,
             }}
           >
@@ -471,30 +543,6 @@ export default function NewSessionScreen() {
                 </Text>
               </View>
             ) : null}
-            <View
-              style={{
-                borderRadius: Radius.full,
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                marginRight: item.isCostSale ? 4 : 12,
-                backgroundColor:
-                  item.paymentMethod === "efectivo"
-                    ? c.cashSoft
-                    : c.transferSoft,
-              }}
-            >
-              <Text
-                variant="caption"
-                style={{
-                  color:
-                    item.paymentMethod === "efectivo"
-                      ? c.cash
-                      : c.transfer,
-                }}
-              >
-                {item.paymentMethod === "efectivo" ? "E" : "T"}
-              </Text>
-            </View>
             {item.isCostSale ? (
               <View
                 style={{
@@ -510,14 +558,14 @@ export default function NewSessionScreen() {
                 </Text>
               </View>
             ) : null}
-             <Pressable
+            <Pressable
               onPress={() => removeItem(item.key)}
               accessibilityRole="button"
               accessibilityLabel={`Quitar ${item.name} del carrito`}
               hitSlop={12}
-             >
-               <Text style={{ color: c.danger, fontSize: 18 }}>✕</Text>
-             </Pressable>
+            >
+              <Text style={{ color: c.danger, fontSize: 18 }}>✕</Text>
+            </Pressable>
           </View>
         )}
       />
