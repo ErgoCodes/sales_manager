@@ -38,6 +38,7 @@ const schema = z.object({
     .refine((v) => Number.isInteger(Number(v)), "Debe ser un número entero"),
   costPrice: positivePrice("Debe ser mayor que 0"),
   cashPrice: positivePrice("Debe ser mayor que 0"),
+  transferPrice: positivePrice("Debe ser mayor que 0"),
   expirationDate: z
     .string()
     .optional()
@@ -70,6 +71,7 @@ export default function ProductFormScreen() {
       lowStockThreshold: "",
       costPrice: "",
       cashPrice: "",
+      transferPrice: "",
       expirationDate: "",
     },
   });
@@ -80,6 +82,7 @@ export default function ProductFormScreen() {
   } | null>(null);
   const [discountPct, setDiscountPct] = useState(15);
   const [transferSurchargePct, setTransferSurchargePct] = useState(10);
+  const [transferTouched, setTransferTouched] = useState(!isNew);
   const [currentStock, setCurrentStock] = useState(0);
   const [rebajaApplied, setRebajaApplied] = useState(false);
   const [priceBeforeRebaja, setPriceBeforeRebaja] = useState(0);
@@ -97,6 +100,7 @@ export default function ProductFormScreen() {
           p.lowStockThreshold != null ? String(p.lowStockThreshold) : "",
         costPrice: p.costPrice != null ? String(p.costPrice) : "",
         cashPrice: p.cashPrice != null ? String(p.cashPrice) : "",
+        transferPrice: p.transferPrice != null ? String(p.transferPrice) : "",
         expirationDate: p.expirationDate ?? "",
       });
 
@@ -121,7 +125,16 @@ export default function ProductFormScreen() {
   const costNum = Number(costStr) || 0;
   const cashNum = Number(cashStr) || 0;
   const transferNum = cashNum > 0 ? calculateTransferPrice(cashNum, transferSurchargePct) : 0;
+  const transferStr = watch("transferPrice");
+  const transferValue = Number(transferStr) || 0;
   const suggested = costNum > 0 ? Math.round(costNum * 1.3 * 100) / 100 : 0;
+
+  // Mientras el usuario no edite el precio de transferencia a mano, se
+  // mantiene sincronizado con el sugerido (efectivo + recargo).
+  useEffect(() => {
+    if (transferTouched) return;
+    setValue("transferPrice", transferNum > 0 ? String(transferNum) : "");
+  }, [transferNum, transferTouched, setValue]);
   const suggestedRebaja =
     cashNum > 0 ? Math.round(cashNum * (1 - discountPct / 100)) : 0;
 
@@ -134,7 +147,7 @@ export default function ProductFormScreen() {
       lowStockThreshold: Number(values.lowStockThreshold),
       costPrice: Number(values.costPrice),
       cashPrice: cash,
-      transferPrice: calculateTransferPrice(cash, transferSurchargePct),
+      transferPrice: Number(values.transferPrice),
       expirationDate: values.expirationDate?.trim() || null,
     };
 
@@ -270,6 +283,54 @@ export default function ProductFormScreen() {
 
         <Controller
           control={control}
+          name="transferPrice"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Precio transferencia"
+              value={value}
+              onChangeText={(text) => {
+                setTransferTouched(true);
+                onChange(text);
+              }}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 145"
+              error={errors.transferPrice?.message}
+            />
+          )}
+        />
+
+        {transferNum > 0 && transferValue !== transferNum ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              borderRadius: Radius.md,
+              backgroundColor: c.transferSoft,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
+          >
+            <Text variant="caption" style={{ flex: 1, color: c.transfer }}>
+              ≈ Sugerido: ${transferNum} (efectivo +{transferSurchargePct}%)
+            </Text>
+            <Pressable
+              hitSlop={8}
+              onPress={() => {
+                setTransferTouched(true);
+                setValue("transferPrice", String(transferNum));
+              }}
+            >
+              <Text variant="label" style={{ color: c.transfer }}>
+                Usar sugerido
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        <Controller
+          control={control}
           name="expirationDate"
           render={({ field: { onChange, value } }) => (
             <DatePicker
@@ -371,7 +432,7 @@ export default function ProductFormScreen() {
               Transferencia
             </Text>
             <Text variant="body" style={{ fontWeight: "600" }}>
-              {transferNum > 0 ? `$${transferNum}` : "—"}
+              {transferValue > 0 ? `$${transferValue}` : "—"}
             </Text>
           </View>
         </View>

@@ -41,6 +41,7 @@ const schema = z.object({
   notes: z.string().optional(),
   newCostPrice: z.string().optional(),
   newCashPrice: z.string().optional(),
+  newTransferPrice: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -75,6 +76,7 @@ export default function StockEntryScreen() {
       notes: "",
       newCostPrice: "",
       newCashPrice: "",
+      newTransferPrice: "",
     },
   });
 
@@ -87,6 +89,8 @@ export default function StockEntryScreen() {
     if (updatePrices) {
       if (p.costPrice != null) setValue("newCostPrice", String(p.costPrice));
       if (p.cashPrice != null) setValue("newCashPrice", String(p.cashPrice));
+      if (p.transferPrice != null)
+        setValue("newTransferPrice", String(p.transferPrice));
     }
   }
 
@@ -112,6 +116,9 @@ export default function StockEntryScreen() {
         const cash = values.newCashPrice
           ? Number(values.newCashPrice)
           : undefined;
+        const transfer = values.newTransferPrice
+          ? Number(values.newTransferPrice)
+          : undefined;
         if (cost && cost > 0 && cash && cash > 0) {
           await updateProduct(product.id, {
             name: product.name,
@@ -120,7 +127,10 @@ export default function StockEntryScreen() {
             lowStockThreshold: null,
             costPrice: cost,
             cashPrice: cash,
-            transferPrice: calculateTransferPrice(cash, transferSurchargePct),
+            transferPrice:
+              transfer && transfer > 0
+                ? transfer
+                : calculateTransferPrice(cash, transferSurchargePct),
           });
         }
       }
@@ -267,6 +277,20 @@ export default function StockEntryScreen() {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   keyboardType="numeric"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="newTransferPrice"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Nuevo precio transferencia"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  keyboardType="numeric"
+                  placeholder="Vacío = calculado automáticamente"
                 />
               )}
             />
