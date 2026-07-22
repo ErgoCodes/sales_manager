@@ -45,6 +45,8 @@ export default function NewSessionScreen() {
   const [workerSale, setWorkerSale] = useState(false);
   const [discountExpanded, setDiscountExpanded] = useState(false);
   const [discountPercent, setDiscountPercent] = useState("");
+  const [transferPriceExpanded, setTransferPriceExpanded] = useState(false);
+  const [transferPriceOverride, setTransferPriceOverride] = useState("");
   const [amountReceived, setAmountReceived] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -52,6 +54,13 @@ export default function NewSessionScreen() {
   const quantityRef = useRef<TextInput>(null);
 
   const discountPercentNum = discountPercent === "" ? 0 : Number(discountPercent);
+
+  const transferOverrideNum =
+    transferPriceOverride === "" ? null : Number(transferPriceOverride);
+  const transferBase =
+    transferOverrideNum && transferOverrideNum > 0
+      ? transferOverrideNum
+      : (product?.transferPrice ?? 0);
 
   function handleDiscountChange(text: string) {
     const cleaned = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
@@ -67,6 +76,8 @@ export default function NewSessionScreen() {
     setWorkerSale(false);
     setDiscountExpanded(false);
     setDiscountPercent("");
+    setTransferPriceExpanded(false);
+    setTransferPriceOverride("");
     setTimeout(() => quantityRef.current?.focus(), 50);
   }
 
@@ -88,9 +99,7 @@ export default function NewSessionScreen() {
       profit = 0;
     } else {
       const basePrice =
-        paymentMethod === "efectivo"
-          ? (product.cashPrice ?? 0)
-          : (product.transferPrice ?? 0);
+        paymentMethod === "efectivo" ? (product.cashPrice ?? 0) : transferBase;
       appliedPrice = basePrice * (1 - effectiveDiscount / 100);
       profit = (appliedPrice - unitCost) * qty;
     }
@@ -113,6 +122,8 @@ export default function NewSessionScreen() {
     setWorkerSale(false);
     setDiscountExpanded(false);
     setDiscountPercent("");
+    setTransferPriceExpanded(false);
+    setTransferPriceOverride("");
   }
 
   async function saveSession() {
@@ -264,6 +275,8 @@ export default function NewSessionScreen() {
                   setWorkerSale(false);
                   setDiscountExpanded(false);
                   setDiscountPercent("");
+                  setTransferPriceExpanded(false);
+                  setTransferPriceOverride("");
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Cerrar selección de producto"
@@ -337,6 +350,35 @@ export default function NewSessionScreen() {
                 onChangeText={handleDiscountChange}
                 keyboardType="numeric"
                 placeholder="0"
+              />
+            ) : null}
+
+            {!workerSale ? (
+              <Checkbox
+                checked={transferPriceExpanded}
+                onPress={() =>
+                  setTransferPriceExpanded((v) => {
+                    const next = !v;
+                    if (!next) setTransferPriceOverride("");
+                    return next;
+                  })
+                }
+                label="Precio transf. personalizado"
+                activeColor={c.transfer}
+              />
+            ) : null}
+
+            {!workerSale && transferPriceExpanded ? (
+              <Input
+                label="Precio transferencia"
+                value={transferPriceOverride}
+                onChangeText={(text) =>
+                  setTransferPriceOverride(
+                    text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1")
+                  )
+                }
+                keyboardType="numeric"
+                placeholder={String(product.transferPrice ?? "")}
               />
             ) : null}
 
@@ -439,11 +481,8 @@ export default function NewSessionScreen() {
                   >
                     Transfer $
                     {discountPercentNum > 0
-                      ? (
-                          (product.transferPrice ?? 0) *
-                          (1 - discountPercentNum / 100)
-                        ).toFixed(2)
-                      : (product.transferPrice ?? 0)}
+                      ? (transferBase * (1 - discountPercentNum / 100)).toFixed(2)
+                      : transferBase}
                   </Text>
                 </Pressable>
               </View>
