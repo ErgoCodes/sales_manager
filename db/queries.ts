@@ -127,9 +127,19 @@ export interface ProductDaySummary {
 }
 
 export async function getDailyBreakdown(
-  date: string
+  date: string,
+  paymentMethodFilter?: "efectivo" | "transferencia"
 ): Promise<ProductDaySummary[]> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
+
+  const conditions = [
+    eq(sales.cancelled, false),
+    sql`date(${sales.date}) = date(${date})`
+  ];
+
+  if (paymentMethodFilter) {
+    conditions.push(eq(sales.paymentMethod, paymentMethodFilter));
+  }
 
   return db
     .select({
@@ -141,9 +151,7 @@ export async function getDailyBreakdown(
     })
     .from(sales)
     .innerJoin(products, eq(sales.productId, products.id))
-    .where(
-      and(eq(sales.cancelled, false), sql`date(${sales.date}) = date(${date})`)
-    )
+    .where(and(...conditions))
     .groupBy(sales.productId)
     .orderBy(desc(sql`COALESCE(SUM(${revenue}), 0)`));
 }

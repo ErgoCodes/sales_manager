@@ -21,6 +21,7 @@ import { formatCurrency } from "@/lib/format";
 export default function SalesScreen() {
   const c = useAppColors();
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [filter, setFilter] = useState<"all" | "efectivo" | "transferencia">("all");
   const [summary, setSummary] = useState<DailySummary>({
     cash: 0,
     transfer: 0,
@@ -34,7 +35,7 @@ export default function SalesScreen() {
     (async () => {
       const [s, b] = await Promise.all([
         getDailySummary(date),
-        getDailyBreakdown(date),
+        getDailyBreakdown(date, filter === "all" ? undefined : filter),
       ]);
       if (active) {
         setSummary(s);
@@ -44,7 +45,7 @@ export default function SalesScreen() {
     return () => {
       active = false;
     };
-  }, [date]);
+  }, [date, filter]);
 
   useFocusEffect(load);
 
@@ -70,34 +71,42 @@ export default function SalesScreen() {
             <Animated.View
               entering={FadeInDown.delay(60).duration(360).springify()}
             >
-              <HeroCard padding={20}>
-                <Text className="text-[13px] font-bold text-white/75 tracking-[1px] uppercase">
-                  Total vendido
-                </Text>
-                <Text
-                  selectable
-                  style={{ fontVariant: ["tabular-nums"] }}
-                  className="text-[36px] font-extrabold text-white tracking-[-1px] mt-1"
-                >
-                  {formatCurrency(summary.total)}
-                </Text>
-                <View className="flex-row items-center gap-1.5 mt-1.5">
-                  <IconSymbol
-                    name="sparkles"
-                    size={13}
-                    color="rgba(255,255,255,0.85)"
-                  />
-                  <Text className="text-[15px] text-white/85">
-                    Utilidad
+              <Pressable
+                onPress={() => setFilter("all")}
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.8 : (filter === "all" ? 1 : 0.4),
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                })}
+              >
+                <HeroCard padding={20}>
+                  <Text className="text-[13px] font-bold text-white/75 tracking-[1px] uppercase">
+                    Total vendido
                   </Text>
                   <Text
+                    selectable
                     style={{ fontVariant: ["tabular-nums"] }}
-                    className="text-[15px] font-bold text-white"
+                    className="text-[36px] font-extrabold text-white tracking-[-1px] mt-1"
                   >
-                    {formatCurrency(summary.profit)}
+                    {formatCurrency(summary.total)}
                   </Text>
-                </View>
-              </HeroCard>
+                  <View className="flex-row items-center gap-1.5 mt-1.5">
+                    <IconSymbol
+                      name="sparkles"
+                      size={13}
+                      color="rgba(255,255,255,0.85)"
+                    />
+                    <Text className="text-[15px] text-white/85">
+                      Utilidad
+                    </Text>
+                    <Text
+                      style={{ fontVariant: ["tabular-nums"] }}
+                      className="text-[15px] font-bold text-white"
+                    >
+                      {formatCurrency(summary.profit)}
+                    </Text>
+                  </View>
+                </HeroCard>
+              </Pressable>
             </Animated.View>
 
             {/* Mini stats row */}
@@ -105,20 +114,38 @@ export default function SalesScreen() {
               entering={FadeInDown.delay(120).duration(360).springify()}
               className="flex-row gap-2.5"
             >
-              <StatCard
-                icon="dollarsign.circle.fill"
-                label="Efectivo"
-                value={formatCurrency(summary.cash)}
-                accent={c.cash}
-                iconBg={c.cashSoft}
-              />
-              <StatCard
-                icon="arrow.left.arrow.right.circle.fill"
-                label="Transferencia"
-                value={formatCurrency(summary.transfer)}
-                accent={c.transfer}
-                iconBg={c.transferSoft}
-              />
+              <Pressable
+                style={({ pressed }) => ({
+                  flex: 1,
+                  opacity: pressed ? 0.8 : (filter === "all" || filter === "efectivo" ? 1 : 0.4),
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                })}
+                onPress={() => setFilter(filter === "efectivo" ? "all" : "efectivo")}
+              >
+                <StatCard
+                  icon="dollarsign.circle.fill"
+                  label="Efectivo"
+                  value={formatCurrency(summary.cash)}
+                  accent={c.cash}
+                  iconBg={c.cashSoft}
+                />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => ({
+                  flex: 1,
+                  opacity: pressed ? 0.8 : (filter === "all" || filter === "transferencia" ? 1 : 0.4),
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                })}
+                onPress={() => setFilter(filter === "transferencia" ? "all" : "transferencia")}
+              >
+                <StatCard
+                  icon="arrow.left.arrow.right.circle.fill"
+                  label="Transferencia"
+                  value={formatCurrency(summary.transfer)}
+                  accent={c.transfer}
+                  iconBg={c.transferSoft}
+                />
+              </Pressable>
             </Animated.View>
 
             {breakdown.length > 0 ? (
