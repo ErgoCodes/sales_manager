@@ -91,13 +91,9 @@ export function Button({
         let borderWidth = 0;
 
         if (variant === "default") {
-          bg = pressed ? (c.scheme === "dark" ? "#2DD4BF" : "#115E59") : c.tint;
+          bg = pressed ? "#115E59" : c.tint;
         } else if (variant === "soft") {
-          bg = pressed
-            ? c.scheme === "dark"
-              ? "#0F766E"
-              : "#CCFBF1"
-            : c.tealSoft;
+          bg = pressed ? "#CCFBF1" : c.tealSoft;
         } else if (variant === "outline") {
           bg = pressed ? c.surfaceMuted : c.surface;
           borderColor = c.tint;

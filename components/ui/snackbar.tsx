@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 
 import { Radius, Shadows } from "@/drizzle/constants/theme";
-import { useAppColors } from "@/hooks/use-app-colors";
 
 interface SnackbarProps {
   visible: boolean;
@@ -27,7 +26,6 @@ export function Snackbar({
   duration = 5000,
 }: SnackbarProps) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const c = useAppColors();
 
   useEffect(() => {
     if (!visible) return;
@@ -71,7 +69,7 @@ export function Snackbar({
           justifyContent: "space-between",
           gap: 12,
           borderRadius: Radius.lg,
-          backgroundColor: c.scheme === "dark" ? "#334155" : "#1E293B",
+          backgroundColor: "#1E293B",
           paddingHorizontal: 16,
           paddingVertical: 12,
           boxShadow: Shadows.lg,
@@ -91,7 +89,7 @@ export function Snackbar({
           >
             <Text
               style={{
-                color: c.scheme === "dark" ? "#5EEAD4" : "#5EEAD4",
+                color: "#5EEAD4",
                 fontSize: 14,
                 fontWeight: "700",
                 textTransform: "uppercase",
