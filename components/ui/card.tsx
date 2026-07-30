@@ -25,7 +25,7 @@ export function Card({
   let borderWidth = 0;
 
   if (variant === "tinted") {
-    bg = c.scheme === "dark" ? "#134E4A" : c.tealSoft;
+    bg = c.tealSoft;
   } else if (variant === "outline") {
     bg = c.surface;
     borderColor = c.border;

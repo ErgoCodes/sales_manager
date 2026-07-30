@@ -35,28 +35,3 @@
   --radius-xl: 20px;
 }
 
-.dark {
-  --color-primary: #5EEAD4;
-  --color-primary-soft: #134E4A;
-  --color-background: #0B1220;
-  --color-surface: #111827;
-  --color-surface-muted: #1F2937;
-  --color-text-strong: #ECEDEE;
-  --color-text-muted: #94A3B8;
-  --color-border: #1F2937;
-  --color-icon: #9BA1A6;
-  --color-tab-default: #475569;
-
-  --color-cash: #34D399;
-  --color-cash-soft: #064E3B;
-  --color-transfer: #818CF8;
-  --color-transfer-soft: #312E81;
-  --color-cost: #FBBF24;
-  --color-cost-soft: #78350F;
-  --color-danger: #F87171;
-  --color-danger-soft: #7F1D1D;
-  --color-warning: #FBBF24;
-  --color-warning-soft: #78350F;
-  --color-neutral: #94A3B8;
-  --color-neutral-soft: #1F2937;
-}
