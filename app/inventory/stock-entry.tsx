@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { Stack, router } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/product-picker";
 import { Text } from "@/components/ui/text";
 import { CONFIG_KEYS, getConfig } from "@/db/config";
-import { registerEntry } from "@/db/movements";
+import { getEntryById, registerEntry, updateEntry } from "@/db/movements";
 import { updateProduct } from "@/db/products";
 import { Radius, Shadows } from "@/drizzle/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
@@ -48,6 +48,8 @@ type FormValues = z.infer<typeof schema>;
 
 export default function StockEntryScreen() {
   const c = useAppColors();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEdit = !!id;
   const [product, setProduct] = useState<SelectedProduct | null>(null);
   const [productError, setProductError] = useState("");
   const [updatePrices, setUpdatePrices] = useState(false);
@@ -66,6 +68,7 @@ export default function StockEntryScreen() {
     control,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -79,6 +82,34 @@ export default function StockEntryScreen() {
       newTransferPrice: "",
     },
   });
+
+  useEffect(() => {
+    if (id) {
+      (async () => {
+        const row = await getEntryById(Number(id));
+        if (row) {
+          setProduct({
+            id: row.productId,
+            name: row.productName,
+            unitOfMeasure: row.unitOfMeasure,
+            costPrice: row.costPrice,
+            cashPrice: row.cashPrice,
+            transferPrice: row.transferPrice,
+            averageCost: row.averageCost,
+          });
+          reset({
+            quantity: String(row.quantity),
+            unitCostPrice: String(row.unitCostPrice),
+            date: row.date,
+            notes: row.notes ?? "",
+            newCostPrice: "",
+            newCashPrice: "",
+            newTransferPrice: "",
+          });
+        }
+      })();
+    }
+  }, [id, reset]);
 
   function onProductSelected(p: SelectedProduct) {
     setProduct(p);
@@ -100,41 +131,54 @@ export default function StockEntryScreen() {
       return;
     }
 
-    const result = await safeWrite(async () => {
-      await registerEntry({
-        productId: product.id,
-        quantity: Number(values.quantity),
-        unitCostPrice: Number(values.unitCostPrice),
-        date: values.date,
-        notes: values.notes || null,
-      });
-
-      if (updatePrices) {
-        const cost = values.newCostPrice
-          ? Number(values.newCostPrice)
-          : undefined;
-        const cash = values.newCashPrice
-          ? Number(values.newCashPrice)
-          : undefined;
-        const transfer = values.newTransferPrice
-          ? Number(values.newTransferPrice)
-          : undefined;
-        if (cost && cost > 0 && cash && cash > 0) {
-          await updateProduct(product.id, {
-            name: product.name,
-            unitOfMeasure: product.unitOfMeasure,
-            category: null,
-            lowStockThreshold: null,
-            costPrice: cost,
-            cashPrice: cash,
-            transferPrice:
-              transfer && transfer > 0
-                ? transfer
-                : calculateTransferPrice(cash, transferSurchargePct),
+    const result = await safeWrite(
+      async () => {
+        if (isEdit) {
+          await updateEntry(Number(id), {
+            productId: product.id,
+            quantity: Number(values.quantity),
+            unitCostPrice: Number(values.unitCostPrice),
+            date: values.date,
+            notes: values.notes || null,
+          });
+        } else {
+          await registerEntry({
+            productId: product.id,
+            quantity: Number(values.quantity),
+            unitCostPrice: Number(values.unitCostPrice),
+            date: values.date,
+            notes: values.notes || null,
           });
         }
-      }
-    });
+
+        if (!isEdit && updatePrices) {
+          const cost = values.newCostPrice
+            ? Number(values.newCostPrice)
+            : undefined;
+          const cash = values.newCashPrice
+            ? Number(values.newCashPrice)
+            : undefined;
+          const transfer = values.newTransferPrice
+            ? Number(values.newTransferPrice)
+            : undefined;
+          if (cost && cost > 0 && cash && cash > 0) {
+            await updateProduct(product.id, {
+              name: product.name,
+              unitOfMeasure: product.unitOfMeasure,
+              category: null,
+              lowStockThreshold: null,
+              costPrice: cost,
+              cashPrice: cash,
+              transferPrice:
+                transfer && transfer > 0
+                  ? transfer
+                  : calculateTransferPrice(cash, transferSurchargePct),
+            });
+          }
+        }
+      },
+      isEdit ? "Error al guardar cambios" : "No se pudo guardar"
+    );
 
     if (result.ok) {
       router.back();
@@ -148,7 +192,7 @@ export default function StockEntryScreen() {
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <Stack.Screen options={{ title: "Registrar entrada" }} />
+        <Stack.Screen options={{ title: isEdit ? "Editar entrada" : "Registrar entrada" }} />
 
         <ProductPicker
           label="Producto"
@@ -238,14 +282,16 @@ export default function StockEntryScreen() {
           )}
         />
 
-        <Checkbox
-          checked={updatePrices}
-          onPress={() => setUpdatePrices((v) => !v)}
-          label="Actualizar precios del catálogo"
-          activeColor={c.transfer}
-        />
+        {!isEdit ? (
+          <Checkbox
+            checked={updatePrices}
+            onPress={() => setUpdatePrices((v) => !v)}
+            label="Actualizar precios del catálogo"
+            activeColor={c.transfer}
+          />
+        ) : null}
 
-        {updatePrices ? (
+        {!isEdit && updatePrices ? (
           <View
             style={{
               gap: 12,
@@ -298,7 +344,15 @@ export default function StockEntryScreen() {
         ) : null}
 
         <Button
-          label={isSubmitting ? "Registrando…" : "Registrar entrada"}
+          label={
+            isSubmitting
+              ? isEdit
+                ? "Guardando…"
+                : "Registrando…"
+              : isEdit
+                ? "Guardar cambios"
+                : "Registrar entrada"
+          }
           onPress={onSubmit}
           disabled={isSubmitting}
         />

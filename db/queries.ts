@@ -85,6 +85,48 @@ export async function recalculateAverageCost(
   );
 }
 
+/**
+ * Recalcula el costo promedio ponderado desde cero, iterando todas las
+ * entradas activas del producto. Retorna el nuevo averageCost, o el
+ * costPrice del producto si no hay entradas.
+ */
+export async function recalculateAverageCostFromScratch(
+  productId: number
+): Promise<number> {
+  const entries = await db
+    .select({
+      quantity: warehouseMovements.quantity,
+      unitCostPrice: warehouseMovements.unitCostPrice,
+    })
+    .from(warehouseMovements)
+    .where(
+      and(
+        eq(warehouseMovements.productId, productId),
+        eq(warehouseMovements.type, "entrada"),
+        eq(warehouseMovements.cancelled, false)
+      )
+    )
+    .orderBy(warehouseMovements.date);
+
+  if (entries.length === 0) {
+    const [prod] = await db
+      .select({ costPrice: products.costPrice })
+      .from(products)
+      .where(eq(products.id, productId));
+    return prod?.costPrice ?? 0;
+  }
+
+  let totalQty = 0;
+  let totalValue = 0;
+  for (const e of entries) {
+    totalQty += e.quantity;
+    totalValue += e.quantity * e.unitCostPrice;
+  }
+
+  return totalQty > 0 ? totalValue / totalQty : 0;
+}
+
+
 export interface DailySummary {
   cash: number;
   transfer: number;
