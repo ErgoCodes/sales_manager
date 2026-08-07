@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { db } from '@/db/client';
+import { useScheduleReminders } from '@/hooks/use-schedule-reminders';
 import migrations from '../drizzle/migrations';
 
 export const unstable_settings = {
@@ -17,6 +18,8 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
+  useScheduleReminders(success);
+
 
   if (error) {
     return (

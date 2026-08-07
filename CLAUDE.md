@@ -37,6 +37,11 @@ No test runner is configured yet.
 
 All code identifiers (file names, variables, functions, types, constants) must be in English. Git branch names must also be in English. User-facing UI labels remain in Spanish (the app is for a Spanish-speaking user). DB column names in SQL strings (e.g., `'precio_costo'`) stay as-is to avoid migrations; only the JS/TS identifiers are English.
 
+## Build Requests
+
+Whenever the user asks to create or trigger a build (e.g. EAS build), ask which build profile/mode to run (e.g. preview, development, production), setting `preview` as the default/recommended option.
+
+
 ## Architecture
 
 **Routing** — Expo Router v6 (file-based). All screens live under `app/`. Route groups use parentheses: `(tabs)/`. Layouts are `_layout.tsx` files. Typed routes are enabled (`typedRoutes: true`), so use `router.push('/exact-path')` with the generated types.

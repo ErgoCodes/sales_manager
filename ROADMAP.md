@@ -434,8 +434,9 @@
 - [x] Compartir archivo de respaldo con share sheet nativo (`expo-sharing`)
 - [x] Función restaurar (`pickAndValidateBackupFile` + `restoreBackup`): selector de archivo, valida header SQLite, reemplaza DB local
   - Diálogo de confirmación previo (acción irreversible)
-- [ ] Recordatorio local semanal (ej. domingos por la noche) para hacer respaldo
-  - Reutilizar infraestructura de notificaciones de T-17 — **pendiente**: se dejó fuera de alcance para no duplicar el `setNotificationHandler` que T-17 ya registra; implementar como un segundo `scheduleX` en `lib/notifications.ts` gateado por su propia clave de config
+- [x] Recordatorio local semanal (domingos a las 20:00) para hacer respaldo
+  - Reutilizar infraestructura de notificaciones de T-17 gateado por `CONFIG_KEYS.backupReminderScheduled` e invocado en el layout raíz (`useScheduleReminders`)
+
 - [x] Mostrar fecha del último respaldo en pantalla de Configuración (`CONFIG_KEYS.lastBackup`)
 
 **Depende de:** T-01, T-20

@@ -15,7 +15,6 @@ import {
   type Period,
 } from "@/components/ui/period-bar";
 import { StatCard } from "@/components/ui/stat-card";
-import { CONFIG_KEYS, getConfig, setConfig } from "@/db/config";
 import {
   getDailyTotalsInRange,
   getLossesBreakdown,
@@ -35,11 +34,6 @@ import {
 import { useAppColors } from "@/hooks/use-app-colors";
 import { exportToExcel } from "@/lib/excel";
 import { formatCurrency } from "@/lib/format";
-import {
-  requestPermissions,
-  scheduleBackupReminder,
-  scheduleWeeklyReminder,
-} from "@/lib/notifications";
 
 function methodLabel(method: string): string {
   if (method === "efectivo") return "Efectivo";
@@ -68,34 +62,6 @@ export default function PeriodReportScreen() {
   const [losses, setLosses] = useState<LossesBreakdown>(EMPTY_LOSSES);
   const [exporting, setExporting] = useState(false);
 
-  // Programa recordatorios una sola vez (gateados por config).
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const weeklyFlag = await getConfig(CONFIG_KEYS.weeklyReminderScheduled);
-      const backupFlag = await getConfig(CONFIG_KEYS.backupReminderScheduled);
-      if (!active) return;
-
-      const needsWeekly = weeklyFlag !== "1";
-      const needsBackup = backupFlag !== "1";
-      if (!needsWeekly && !needsBackup) return;
-
-      const granted = await requestPermissions();
-      if (!granted || !active) return;
-
-      if (needsWeekly) {
-        await scheduleWeeklyReminder();
-        await setConfig(CONFIG_KEYS.weeklyReminderScheduled, "1");
-      }
-      if (needsBackup) {
-        await scheduleBackupReminder();
-        await setConfig(CONFIG_KEYS.backupReminderScheduled, "1");
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
