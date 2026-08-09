@@ -21,17 +21,19 @@ Use `pnpm` exclusively. Never use `npm` or `yarn`.
 ## Commands
 
 ```bash
-# Dev
-npx expo start           # Metro bundler (opens QR + dev server)
-npx expo start --android # Open directly on Android emulator/device
-npx expo start --ios     # Open directly on iOS simulator/device
-npx expo start --web     # Open in browser
+# Dev (from repository root)
+pnpm start
+pnpm android
+pnpm ios
+pnpm web
 
 # Quality
-npx expo lint            # ESLint (eslint-config-expo flat config)
+pnpm lint
+pnpm typecheck
+pnpm test:coverage
 ```
 
-No test runner is configured yet.
+Run Expo-specific commands from `apps/mobile/`. Shared pricing, stock, catalog, formatting, and product-status rules belong in `packages/domain/`.
 
 ## Naming Convention
 

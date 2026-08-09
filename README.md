@@ -2,7 +2,7 @@
 
 Sistema de gestión de inventario y ventas offline-first para un solo usuario (Yamile), dueña de un pequeño mercado. El principal objetivo de la aplicación es permitir llevar un control preciso de las ventas diarias desglosadas por método de pago (**efectivo vs. transferencia**) y calcular la utilidad real del negocio en tiempo real.
 
-Este proyecto está construido como una aplicación móvil offline-first que almacena todos sus datos localmente en una base de datos SQLite.
+Este monorepo contiene la aplicación móvil offline-first en `apps/mobile` y reglas de dominio compartidas en `packages/domain`; los datos se almacenan localmente en SQLite.
 
 ---
 
@@ -45,6 +45,13 @@ Sigue estos pasos para levantar el entorno local:
 2. **Iniciar el servidor de desarrollo de Expo**:
    ```bash
    pnpm start
+   ```
+
+3. **Verificar calidad**:
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   pnpm test:coverage
    ```
 
 3. **Ejecutar en emulador o dispositivo**:

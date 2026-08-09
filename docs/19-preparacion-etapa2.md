@@ -1,6 +1,6 @@
 # 19 · Preparación previa a Etapa 2 (plataforma multi-negocio)
 
-**Prioridad: ALTA · Estado: sección 1 completa · sección 2 sin iniciar**
+**Prioridad: ALTA · Estado: secciones 1 y 2 completas (2026-08-09).**
 
 > Este doc formaliza la fase previa a SP1 (ver [12-vision-multiplataforma.md](12-vision-multiplataforma.md) y el [spec de Etapa 2](superpowers/specs/2026-07-11-etapa2-plataforma-multinegocio-design.md)). SP1 exige "los tests de lógica financiera de la Etapa 1 en verde" como prerrequisito y da por hecho que el punto de enganche (`db/*.ts`) ya está aislado de las pantallas — ambas cosas hay que cerrarlas o confirmarlas antes de tocar el esquema. Estas dos tareas son honestamente auditables ahora mismo (no dependen de decisiones de producto pendientes), por eso van antes que SP1 y no dentro de él.
 
@@ -52,6 +52,8 @@ Las ventas valoran la utilidad al `costPrice` del catálogo (`db/sales.ts` en `r
 ---
 
 ## 2. Split a monorepo + `db/client.ts` inyectable
+
+**Estado: completa (2026-08-09).** La aplicación se trasladó a `apps/mobile` y las reglas de dominio puras viven en `packages/domain`. La conexión SQLite se inicializa explícitamente con `initDb()` y los repositorios resuelven la instancia activa mediante `getDb()`, lo que permite inyectar una instancia de prueba. La cobertura y CI corren recursivamente desde la raíz con pnpm.
 
 ### Estado actual
 
