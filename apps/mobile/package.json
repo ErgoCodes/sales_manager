@@ -14,6 +14,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@monaco/domain": "workspace:*",
     "@expo/vector-icons": "^15.0.3",
     "@hookform/resolvers": "^3.3.4",
     "@react-native-community/datetimepicker": "8.4.4",
@@ -88,6 +89,9 @@
       "!lib/excel.ts",
       "!lib/notifications.ts",
       "!lib/__tests__/**"
+      ,"!lib/pricing.ts"
+      ,"!lib/product-status.ts"
+      ,"!lib/format.ts"
     ],
     "coverageThreshold": {
       "global": {

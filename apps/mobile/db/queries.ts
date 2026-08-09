@@ -1,7 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
-import { getProductThreshold } from "@/drizzle/constants/catalog";
-import { effectiveUnitCost } from "../lib/pricing";
+import { blendAverageCost, effectiveUnitCost, getProductThreshold, POSITIVE_MOVEMENT_TYPES, weightedAverageCost } from "@monaco/domain";
 import { db } from "./client";
 import { CONFIG_KEYS, getConfig } from "./config";
 import { expenses, products, sales, warehouseMovements } from "./schema";
@@ -10,7 +9,7 @@ export async function calculateStock(productId: number): Promise<number> {
   const [movRow] = await db
     .select({
       total: sql<number>`COALESCE(SUM(CASE
-        WHEN ${warehouseMovements.type} IN ('entrada', 'ajuste') THEN ${warehouseMovements.quantity}
+        WHEN ${warehouseMovements.type} IN (${sql.raw(POSITIVE_MOVEMENT_TYPES.map((type) => `'${type}'`).join(', '))}) THEN ${warehouseMovements.quantity}
         ELSE -${warehouseMovements.quantity}
       END), 0)`,
     })
@@ -37,7 +36,7 @@ export async function calculateAllStocks(): Promise<Map<number, number>> {
     .select({
       productId: warehouseMovements.productId,
       total: sql<number>`COALESCE(SUM(CASE
-        WHEN ${warehouseMovements.type} IN ('entrada', 'ajuste') THEN ${warehouseMovements.quantity}
+        WHEN ${warehouseMovements.type} IN (${sql.raw(POSITIVE_MOVEMENT_TYPES.map((type) => `'${type}'`).join(', '))}) THEN ${warehouseMovements.quantity}
         ELSE -${warehouseMovements.quantity}
       END), 0)`,
     })
@@ -75,14 +74,7 @@ export async function recalculateAverageCost(
     .where(eq(products.id, productId));
 
   const currentAverageCost = prod ? effectiveUnitCost(prod) : 0;
-  const denominator = currentStock + newQuantity;
-
-  if (denominator <= 0) return newCost;
-  if (currentStock <= 0 || currentAverageCost <= 0) return newCost;
-
-  return (
-    (currentStock * currentAverageCost + newQuantity * newCost) / denominator
-  );
+  return blendAverageCost(currentStock, currentAverageCost, newQuantity, newCost);
 }
 
 /**
@@ -116,14 +108,7 @@ export async function recalculateAverageCostFromScratch(
     return prod?.costPrice ?? 0;
   }
 
-  let totalQty = 0;
-  let totalValue = 0;
-  for (const e of entries) {
-    totalQty += e.quantity;
-    totalValue += e.quantity * e.unitCostPrice;
-  }
-
-  return totalQty > 0 ? totalValue / totalQty : 0;
+  return weightedAverageCost(entries);
 }
 
 
