@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Shadows } from "@/drizzle/constants/theme";
+import { Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 interface StatCardProps {

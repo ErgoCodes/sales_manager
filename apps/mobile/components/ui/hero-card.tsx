@@ -1,6 +1,6 @@
 import { Pressable, View, type ViewStyle } from "react-native";
 
-import { Colors, Overlay, Radius, Shadows } from "@/drizzle/constants/theme";
+import { Colors, Overlay, Radius, Shadows } from "@/constants/theme";
 
 /**
  * Reusable hero card with tinted background and decorative orb overlays.

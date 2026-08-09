@@ -1,6 +1,6 @@
 import { View, type ViewProps } from "react-native";
 
-import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 type Variant = "default" | "tinted" | "outline" | "flat";

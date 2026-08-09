@@ -21,7 +21,7 @@ import {
 import { Snackbar } from "@/components/ui/snackbar";
 import { Text } from "@/components/ui/text";
 import { registerSalesSession, verifySessionStock } from "@/db/sales";
-import { Colors, Radius, Shadows } from "@/drizzle/constants/theme";
+import { Colors, Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { safeWrite } from "@/lib/safe-write";
 import { useCartStore } from "@/store";

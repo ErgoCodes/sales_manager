@@ -1,4 +1,4 @@
-import { Palette, type ColorScheme } from "@/drizzle/constants/theme";
+import { Palette, type ColorScheme } from "@/constants/theme";
 
 /**
  * Returns the flattened light palette (base colors + semantic tokens).

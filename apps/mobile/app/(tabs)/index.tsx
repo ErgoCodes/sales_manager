@@ -14,7 +14,7 @@ import {
   type DailySummary,
 } from "@/db/queries";
 import { useAppColors } from "@/hooks/use-app-colors";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@monaco/domain";
 
 const EMPTY_SUMMARY: DailySummary = {
   cash: 0,

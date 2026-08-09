@@ -12,7 +12,7 @@ import {
   listEntries,
   restoreEntry,
 } from "@/db/movements";
-import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { safeWrite } from "@/lib/safe-write";
 

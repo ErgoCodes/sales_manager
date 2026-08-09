@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Radius } from "@/drizzle/constants/theme";
+import { Radius } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 interface EmptyStateProps {

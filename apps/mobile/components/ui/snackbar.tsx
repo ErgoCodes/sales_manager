@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 
-import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { Radius, Shadows } from "@/constants/theme";
 
 interface SnackbarProps {
   visible: boolean;

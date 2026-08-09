@@ -11,7 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getExpenseById, registerExpense, updateExpense } from "@/db/expenses";
-import { EXPENSE_TYPES, type ExpenseType } from "@/drizzle/constants/expenses";
+import { EXPENSE_TYPES, type ExpenseType } from "@/constants/expenses";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { safeWrite } from "@/lib/safe-write";
 

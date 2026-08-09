@@ -15,17 +15,17 @@ import { CONFIG_KEYS, getConfig } from "@/db/config";
 import { listProducts } from "@/db/products";
 import { getDailySummary, type DailySummary } from "@/db/queries";
 import { listSales, type SaleWithProduct } from "@/db/sales";
-import { getProductThreshold } from "@/drizzle/constants/catalog";
+import { getProductThreshold } from "@monaco/domain";
 import {
   Colors,
   FontSize,
   Overlay,
   Radius,
   Shadows,
-} from "@/drizzle/constants/theme";
+} from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { exportToExcel } from "@/lib/excel";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@monaco/domain";
 
 function methodLabel(method: string): string {
   if (method === "efectivo") return "Efectivo";

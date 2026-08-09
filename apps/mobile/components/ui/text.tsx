@@ -1,6 +1,6 @@
 import { Text as RNText, type TextProps } from "react-native";
 
-import { FontSize } from "@/drizzle/constants/theme";
+import { FontSize } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 type Variant =

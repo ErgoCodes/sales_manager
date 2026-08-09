@@ -11,10 +11,10 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CONFIG_KEYS, getConfig } from "@/db/config";
 import { listProducts, type ProductWithStock } from "@/db/products";
 import { getLastSaleDates } from "@/db/queries";
-import { getProductThreshold } from "@/drizzle/constants/catalog";
+import { getProductThreshold } from "@monaco/domain";
 import { useAppColors } from "@/hooks/use-app-colors";
-import { formatCurrency } from "@/lib/format";
-import { isNearExpiration, isStagnant } from "@/lib/product-status";
+import { formatCurrency } from "@monaco/domain";
+import { isNearExpiration, isStagnant } from "@monaco/domain";
 
 interface ProductWithValue extends ProductWithStock {
   value: number;

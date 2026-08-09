@@ -16,7 +16,7 @@ import { useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, FontSize, Radius, Shadows } from "@/drizzle/constants/theme";
+import { Colors, FontSize, Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 const ISO = "yyyy-MM-dd";

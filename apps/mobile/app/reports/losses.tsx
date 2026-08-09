@@ -18,17 +18,17 @@ import {
   type LossCategory,
   type LossesBreakdown,
 } from "@/db/queries";
-import { getTypeLabel } from "@/drizzle/constants/expenses";
+import { getTypeLabel } from "@/constants/expenses";
 import {
   Colors,
   FontSize,
   Overlay,
   Radius,
   Shadows,
-} from "@/drizzle/constants/theme";
+} from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import { exportToExcel } from "@/lib/excel";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@monaco/domain";
 
 const EMPTY_LOSSES: LossesBreakdown = { categories: [], total: 0 };
 

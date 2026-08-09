@@ -13,7 +13,7 @@ import { useCallback, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FontSize, Radius } from "@/drizzle/constants/theme";
+import { FontSize, Radius } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 interface DatePickerProps {

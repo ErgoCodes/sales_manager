@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { Colors, FontSize, Radius, Overlay } from "@/drizzle/constants/theme";
+import { Colors, FontSize, Radius, Overlay } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 interface ChipProps {

@@ -3,7 +3,7 @@ import { es } from "date-fns/locale";
 import { Pressable, Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FontSize, Radius, Shadows } from "@/drizzle/constants/theme";
+import { FontSize, Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 export function formatDateHuman(iso: string): string {

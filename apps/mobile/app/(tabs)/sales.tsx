@@ -16,7 +16,7 @@ import {
   type ProductDaySummary,
 } from "@/db/queries";
 import { useAppColors } from "@/hooks/use-app-colors";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@monaco/domain";
 
 export default function SalesScreen() {
   const c = useAppColors();

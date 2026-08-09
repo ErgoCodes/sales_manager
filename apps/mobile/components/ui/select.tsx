@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 
-import { FontSize, Radius } from "@/drizzle/constants/theme";
+import { FontSize, Radius } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 export interface SelectOption {

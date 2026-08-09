@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { CONFIG_KEYS, getAllConfig, getConfig, setConfig } from "@/db/config";
-import { Radius } from "@/drizzle/constants/theme";
+import { Radius } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 import {
   BackupCancelledError,

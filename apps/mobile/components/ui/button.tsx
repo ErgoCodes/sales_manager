@@ -7,7 +7,7 @@ import {
 } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, FontSize, Radius } from "@/drizzle/constants/theme";
+import { Colors, FontSize, Radius } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 type Variant = "default" | "soft" | "outline" | "ghost" | "destructive";

@@ -18,9 +18,9 @@ import { Text } from "@/components/ui/text";
 import { CONFIG_KEYS, getConfig } from "@/db/config";
 import { getEntryById, registerEntry, updateEntry } from "@/db/movements";
 import { updateProduct } from "@/db/products";
-import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
-import { calculateTransferPrice } from "@/lib/pricing";
+import { calculateTransferPrice } from "@monaco/domain";
 import { safeWrite } from "@/lib/safe-write";
 
 const positivePrice = (msg: string) =>

@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { listProducts, type ProductWithStock } from "@/db/products";
-import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 import { Input } from "./input";

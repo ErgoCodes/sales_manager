@@ -24,7 +24,7 @@ import {
   restoreSale,
   updateSale,
 } from "@/db/sales";
-import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 function getBadgeStyle(paymentMethod: string, c: any) {

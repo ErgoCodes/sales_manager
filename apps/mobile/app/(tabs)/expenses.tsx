@@ -20,9 +20,9 @@ import {
   restoreOutflow,
   sumLossOutflowsValue,
 } from "@/db/movements";
-import { getTypeLabel } from "@/drizzle/constants/expenses";
+import { getTypeLabel } from "@/constants/expenses";
 import { useAppColors } from "@/hooks/use-app-colors";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@monaco/domain";
 import { safeWrite } from "@/lib/safe-write";
 
 const OUTFLOW_FILTER = ["merma", "retiro_owner"];

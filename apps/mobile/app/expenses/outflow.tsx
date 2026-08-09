@@ -17,10 +17,10 @@ import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { getOutflowById, registerOutflow, updateOutflow } from "@/db/movements";
 import { calculateStock } from "@/db/queries";
-import { OUTFLOW_TYPES, type OutflowType } from "@/drizzle/constants/expenses";
-import { Colors, Radius, Shadows } from "@/drizzle/constants/theme";
+import { OUTFLOW_TYPES, type OutflowType } from "@/constants/expenses";
+import { Colors, Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
-import { effectiveUnitCost } from "@/lib/pricing";
+import { effectiveUnitCost } from "@monaco/domain";
 import { safeWrite } from "@/lib/safe-write";
 
 const schema = z.object({

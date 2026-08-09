@@ -13,8 +13,8 @@ import {
   restoreProduct,
   type ProductWithStock,
 } from "@/db/products";
-import { CATEGORY_OPTIONS } from "@/drizzle/constants/catalog";
-import { Radius, Shadows } from "@/drizzle/constants/theme";
+import { CATEGORY_OPTIONS } from "@monaco/domain";
+import { Radius, Shadows } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 const CATEGORY_FILTER = [{ label: "Todas", value: "" }, ...CATEGORY_OPTIONS];

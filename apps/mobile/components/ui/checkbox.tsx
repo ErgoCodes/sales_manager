@@ -1,6 +1,6 @@
 import { Pressable, Text } from "react-native";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FontSize } from "@/drizzle/constants/theme";
+import { FontSize } from "@/constants/theme";
 import { useAppColors } from "@/hooks/use-app-colors";
 
 interface CheckboxProps {
