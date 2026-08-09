@@ -54,7 +54,7 @@ Sigue estos pasos para levantar el entorno local:
    pnpm test:coverage
    ```
 
-3. **Ejecutar en emulador o dispositivo**:
+4. **Ejecutar en emulador o dispositivo**:
    - Presiona `a` para abrir en un emulador Android (o ejecuta `pnpm android`).
    - Presiona `i` para abrir en un simulador iOS (o ejecuta `pnpm ios`).
    - Escanea el código QR desde la consola utilizando la aplicación Expo Go o tu build de desarrollo correspondiente.
