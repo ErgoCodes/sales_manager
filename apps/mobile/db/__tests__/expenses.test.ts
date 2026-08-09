@@ -12,7 +12,7 @@ import {
 
 // This will load db/__mocks__/client.ts
 jest.mock('../client');
-import { db } from '../client';
+import { getDb } from '../client';
 import { expenses } from '../schema';
 import { resetDb, seedExpense } from './helpers';
 
@@ -25,7 +25,7 @@ describe('db/expenses', () => {
     it('inserts a new expense row', async () => {
       await registerExpense({ type: 'salario', concept: 'Pago empleado', amount: 500, date: '2026-07-05T10:00:00Z' });
 
-      const rows = db.select().from(expenses).all();
+      const rows = getDb().select().from(expenses).all();
       expect(rows).toHaveLength(1);
       expect(rows[0]).toMatchObject({ type: 'salario', concept: 'Pago empleado', amount: 500 });
     });

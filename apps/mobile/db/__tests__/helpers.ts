@@ -1,4 +1,4 @@
-import { db } from '../client';
+import { getDb } from '../client';
 import {
   configuration,
   expenses,
@@ -9,17 +9,17 @@ import {
 } from '../schema';
 
 /**
- * Call this from `db` import must already be mocked (each test file needs its
+ * Call this from `getDb()` import must already be mocked (each test file needs its
  * own `jest.mock('../client')` before importing this helper — Jest hoists
  * mocks per-file, so it can't be centralized here).
  */
 export function resetDb() {
-  db.delete(sales).run();
-  db.delete(saleSessions).run();
-  db.delete(warehouseMovements).run();
-  db.delete(expenses).run();
-  db.delete(products).run();
-  db.delete(configuration).run();
+  getDb().delete(sales).run();
+  getDb().delete(saleSessions).run();
+  getDb().delete(warehouseMovements).run();
+  getDb().delete(expenses).run();
+  getDb().delete(products).run();
+  getDb().delete(configuration).run();
 }
 
 type ProductOverrides = Partial<{
@@ -37,7 +37,7 @@ type ProductOverrides = Partial<{
 }>;
 
 export function seedProduct(overrides: ProductOverrides = {}): number {
-  const [row] = db
+  const [row] = getDb()
     .insert(products)
     .values({
       name: 'Producto Test',
@@ -65,7 +65,7 @@ type EntryOverrides = Partial<{
 }>;
 
 export function seedEntry(productId: number, overrides: EntryOverrides = {}): number {
-  const [row] = db
+  const [row] = getDb()
     .insert(warehouseMovements)
     .values({
       productId,
@@ -90,7 +90,7 @@ type OutflowOverrides = Partial<{
 }>;
 
 export function seedOutflow(productId: number, overrides: OutflowOverrides = {}): number {
-  const [row] = db
+  const [row] = getDb()
     .insert(warehouseMovements)
     .values({
       productId,
@@ -119,7 +119,7 @@ type SaleOverrides = Partial<{
 }>;
 
 export function seedSale(productId: number, overrides: SaleOverrides = {}): number {
-  const [row] = db
+  const [row] = getDb()
     .insert(sales)
     .values({
       productId,
@@ -145,7 +145,7 @@ type ExpenseOverrides = Partial<{
 }>;
 
 export function seedExpense(overrides: ExpenseOverrides = {}): number {
-  const [row] = db
+  const [row] = getDb()
     .insert(expenses)
     .values({
       type: 'salario',

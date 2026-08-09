@@ -1,12 +1,12 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { blendAverageCost, effectiveUnitCost, getProductThreshold, POSITIVE_MOVEMENT_TYPES, weightedAverageCost } from "@monaco/domain";
-import { db } from "./client";
+import { getDb } from "./client";
 import { CONFIG_KEYS, getConfig } from "./config";
 import { expenses, products, sales, warehouseMovements } from "./schema";
 
 export async function calculateStock(productId: number): Promise<number> {
-  const [movRow] = await db
+  const [movRow] = await getDb()
     .select({
       total: sql<number>`COALESCE(SUM(CASE
         WHEN ${warehouseMovements.type} IN (${sql.raw(POSITIVE_MOVEMENT_TYPES.map((type) => `'${type}'`).join(', '))}) THEN ${warehouseMovements.quantity}
@@ -21,7 +21,7 @@ export async function calculateStock(productId: number): Promise<number> {
       )
     );
 
-  const [saleRow] = await db
+  const [saleRow] = await getDb()
     .select({
       total: sql<number>`COALESCE(SUM(${sales.quantity}), 0)`,
     })
@@ -32,7 +32,7 @@ export async function calculateStock(productId: number): Promise<number> {
 }
 
 export async function calculateAllStocks(): Promise<Map<number, number>> {
-  const movRows = await db
+  const movRows = await getDb()
     .select({
       productId: warehouseMovements.productId,
       total: sql<number>`COALESCE(SUM(CASE
@@ -44,7 +44,7 @@ export async function calculateAllStocks(): Promise<Map<number, number>> {
     .where(eq(warehouseMovements.cancelled, false))
     .groupBy(warehouseMovements.productId);
 
-  const saleRows = await db
+  const saleRows = await getDb()
     .select({
       productId: sales.productId,
       total: sql<number>`COALESCE(SUM(${sales.quantity}), 0)`,
@@ -68,7 +68,7 @@ export async function recalculateAverageCost(
 ): Promise<number> {
   const currentStock = await calculateStock(productId);
 
-  const [prod] = await db
+  const [prod] = await getDb()
     .select({ averageCost: products.averageCost, costPrice: products.costPrice })
     .from(products)
     .where(eq(products.id, productId));
@@ -85,7 +85,7 @@ export async function recalculateAverageCost(
 export async function recalculateAverageCostFromScratch(
   productId: number
 ): Promise<number> {
-  const entries = await db
+  const entries = await getDb()
     .select({
       quantity: warehouseMovements.quantity,
       unitCostPrice: warehouseMovements.unitCostPrice,
@@ -101,7 +101,7 @@ export async function recalculateAverageCostFromScratch(
     .orderBy(warehouseMovements.date);
 
   if (entries.length === 0) {
-    const [prod] = await db
+    const [prod] = await getDb()
       .select({ costPrice: products.costPrice })
       .from(products)
       .where(eq(products.id, productId));
@@ -122,7 +122,7 @@ export interface DailySummary {
 export async function getDailySummary(date: string): Promise<DailySummary> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
-  const rows = await db
+  const rows = await getDb()
     .select({
       paymentMethod: sales.paymentMethod,
       revenue: sql<number>`COALESCE(SUM(${revenue}), 0)`,
@@ -168,7 +168,7 @@ export async function getDailyBreakdown(
     conditions.push(eq(sales.paymentMethod, paymentMethodFilter));
   }
 
-  return db
+  return getDb()
     .select({
       productId: sales.productId,
       productName: products.name,
@@ -194,7 +194,7 @@ export async function getRangeSummary(
 ): Promise<DailySummary> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
-  const rows = await db
+  const rows = await getDb()
     .select({
       paymentMethod: sales.paymentMethod,
       revenue: sql<number>`COALESCE(SUM(${revenue}), 0)`,
@@ -228,7 +228,7 @@ export async function getRangeBreakdown(
 ): Promise<ProductDaySummary[]> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
-  return db
+  return getDb()
     .select({
       productId: sales.productId,
       productName: products.name,
@@ -267,7 +267,7 @@ export async function getDailyTotalsInRange(
 ): Promise<DayTotals[]> {
   const revenue = sql<number>`${sales.appliedPrice} * ${sales.quantity}`;
 
-  return db
+  return getDb()
     .select({
       date: sql<string>`date(${sales.date})`,
       cash: sql<number>`COALESCE(SUM(CASE WHEN ${sales.paymentMethod} = 'efectivo' THEN ${revenue} ELSE 0 END), 0)`,
@@ -314,7 +314,7 @@ export async function getRangeRanking(
   const profitSum = sql<number>`COALESCE(SUM(${sales.profit}), 0)`;
   const orderExpr = sortBy === "quantity" ? quantitySum : profitSum;
 
-  const rows = await db
+  const rows = await getDb()
     .select({
       productId: sales.productId,
       productName: products.name,
@@ -387,7 +387,7 @@ export async function getLossesBreakdown(
   to: string
 ): Promise<LossesBreakdown> {
   const [movementRows, expenseRows] = await Promise.all([
-    db
+    getDb()
       .select({
         id: warehouseMovements.id,
         type: warehouseMovements.type,
@@ -406,7 +406,7 @@ export async function getLossesBreakdown(
         )
       )
       .orderBy(desc(warehouseMovements.date)),
-    db
+    getDb()
       .select({
         id: expenses.id,
         type: expenses.type,
@@ -461,7 +461,7 @@ export async function getLossesBreakdown(
 export async function getLastSaleDate(
   productId: number
 ): Promise<string | null> {
-  const [row] = await db
+  const [row] = await getDb()
     .select({ lastDate: sql<string>`MAX(${sales.date})` })
     .from(sales)
     .where(and(eq(sales.productId, productId), eq(sales.cancelled, false)));
@@ -469,7 +469,7 @@ export async function getLastSaleDate(
 }
 
 export async function getLastSaleDates(): Promise<Map<number, string>> {
-  const rows = await db
+  const rows = await getDb()
     .select({
       productId: sales.productId,
       lastDate: sql<string>`MAX(${sales.date})`,
@@ -490,7 +490,7 @@ export async function countLowStock(): Promise<number> {
     (await getConfig(CONFIG_KEYS.generalStockThreshold)) ?? 5
   );
 
-  const activeProducts = await db
+  const activeProducts = await getDb()
     .select({
       id: products.id,
       lowStockThreshold: products.lowStockThreshold,

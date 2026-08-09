@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 
-import { db } from './client';
+import { getDb } from './client';
 import { expenses } from './schema';
 
 interface ExpenseData {
@@ -13,7 +13,7 @@ interface ExpenseData {
 
 /** Registra un gasto periódico (salario, multa, ONAT) — T-14. */
 export async function registerExpense(data: ExpenseData): Promise<void> {
-  await db.insert(expenses).values({
+  await getDb().insert(expenses).values({
     type: data.type,
     concept: data.concept ?? null,
     amount: data.amount,
@@ -26,12 +26,12 @@ export async function updateExpense(
   id: number,
   data: Partial<{ type: string; concept: string | null; amount: number; date: string }>,
 ): Promise<void> {
-  await db.update(expenses).set(data).where(eq(expenses.id, id));
+  await getDb().update(expenses).set(data).where(eq(expenses.id, id));
 }
 
 /** Devuelve un gasto por su id (para edición). */
 export async function getExpenseById(id: number) {
-  const [row] = await db
+  const [row] = await getDb()
     .select({
       id: expenses.id,
       type: expenses.type,
@@ -47,12 +47,12 @@ export async function getExpenseById(id: number) {
 
 /** Soft-delete: marca el gasto como anulado (T-15). */
 export async function cancelExpense(id: number): Promise<void> {
-  await db.update(expenses).set({ cancelled: true }).where(eq(expenses.id, id));
+  await getDb().update(expenses).set({ cancelled: true }).where(eq(expenses.id, id));
 }
 
 /** Restaura un gasto anulado (undo). */
 export async function restoreExpense(id: number): Promise<void> {
-  await db.update(expenses).set({ cancelled: false }).where(eq(expenses.id, id));
+  await getDb().update(expenses).set({ cancelled: false }).where(eq(expenses.id, id));
 }
 
 export interface ExpenseRecord {
@@ -82,7 +82,7 @@ export async function listExpenses(
   if (opts.dateTo)
     conditions.push(sql`date(${expenses.date}) <= date(${opts.dateTo})`);
 
-  return db
+  return getDb()
     .select({
       id: expenses.id,
       type: expenses.type,
@@ -102,7 +102,7 @@ export async function sumExpenses(dateFrom?: string, dateTo?: string): Promise<n
   if (dateFrom) conditions.push(sql`date(${expenses.date}) >= date(${dateFrom})`);
   if (dateTo) conditions.push(sql`date(${expenses.date}) <= date(${dateTo})`);
 
-  const [row] = await db
+  const [row] = await getDb()
     .select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
     .from(expenses)
     .where(and(...conditions));

@@ -8,8 +8,10 @@ import { Text, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { db } from '@/db/client';
+import { initDb } from '@/db/client';
 import migrations from '../drizzle/migrations';
+
+const db = initDb();
 
 export const unstable_settings = {
   anchor: '(tabs)',

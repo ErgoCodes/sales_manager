@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import { db } from './client';
+import { getDb } from './client';
 import { configuration } from './schema';
 
 export const CONFIG_KEYS = {
@@ -26,7 +26,7 @@ export const CONFIG_DEFAULTS: Record<string, string> = {
 };
 
 export async function getConfig(key: string): Promise<string | null> {
-  const [row] = await db
+  const [row] = await getDb()
     .select({ value: configuration.value })
     .from(configuration)
     .where(eq(configuration.key, key));
@@ -34,14 +34,14 @@ export async function getConfig(key: string): Promise<string | null> {
 }
 
 export async function setConfig(key: string, value: string): Promise<void> {
-  await db
+  await getDb()
     .insert(configuration)
     .values({ key, value })
     .onConflictDoUpdate({ target: configuration.key, set: { value } });
 }
 
 export async function getAllConfig(): Promise<Record<string, string>> {
-  const rows = await db.select().from(configuration);
+  const rows = await getDb().select().from(configuration);
   const result: Record<string, string> = { ...CONFIG_DEFAULTS };
   for (const row of rows) {
     result[row.key] = row.value;

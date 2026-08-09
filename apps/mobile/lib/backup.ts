@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
-import { db } from '@/db/client';
+import { getExpoDb } from '@/db/client';
 import { CONFIG_KEYS, setConfig } from '@/db/config';
 
 // Los 16 primeros bytes de todo archivo SQLite 3 son este header fijo.
@@ -25,6 +25,7 @@ function toFileUri(path: string): string {
 }
 
 export async function exportBackup(): Promise<void> {
+  const db = getExpoDb();
   // SQLite en modo WAL mantiene escrituras recientes en un archivo -wal aparte;
   // sin este checkpoint el db.sqlite copiado podría faltarle datos recientes.
   await db.$client.execAsync('PRAGMA wal_checkpoint(FULL);');
@@ -86,6 +87,7 @@ export async function pickAndValidateBackupFile(): Promise<DocumentPicker.Docume
 // Ejecuta el reemplazo real. Debe llamarse solo después de una confirmación
 // explícita del usuario en la UI — esta operación es irreversible.
 export async function restoreBackup(asset: DocumentPicker.DocumentPickerAsset): Promise<void> {
+  const db = getExpoDb();
   const dbPath = db.$client.databasePath;
   // Hay que cerrar la conexión activa antes de pisar el archivo; si no,
   // SQLite puede seguir escribiendo sobre el archivo restaurado.

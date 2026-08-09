@@ -12,7 +12,7 @@ import {
 
 // This will load db/__mocks__/client.ts
 jest.mock('../client');
-import { db } from '../client';
+import { getDb } from '../client';
 import { calculateStock, getDailySummary } from '../queries';
 import { products, saleSessions, sales } from '../schema';
 import { resetDb, seedEntry, seedProduct, seedSale } from './helpers';
@@ -51,7 +51,7 @@ describe('db/sales', () => {
         '2026-07-19T12:00:00Z',
       );
 
-      const rows = db.select().from(sales).all();
+      const rows = getDb().select().from(sales).all();
       expect(rows).toHaveLength(2);
       expect(rows.every((r) => r.date === '2026-07-19T12:00:00Z')).toBe(true);
     });
@@ -64,7 +64,7 @@ describe('db/sales', () => {
         '2026-07-19T12:00:00Z',
       );
 
-      const [row] = db.select().from(sales).all();
+      const [row] = getDb().select().from(sales).all();
       expect(row.costAtSale).toBe(45);
       expect(row.profit).toBe(15);
     });
@@ -82,8 +82,8 @@ describe('db/sales', () => {
         ),
       ).toThrow('Producto 9999 no encontrado');
 
-      expect(db.select().from(sales).all()).toHaveLength(0);
-      expect(db.select().from(saleSessions).all()).toHaveLength(0);
+      expect(getDb().select().from(sales).all()).toHaveLength(0);
+      expect(getDb().select().from(saleSessions).all()).toHaveLength(0);
     });
 
     it('sets profit to 0 for cost sales even when appliedPrice exceeds costAtSale', () => {
@@ -94,7 +94,7 @@ describe('db/sales', () => {
         '2026-07-19T12:00:00Z',
       );
 
-      const [row] = db.select().from(sales).all();
+      const [row] = getDb().select().from(sales).all();
       expect(row.profit).toBe(0);
     });
 
@@ -112,12 +112,12 @@ describe('db/sales', () => {
 
       expect(sessionId).toBe(2);
 
-      const [session] = db.select().from(saleSessions).all();
+      const [session] = getDb().select().from(saleSessions).all();
       expect(session.cashTotal).toBe(60);
       expect(session.amountReceived).toBe(100);
       expect(session.change).toBe(40);
 
-      const rows = db.select().from(sales).all();
+      const rows = getDb().select().from(sales).all();
       expect(rows.every((r) => r.sessionId === session.id)).toBe(true);
     });
 
@@ -130,8 +130,8 @@ describe('db/sales', () => {
         { amountReceived: 0 },
       );
 
-      expect(db.select().from(saleSessions).all()).toHaveLength(0);
-      const [row] = db.select().from(sales).all();
+      expect(getDb().select().from(saleSessions).all()).toHaveLength(0);
+      const [row] = getDb().select().from(sales).all();
       expect(row.sessionId).toBeNull();
     });
   });
@@ -182,7 +182,7 @@ describe('db/sales', () => {
 
       await updateSale(saleId, { quantity: 2 });
 
-      const [row] = db.select().from(sales).where(eq(sales.id, saleId)).all();
+      const [row] = getDb().select().from(sales).where(eq(sales.id, saleId)).all();
       expect(row.costAtSale).toBe(45);
       expect(row.profit).toBe((60 - 45) * 2);
     });
@@ -193,7 +193,7 @@ describe('db/sales', () => {
 
       await updateSale(saleId, { quantity: 3 });
 
-      const [row] = db.select().from(sales).where(eq(sales.id, saleId)).all();
+      const [row] = getDb().select().from(sales).where(eq(sales.id, saleId)).all();
       expect(row.profit).toBe(0);
     });
 
@@ -240,10 +240,10 @@ describe('db/sales', () => {
       expect(result.updatedProducts).toBe(1);
       expect(result.updatedSales).toBe(1);
 
-      const [p] = db.select().from(products).where(eq(products.id, productId)).all();
+      const [p] = getDb().select().from(products).where(eq(products.id, productId)).all();
       expect(p.averageCost).toBe(45);
 
-      const [s] = db.select().from(sales).where(eq(sales.id, saleId)).all();
+      const [s] = getDb().select().from(sales).where(eq(sales.id, saleId)).all();
       expect(s.costAtSale).toBe(45);
       expect(s.profit).toBe(15);
     });

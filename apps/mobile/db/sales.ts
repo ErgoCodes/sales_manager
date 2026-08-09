@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { CartItem } from '@/store';
 
-import { db } from './client';
+import { getDb } from './client';
 import { calculateAllStocks } from './queries';
 import { products, saleSessions, sales } from './schema';
 
@@ -61,7 +61,7 @@ export function registerSalesSession(
   date: string,
   cashPayment?: { amountReceived: number },
 ): number {
-  return db.transaction((tx) => {
+  return getDb().transaction((tx) => {
     let sessionId: number | null = null;
 
     if (cashPayment && cashPayment.amountReceived > 0) {
@@ -162,7 +162,7 @@ export async function listSales(opts: ListSalesOptions = {}): Promise<SaleWithPr
   if (opts.dateTo)
     conditions.push(sql`date(${sales.date}) <= date(${opts.dateTo})`);
 
-  return db
+  return getDb()
     .select({
       id: sales.id,
       productId: sales.productId,
@@ -189,12 +189,12 @@ export async function listSales(opts: ListSalesOptions = {}): Promise<SaleWithPr
 
 /** Soft delete: marks a sale as cancelled. Stock and reports adjust automatically. */
 export async function cancelSale(id: number): Promise<void> {
-  await db.update(sales).set({ cancelled: true }).where(eq(sales.id, id));
+  await getDb().update(sales).set({ cancelled: true }).where(eq(sales.id, id));
 }
 
 /** Reverts a cancellation (undo for the "deshacer" snackbar). */
 export async function restoreSale(id: number): Promise<void> {
-  await db.update(sales).set({ cancelled: false }).where(eq(sales.id, id));
+  await getDb().update(sales).set({ cancelled: false }).where(eq(sales.id, id));
 }
 
 export interface SaleChanges {
@@ -212,7 +212,7 @@ export interface SaleChanges {
  * checkout, not a live total. Same applies to cancelSale/restoreSale.
  */
 export async function updateSale(id: number, changes: SaleChanges): Promise<void> {
-  const [current] = await db
+  const [current] = await getDb()
     .select({
       quantity: sales.quantity,
       appliedPrice: sales.appliedPrice,
@@ -230,7 +230,7 @@ export async function updateSale(id: number, changes: SaleChanges): Promise<void
     ? 0
     : (appliedPrice - current.costAtSale) * quantity;
 
-  await db
+  await getDb()
     .update(sales)
     .set({
       quantity,
@@ -249,7 +249,7 @@ export async function runAverageCostBackfill(): Promise<{
   updatedProducts: number;
   updatedSales: number;
 }> {
-  const allProducts = await db
+  const allProducts = await getDb()
     .select({
       id: products.id,
       averageCost: products.averageCost,
@@ -260,7 +260,7 @@ export async function runAverageCostBackfill(): Promise<{
   let updatedProducts = 0;
   for (const p of allProducts) {
     if ((!p.averageCost || p.averageCost <= 0) && p.costPrice && p.costPrice > 0) {
-      await db
+      await getDb()
         .update(products)
         .set({ averageCost: p.costPrice })
         .where(eq(products.id, p.id));
@@ -268,7 +268,7 @@ export async function runAverageCostBackfill(): Promise<{
     }
   }
 
-  const freshProducts = await db
+  const freshProducts = await getDb()
     .select({
       id: products.id,
       averageCost: products.averageCost,
@@ -281,7 +281,7 @@ export async function runAverageCostBackfill(): Promise<{
     productMap.set(p.id, { averageCost: p.averageCost, costPrice: p.costPrice });
   }
 
-  const allSales = await db
+  const allSales = await getDb()
     .select({
       id: sales.id,
       productId: sales.productId,
@@ -305,7 +305,7 @@ export async function runAverageCostBackfill(): Promise<{
         ? 0
         : (s.appliedPrice - targetCost) * s.quantity;
 
-      await db
+      await getDb()
         .update(sales)
         .set({
           costAtSale: targetCost,

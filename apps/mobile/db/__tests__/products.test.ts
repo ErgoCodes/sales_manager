@@ -4,7 +4,7 @@ import { archiveProduct, createProduct, getProduct, listProducts, restoreProduct
 
 // This will load db/__mocks__/client.ts
 jest.mock('../client');
-import { db } from '../client';
+import { getDb } from '../client';
 import { products } from '../schema';
 import { resetDb, seedEntry, seedProduct } from './helpers';
 
@@ -24,7 +24,7 @@ describe('db/products', () => {
         transferPrice: 60,
       });
 
-      const [p] = db.select().from(products).where(eq(products.id, id)).all();
+      const [p] = getDb().select().from(products).where(eq(products.id, id)).all();
       expect(p.costPrice).toBe(45);
       expect(p.averageCost).toBe(45);
     });
@@ -39,7 +39,7 @@ describe('db/products', () => {
         transferPrice: 60,
       });
 
-      const [p] = db.select().from(products).where(eq(products.id, id)).all();
+      const [p] = getDb().select().from(products).where(eq(products.id, id)).all();
       expect(p.averageCost).toBe(0);
     });
   });

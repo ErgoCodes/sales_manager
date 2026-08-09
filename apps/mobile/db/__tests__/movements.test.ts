@@ -19,7 +19,7 @@ import {
 
 // This will load db/__mocks__/client.ts
 jest.mock('../client');
-import { db } from '../client';
+import { getDb } from '../client';
 import { calculateStock } from '../queries';
 import { products, warehouseMovements } from '../schema';
 import { resetDb, seedEntry, seedOutflow, seedProduct } from './helpers';
@@ -40,7 +40,7 @@ describe('db/movements', () => {
         date: '2026-07-01T10:00:00Z',
       });
 
-      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      const [product] = getDb().select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBe(100);
     });
 
@@ -55,7 +55,7 @@ describe('db/movements', () => {
         date: '2026-07-02T10:00:00Z',
       });
 
-      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      const [product] = getDb().select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBeCloseTo(121.42857, 5);
     });
   });
@@ -72,7 +72,7 @@ describe('db/movements', () => {
         date: '2026-07-01T10:00:00Z',
       });
 
-      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      const [product] = getDb().select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBe(130);
       expect(await calculateStock(productId)).toBe(10);
     });
@@ -86,12 +86,12 @@ describe('db/movements', () => {
 
       await cancelEntry(secondEntryId);
       expect(await calculateStock(productId)).toBe(4);
-      let [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      let [product] = getDb().select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBe(100);
 
       await restoreEntry(secondEntryId);
       expect(await calculateStock(productId)).toBe(14);
-      [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      [product] = getDb().select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBeCloseTo(121.42857, 5);
     });
 
@@ -154,7 +154,7 @@ describe('db/movements', () => {
         date: '2026-07-01T10:00:00Z',
       });
 
-      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      const [product] = getDb().select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBe(45);
       expect(await calculateStock(productId)).toBe(-2);
     });

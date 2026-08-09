@@ -1,6 +1,6 @@
 import { and, eq, like } from 'drizzle-orm';
 
-import { db } from './client';
+import { getDb } from './client';
 import { calculateAllStocks } from './queries';
 import { type NewProduct, type Product, products } from './schema';
 
@@ -30,7 +30,7 @@ export async function listProducts(opts: ListOptions = {}): Promise<ProductWithS
   if (opts.search?.trim()) conditions.push(like(products.name, `%${opts.search.trim()}%`));
   if (opts.category) conditions.push(eq(products.category, opts.category));
 
-  const rows = await db
+  const rows = await getDb()
     .select()
     .from(products)
     .where(conditions.length ? and(...conditions) : undefined)
@@ -41,12 +41,12 @@ export async function listProducts(opts: ListOptions = {}): Promise<ProductWithS
 }
 
 export async function getProduct(id: number): Promise<Product | undefined> {
-  const [row] = await db.select().from(products).where(eq(products.id, id));
+  const [row] = await getDb().select().from(products).where(eq(products.id, id));
   return row;
 }
 
 export async function createProduct(data: ProductData): Promise<number> {
-  const [row] = await db
+  const [row] = await getDb()
     .insert(products)
     .values({
       ...data,
@@ -57,13 +57,13 @@ export async function createProduct(data: ProductData): Promise<number> {
 }
 
 export async function updateProduct(id: number, data: ProductData): Promise<void> {
-  await db.update(products).set(data).where(eq(products.id, id));
+  await getDb().update(products).set(data).where(eq(products.id, id));
 }
 
 export async function archiveProduct(id: number): Promise<void> {
-  await db.update(products).set({ active: false }).where(eq(products.id, id));
+  await getDb().update(products).set({ active: false }).where(eq(products.id, id));
 }
 
 export async function restoreProduct(id: number): Promise<void> {
-  await db.update(products).set({ active: true }).where(eq(products.id, id));
+  await getDb().update(products).set({ active: true }).where(eq(products.id, id));
 }

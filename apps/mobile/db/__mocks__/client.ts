@@ -20,3 +20,5 @@ for (const file of files) {
 }
 
 export const db = drizzle(sqlite);
+export const getDb = () => db;
+export const setDb = () => undefined;

@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
-import { db } from './client';
+import { getDb } from './client';
 import { recalculateAverageCost, recalculateAverageCostFromScratch } from './queries';
 import { products, warehouseMovements } from './schema';
 
@@ -20,7 +20,7 @@ export async function registerEntry(data: EntryData): Promise<void> {
     data.unitCostPrice,
   );
 
-  await db.insert(warehouseMovements).values({
+  await getDb().insert(warehouseMovements).values({
     productId: data.productId,
     type: 'entrada',
     quantity: data.quantity,
@@ -30,7 +30,7 @@ export async function registerEntry(data: EntryData): Promise<void> {
     notes: data.notes ?? null,
   });
 
-  await db
+  await getDb()
     .update(products)
     .set({ averageCost: newAverageCost })
     .where(eq(products.id, data.productId));
@@ -38,7 +38,7 @@ export async function registerEntry(data: EntryData): Promise<void> {
 
 /** Devuelve una entrada por su id (para edición). */
 export async function getEntryById(id: number) {
-  const [row] = await db
+  const [row] = await getDb()
     .select({
       id: warehouseMovements.id,
       productId: warehouseMovements.productId,
@@ -77,7 +77,7 @@ export async function updateEntry(
     notes?: string | null;
   },
 ): Promise<void> {
-  await db
+  await getDb()
     .update(warehouseMovements)
     .set({
       productId: data.productId,
@@ -89,7 +89,7 @@ export async function updateEntry(
     .where(eq(warehouseMovements.id, id));
 
   const newAvg = await recalculateAverageCostFromScratch(data.productId);
-  await db
+  await getDb()
     .update(products)
     .set({ averageCost: newAvg })
     .where(eq(products.id, data.productId));
@@ -97,19 +97,19 @@ export async function updateEntry(
 
 /** Soft-delete: marca la entrada como anulada y recalcula costo promedio. */
 export async function cancelEntry(id: number): Promise<void> {
-  const [row] = await db
+  const [row] = await getDb()
     .select({ productId: warehouseMovements.productId })
     .from(warehouseMovements)
     .where(eq(warehouseMovements.id, id));
   if (!row) return;
 
-  await db
+  await getDb()
     .update(warehouseMovements)
     .set({ cancelled: true })
     .where(eq(warehouseMovements.id, id));
 
   const newAvg = await recalculateAverageCostFromScratch(row.productId);
-  await db
+  await getDb()
     .update(products)
     .set({ averageCost: newAvg })
     .where(eq(products.id, row.productId));
@@ -117,19 +117,19 @@ export async function cancelEntry(id: number): Promise<void> {
 
 /** Restaura una entrada anulada y recalcula costo promedio. */
 export async function restoreEntry(id: number): Promise<void> {
-  const [row] = await db
+  const [row] = await getDb()
     .select({ productId: warehouseMovements.productId })
     .from(warehouseMovements)
     .where(eq(warehouseMovements.id, id));
   if (!row) return;
 
-  await db
+  await getDb()
     .update(warehouseMovements)
     .set({ cancelled: false })
     .where(eq(warehouseMovements.id, id));
 
   const newAvg = await recalculateAverageCostFromScratch(row.productId);
-  await db
+  await getDb()
     .update(products)
     .set({ averageCost: newAvg })
     .where(eq(products.id, row.productId));
@@ -153,7 +153,7 @@ interface OutflowData {
  * el costo congelado para valorar la pérdida en reportes (T-19).
  */
 export async function registerOutflow(data: OutflowData): Promise<void> {
-  await db.insert(warehouseMovements).values({
+  await getDb().insert(warehouseMovements).values({
     productId: data.productId,
     type: data.type,
     quantity: data.quantity,
@@ -176,12 +176,12 @@ export async function updateOutflow(
     notes: string | null;
   }>,
 ): Promise<void> {
-  await db.update(warehouseMovements).set(data).where(eq(warehouseMovements.id, id));
+  await getDb().update(warehouseMovements).set(data).where(eq(warehouseMovements.id, id));
 }
 
 /** Devuelve una salida por su id (para edición T-15). */
 export async function getOutflowById(id: number) {
-  const [row] = await db
+  const [row] = await getDb()
     .select({
       id: warehouseMovements.id,
       productId: warehouseMovements.productId,
@@ -206,12 +206,12 @@ export async function getOutflowById(id: number) {
 
 /** Soft-delete: marca la salida como anulada (T-15). */
 export async function cancelOutflow(id: number): Promise<void> {
-  await db.update(warehouseMovements).set({ cancelled: true }).where(eq(warehouseMovements.id, id));
+  await getDb().update(warehouseMovements).set({ cancelled: true }).where(eq(warehouseMovements.id, id));
 }
 
 /** Restaura una salida anulada (undo). */
 export async function restoreOutflow(id: number): Promise<void> {
-  await db.update(warehouseMovements).set({ cancelled: false }).where(eq(warehouseMovements.id, id));
+  await getDb().update(warehouseMovements).set({ cancelled: false }).where(eq(warehouseMovements.id, id));
 }
 
 export interface EntrySummary {
@@ -247,7 +247,7 @@ export async function getEntriesSummaryByProduct(
   const entriesCount = sql<number>`COUNT(*)`;
   const lastEntryDate = sql<string>`MAX(${warehouseMovements.date})`;
 
-  const rows = await db
+  const rows = await getDb()
     .select({
       productId: warehouseMovements.productId,
       productName: products.name,
@@ -294,7 +294,7 @@ export async function listEntries(opts: ListOptions = {}): Promise<EntryWithProd
   if (opts.dateTo)
     conditions.push(sql`date(${warehouseMovements.date}) <= date(${opts.dateTo})`);
 
-  const rows = await db
+  const rows = await getDb()
     .select({
       id: warehouseMovements.id,
       productId: warehouseMovements.productId,
@@ -349,7 +349,7 @@ export async function listMovements(
   if (opts.dateTo)
     conditions.push(sql`date(${warehouseMovements.date}) <= date(${opts.dateTo})`);
 
-  return db
+  return getDb()
     .select({
       id: warehouseMovements.id,
       productId: warehouseMovements.productId,
@@ -386,7 +386,7 @@ export async function sumLossOutflowsValue(
   if (dateTo)
     conditions.push(sql`date(${warehouseMovements.date}) <= date(${dateTo})`);
 
-  const [row] = await db
+  const [row] = await getDb()
     .select({
       total: sql<number>`COALESCE(SUM(ABS(${warehouseMovements.quantity}) * ${warehouseMovements.unitCostPrice}), 0)`,
     })
