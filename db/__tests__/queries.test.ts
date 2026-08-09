@@ -1,293 +1,193 @@
-import { eq } from 'drizzle-orm';
-import { calculateStock, recalculateAverageCost, getDailySummary } from '../queries';
-import { createProduct } from '../products';
-import { registerSalesSession, runAverageCostBackfill } from '../sales';
-import { products, warehouseMovements, sales } from '../schema';
+import {
+  calculateAllStocks,
+  calculateStock,
+  countLowStock,
+  getLastSaleDate,
+  getLastSaleDates,
+  recalculateAverageCost,
+  recalculateAverageCostFromScratch,
+} from '../queries';
 
 // This will load db/__mocks__/client.ts
 jest.mock('../client');
-import { db } from '../client';
+import { CONFIG_KEYS, setConfig } from '../config';
+import { resetDb, seedEntry, seedOutflow, seedProduct, seedSale } from './helpers';
 
 describe('db/queries', () => {
   beforeEach(() => {
-    // Clean up DB before each test
-    db.delete(sales).run();
-    db.delete(warehouseMovements).run();
-    db.delete(products).run();
-  });
-
-  describe('createProduct', () => {
-    it('seeds averageCost with costPrice when creating a product', async () => {
-      const id = await createProduct({
-        name: 'Chupa chupa',
-        category: 'Dulces',
-        unitOfMeasure: 'u',
-        costPrice: 45,
-        cashPrice: 60,
-        transferPrice: 60,
-      });
-
-      const [p] = db.select().from(products).where(eq(products.id, id)).all();
-      expect(p.costPrice).toBe(45);
-      expect(p.averageCost).toBe(45);
-    });
+    resetDb();
   });
 
   describe('recalculateAverageCost', () => {
     it('calculates average cost correctly (4u * 100 + 10u * 130 -> 121.43)', async () => {
-      // Setup product
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Test Product',
-          category: 'Bebidas',
-          unitOfMeasure: 'u',
-          averageCost: 100,
-          costPrice: 100,
-          cashPrice: 150,
-          transferPrice: 150,
-          lowStockThreshold: 5,
-        })
-        .run();
+      const productId = seedProduct({ averageCost: 100, costPrice: 100 });
+      seedEntry(productId, { quantity: 4, unitCostPrice: 100 });
 
-      // Add initial stock of 4
-      db.insert(warehouseMovements)
-        .values({
-          productId: 1,
-          type: 'entrada',
-          quantity: 4,
-          unitCostPrice: 100,
-          date: '2026-07-01T10:00:00Z',
-        })
-        .run();
+      const newCost = await recalculateAverageCost(productId, 10, 130);
 
-      const newCost = await recalculateAverageCost(1, 10, 130);
-      
       // (4 * 100 + 10 * 130) / 14 = 1700 / 14 = 121.4285714...
       expect(newCost).toBeCloseTo(121.42857, 5);
     });
 
     it('uses costPrice when averageCost is 0 and does not dilute to 0', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Chupa chupa',
-          category: 'Dulces',
-          unitOfMeasure: 'u',
-          averageCost: 0,
-          costPrice: 45,
-          cashPrice: 60,
-          transferPrice: 60,
-        })
-        .run();
-
+      const productId = seedProduct({ averageCost: 0, costPrice: 45 });
       // Stock of 10 was added previously without updating averageCost
-      db.insert(warehouseMovements)
-        .values({
-          productId: 1,
-          type: 'ajuste',
-          quantity: 10,
-          unitCostPrice: 45,
-          date: '2026-07-01T10:00:00Z',
-        })
-        .run();
+      seedEntry(productId, { quantity: 10, unitCostPrice: 45 });
 
-      // New entry of 10 units at cost 45
-      const newCost = await recalculateAverageCost(1, 10, 45);
+      const newCost = await recalculateAverageCost(productId, 10, 45);
       // (10 * 45 + 10 * 45) / 20 = 45 (not 22.50)
       expect(newCost).toBe(45);
     });
 
     it('takes the new cost if denominator is <= 0 (stock is 0)', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Product',
-          category: 'Bebidas',
-          unitOfMeasure: 'u',
-          averageCost: 50,
-          cashPrice: 100,
-          transferPrice: 100,
-          lowStockThreshold: 5,
-        })
-        .run();
+      const productId = seedProduct({ averageCost: 50, costPrice: null });
 
-      const newCost = await recalculateAverageCost(1, 10, 130);
+      const newCost = await recalculateAverageCost(productId, 10, 130);
       expect(newCost).toBe(130);
     });
   });
 
+  describe('recalculateAverageCostFromScratch', () => {
+    it('falls back to costPrice when there are no active entries', async () => {
+      const productId = seedProduct({ costPrice: 45, averageCost: 0 });
+
+      const avg = await recalculateAverageCostFromScratch(productId);
+      expect(avg).toBe(45);
+    });
+
+    it('excludes cancelled entries from the weighted average', async () => {
+      const productId = seedProduct({ costPrice: 10, averageCost: 0 });
+      seedEntry(productId, { quantity: 10, unitCostPrice: 10 });
+      // Cancelled entry with a wildly different cost must not affect the average.
+      seedEntry(productId, { quantity: 100, unitCostPrice: 999, cancelled: true });
+
+      const avg = await recalculateAverageCostFromScratch(productId);
+      expect(avg).toBe(10);
+    });
+
+    it('returns 0 when total active quantity is zero despite having entry rows', async () => {
+      const productId = seedProduct({ costPrice: 10, averageCost: 0 });
+      seedEntry(productId, { quantity: 5, unitCostPrice: 10 });
+      seedEntry(productId, { quantity: -5, unitCostPrice: 20 });
+
+      const avg = await recalculateAverageCostFromScratch(productId);
+      expect(avg).toBe(0);
+    });
+
+    it('computes the same weighted average as the incremental version across multiple entries', async () => {
+      const productId = seedProduct({ costPrice: 100, averageCost: 0 });
+      seedEntry(productId, { quantity: 4, unitCostPrice: 100, date: '2026-07-01T10:00:00Z' });
+      seedEntry(productId, { quantity: 10, unitCostPrice: 130, date: '2026-07-02T10:00:00Z' });
+
+      const avg = await recalculateAverageCostFromScratch(productId);
+      expect(avg).toBeCloseTo(121.42857, 5);
+    });
+  });
+
   describe('calculateStock', () => {
-    it('derives stock correctly: entrada 10, sale 3, loss 2, adjust -1 -> stock 4', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Prod',
-          category: 'Bebidas',
-          unitOfMeasure: 'u',
-          averageCost: 10,
-          cashPrice: 20,
-          transferPrice: 20,
-          lowStockThreshold: 5,
-        })
-        .run();
+    it('derives stock from entrada/merma/retiro_owner/ajuste and non-cancelled sales', async () => {
+      const productId = seedProduct();
 
-      // Entrada 10
-      db.insert(warehouseMovements)
-        .values({
-          productId: 1,
-          type: 'entrada',
-          quantity: 10,
-          unitCostPrice: 10,
-          date: '2026-07-01T10:00:00Z',
-        })
-        .run();
-        
-      // Loss 2
-      db.insert(warehouseMovements)
-        .values({
-          productId: 1,
-          type: 'merma',
-          quantity: 2,
-          unitCostPrice: 10,
-          date: '2026-07-02T10:00:00Z',
-        })
-        .run();
+      seedEntry(productId, { quantity: 10, date: '2026-07-01T10:00:00Z' });
+      seedOutflow(productId, { type: 'merma', quantity: 2, date: '2026-07-02T10:00:00Z' });
+      seedOutflow(productId, { type: 'retiro_owner', quantity: 1, date: '2026-07-02T11:00:00Z' });
+      seedOutflow(productId, { type: 'ajuste', quantity: -1, date: '2026-07-03T10:00:00Z' });
+      seedSale(productId, { quantity: 3, date: '2026-07-04T10:00:00Z' });
+      // Cancelled sale should not deduct.
+      seedSale(productId, { quantity: 5, date: '2026-07-05T10:00:00Z', cancelled: true });
 
-      // Owner withdrawal 1
-      db.insert(warehouseMovements)
-        .values({
-          productId: 1,
-          type: 'retiro_owner',
-          quantity: 1,
-          unitCostPrice: 10,
-          date: '2026-07-02T11:00:00Z',
-        })
-        .run();
-
-      // Adjust -1
-      db.insert(warehouseMovements)
-        .values({
-          productId: 1,
-          type: 'ajuste',
-          quantity: -1,
-          unitCostPrice: 10,
-          date: '2026-07-03T10:00:00Z',
-        })
-        .run();
-
-      // Sale 3
-      db.insert(sales)
-        .values({
-          productId: 1,
-          quantity: 3,
-          appliedPrice: 20,
-          paymentMethod: 'efectivo',
-          costAtSale: 10,
-          profit: 30,
-          date: '2026-07-04T10:00:00Z',
-        })
-        .run();
-      
-      // Cancelled sale (should not deduct)
-      db.insert(sales)
-        .values({
-          productId: 1,
-          quantity: 5,
-          appliedPrice: 20,
-          paymentMethod: 'efectivo',
-          costAtSale: 10,
-          profit: 50,
-          date: '2026-07-05T10:00:00Z',
-          cancelled: true,
-        })
-        .run();
-
-      const stock = await calculateStock(1);
+      const stock = await calculateStock(productId);
       // 10 (entrada) - 2 (merma) - 1 (retiro_owner) + (-1) (ajuste) - 3 (sale) = 3
       expect(stock).toBe(3);
     });
   });
 
-  describe('registerSalesSession', () => {
-    it('calculates profit = 15 using costPrice (45) not averageCost when selling for 60', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Chupa chupa',
-          category: 'Dulces',
-          unitOfMeasure: 'u',
-          costPrice: 45,
-          averageCost: 0,
-          cashPrice: 60,
-          transferPrice: 60,
-        })
-        .run();
+  describe('calculateAllStocks', () => {
+    it('returns a per-product stock map, combining movements and sales', async () => {
+      const productA = seedProduct({ name: 'A' });
+      const productB = seedProduct({ name: 'B' });
 
-      const items = [{
-        productId: 1,
-        key: 'prod-1',
-        name: 'Chupa chupa',
-        unitOfMeasure: 'u',
-        quantity: 1,
-        appliedPrice: 60,
-        paymentMethod: 'efectivo' as const,
-        isCostSale: false,
-        discountPercent: 0,
-        costAtSale: 45,
-        profit: 15,
-      }];
+      seedEntry(productA, { quantity: 10 });
+      seedSale(productA, { quantity: 4 });
 
-      registerSalesSession(items, '2026-07-19T12:00:00Z');
+      seedEntry(productB, { quantity: 5 });
 
-      const saleRows = db.select().from(sales).all();
-      expect(saleRows.length).toBe(1);
-      expect(saleRows[0].costAtSale).toBe(45);
-      expect(saleRows[0].profit).toBe(15);
+      const stocks = await calculateAllStocks();
+      expect(stocks.get(productA)).toBe(6);
+      expect(stocks.get(productB)).toBe(5);
     });
   });
 
-  describe('runAverageCostBackfill', () => {
-    it('backfills products with averageCost 0 to costPrice and recalculates legacy sales', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Chupa chupa',
-          category: 'Dulces',
-          unitOfMeasure: 'u',
-          costPrice: 45,
-          averageCost: 0,
-          cashPrice: 60,
-          transferPrice: 60,
-        })
-        .run();
+  describe('countLowStock', () => {
+    it('counts a product below its own lowStockThreshold', async () => {
+      const productId = seedProduct({ lowStockThreshold: 3, category: null });
+      seedEntry(productId, { quantity: 2 });
 
-      // Legacy inflated sale recorded with costAtSale = 22.50 and profit = 37.50
-      const [{ saleId }] = db
-        .insert(sales)
-        .values({
-          productId: 1,
-          quantity: 1,
-          appliedPrice: 60,
-          paymentMethod: 'efectivo',
-          costAtSale: 22.50,
-          profit: 37.50,
-          date: '2026-07-19T10:00:00Z',
-        })
-        .returning({ saleId: sales.id })
-        .all();
+      expect(await countLowStock()).toBe(1);
+    });
 
-      const result = await runAverageCostBackfill();
-      expect(result.updatedProducts).toBe(1);
-      expect(result.updatedSales).toBe(1);
+    it('falls back to the category threshold when the product has no explicit one', async () => {
+      // 'Bebidas' has a hardcoded threshold of 24 in drizzle/constants/catalog.ts
+      const productId = seedProduct({ lowStockThreshold: null, category: 'Bebidas' });
+      seedEntry(productId, { quantity: 20 });
 
-      const [p] = db.select().from(products).where(eq(products.id, 1)).all();
-      expect(p.averageCost).toBe(45);
+      expect(await countLowStock()).toBe(1);
+    });
 
-      const [s] = db.select().from(sales).where(eq(sales.id, saleId)).all();
-      expect(s).toBeDefined();
-      expect(s.costAtSale).toBe(45);
-      expect(s.profit).toBe(15);
+    it('falls back to the general config threshold (default 5) when no product/category threshold applies', async () => {
+      const productId = seedProduct({ lowStockThreshold: null, category: null });
+      seedEntry(productId, { quantity: 4 });
+
+      expect(await countLowStock()).toBe(1);
+    });
+
+    it('uses the configured general threshold instead of the default when set', async () => {
+      await setConfig(CONFIG_KEYS.generalStockThreshold, '10');
+      const productId = seedProduct({ lowStockThreshold: null, category: null });
+      seedEntry(productId, { quantity: 8 });
+
+      expect(await countLowStock()).toBe(1);
+    });
+
+    it('excludes archived products even if their stock is below threshold', async () => {
+      seedProduct({ lowStockThreshold: 100, active: false });
+
+      expect(await countLowStock()).toBe(0);
+    });
+
+    it('does not count a product with stock at or above its threshold', async () => {
+      const productId = seedProduct({ lowStockThreshold: 5 });
+      seedEntry(productId, { quantity: 5 });
+
+      expect(await countLowStock()).toBe(0);
+    });
+  });
+
+  describe('getLastSaleDate / getLastSaleDates', () => {
+    it('returns the most recent non-cancelled sale date, ignoring cancelled sales', async () => {
+      const productId = seedProduct();
+      seedSale(productId, { date: '2026-07-01T10:00:00Z' });
+      seedSale(productId, { date: '2026-07-10T10:00:00Z', cancelled: true });
+      seedSale(productId, { date: '2026-07-05T10:00:00Z' });
+
+      expect(await getLastSaleDate(productId)).toBe('2026-07-05T10:00:00Z');
+    });
+
+    it('returns null when a product has no sales', async () => {
+      const productId = seedProduct();
+      expect(await getLastSaleDate(productId)).toBeNull();
+    });
+
+    it('returns a map with the last sale date per product', async () => {
+      const productA = seedProduct({ name: 'A' });
+      const productB = seedProduct({ name: 'B' });
+      seedSale(productA, { date: '2026-07-01T10:00:00Z' });
+      seedSale(productA, { date: '2026-07-03T10:00:00Z' });
+      seedSale(productB, { date: '2026-07-02T10:00:00Z' });
+
+      const map = await getLastSaleDates();
+      expect(map.get(productA)).toBe('2026-07-03T10:00:00Z');
+      expect(map.get(productB)).toBe('2026-07-02T10:00:00Z');
     });
   });
 });

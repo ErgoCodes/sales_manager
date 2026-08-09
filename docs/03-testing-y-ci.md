@@ -1,102 +1,39 @@
 # 03 · Testing y CI
 
-**Prioridad: ALTA · Esfuerzo: 1-2 días para la base + hábito continuo**
+**Prioridad: ALTA · Estado: base completa — hábito continuo**
+
+> **Actualización 2026-08-09:** este doc describía "cero tests, sin CI" cuando en realidad ya no es el caso. La cobertura de la lógica financiera se cerró como parte de la fase previa a Etapa 2 — ver [`docs/19-preparacion-etapa2.md`](19-preparacion-etapa2.md) (sección 1) para el detalle completo del trabajo, cifras de cobertura y decisiones documentadas. Este doc queda como referencia de la infraestructura vigente y del hábito a mantener.
 
 ## Estado actual
 
-- **Cero tests.** No hay archivos `*.test.*` ni runner configurado (CLAUDE.md lo reconoce: "No test runner is configured yet"). `package.json` solo tiene `lint`; no hay script `test` ni `typecheck`.
-- **Sin CI.** No existe `.github/workflows/`; nada valida los commits automáticamente.
-- Las verificaciones del ROADMAP se hicieron a mano ("efectivo=47 → transferencia=50 ✓", "4u×100 + 10u×130 → 121.43") y no quedaron codificadas, así que cualquier refactor puede romperlas en silencio.
+- **Runner:** `jest` + `jest-expo` (`package.json` → `jest.preset`). Scripts `test` y `test:coverage`; `typecheck` corre `tsc --noEmit`.
+- **Capa `db/` contra SQLite real:** `db/__mocks__/client.ts` levanta `better-sqlite3` en `:memory:` y aplica todas las migraciones de `drizzle/*.sql` en orden. Cada suite de `db/__tests__/*.test.ts` hace `jest.mock('../client')` para cargar ese mock; Drizzle expone la misma API sync sobre better-sqlite3, así que `registerSalesSession` (transacción sync) se ejercita igual que en runtime.
+- **Fixtures compartidos:** `db/__tests__/helpers.ts` (`resetDb`, `seedProduct`, `seedEntry`, `seedOutflow`, `seedSale`, `seedExpense`) — evita repetir inserts de 12-15 líneas en cada test. Está excluido de `testMatch`/`collectCoverageFrom` vía `jest.testPathIgnorePatterns` en `package.json` porque, al vivir dentro de `__tests__/`, Jest lo trataría como una suite si no se excluye explícitamente.
+- **CI:** `.github/workflows/ci.yml` corre `pnpm lint && pnpm typecheck && pnpm test:coverage` en cada push/PR.
+- **Husky:** pre-commit `lint && typecheck`; pre-push `test` (sin cobertura, para no penalizar la iteración local — el gate de cobertura vive solo en CI).
+- **Umbral de cobertura:** `jest.coverageThreshold.global` en `package.json`, acotado a `db/**/*.ts` + `lib/**/*.ts` (menos `db/client.ts`, `db/schema.ts` — declarativos — y los wrappers de I/O de Expo `lib/backup.ts`, `lib/excel.ts`, `lib/notifications.ts`). Calibrado por debajo de lo medido para que sea un gate real: si una suite se rompe o se comenta, el build falla.
 
-## Problema / impacto
+## Qué está cubierto
 
-Esta app **maneja dinero**. La lógica financiera está bien aislada (buena noticia: es fácilmente testeable) pero sin cobertura:
+Organizado por archivo de suite (`db/__tests__/`, `lib/__tests__/`):
 
-- [lib/pricing.ts](../lib/pricing.ts) — precio transferencia con redondeo a múltiplo de 5.
-- [db/queries.ts:57-75](../db/queries.ts#L57-L75) — `recalculateAverageCost`, costo promedio ponderado (incluye el caso borde `denominator <= 0` → devuelve `newCost`).
-- [db/queries.ts:7-55](../db/queries.ts#L7-L55) — stock derivado (`entrada`/`ajuste` suman, resto resta, ventas no anuladas restan).
-- [db/sales.ts:55](../db/sales.ts#L55) — utilidad `(precio - costo) × cantidad` y el fallback de `costAtSale`.
-- [lib/product-status.ts](../lib/product-status.ts) — estancado/por vencer (ya recibe `today` inyectable: diseñado para test).
-
-Un error de redondeo o de signo aquí = dinero mal contado todos los días, y nadie lo notaría hasta que las cuentas no cuadren.
-
-## Plan de mejora
-
-### Paso 1 — Instalar el runner (jest-expo)
-
-```bash
-pnpm add -D jest jest-expo @types/jest
-```
-
-En `package.json`:
-
-```json
-"scripts": {
-  "test": "jest",
-  "typecheck": "tsc --noEmit"
-},
-"jest": { "preset": "jest-expo" }
-```
-
-(`@testing-library/react-native` puede esperar: la prioridad es lógica pura, no componentes.)
-
-### Paso 2 — Tests de lógica pura (mayor valor, cero mocks)
-
-`lib/__tests__/pricing.test.ts` — casos del ROADMAP T-04:
-
-| entrada (efectivo) | esperado (transferencia) |
+| Suite | Cubre |
 |---|---|
-| 47 | 50 |
-| 20 | 20 |
-| 100 | 110 |
-| 0 | 0 |
+| `queries.test.ts` | `recalculateAverageCost`, `recalculateAverageCostFromScratch`, `calculateStock`, `calculateAllStocks`, `countLowStock`, `getLastSaleDate(s)` |
+| `sales.test.ts` | `registerSalesSession` (atomicidad, sesión de caja, `isCostSale`), `verifySessionStock`, `listSales`, `updateSale`/`cancelSale`/`restoreSale`, `runAverageCostBackfill` |
+| `reports.test.ts` | `getDailySummary`, `getDailyBreakdown`, `getRangeSummary`/`getRangeBreakdown`, `getDailyTotalsInRange`, `getRangeRanking`, `getLossesBreakdown` |
+| `movements.test.ts` | `registerEntry`/`updateEntry`/`cancelEntry`/`restoreEntry`, `registerOutflow`/`updateOutflow`/`cancelOutflow`/`restoreOutflow`, `getEntryById`/`getOutflowById`, `getEntriesSummaryByProduct`, `listEntries`/`listMovements`, `sumLossOutflowsValue` |
+| `expenses.test.ts` | CRUD + cancelar/restaurar + filtros de fecha de gastos |
+| `products.test.ts` | `createProduct`, `updateProduct`, `archiveProduct`/`restoreProduct`, `listProducts` (join con stock, búsqueda, filtros) |
+| `config.test.ts` | `getConfig`/`setConfig` (upsert)/`getAllConfig` (merge sobre `CONFIG_DEFAULTS`) |
+| `lib/pricing.test.ts`, `lib/product-status.test.ts`, `lib/format.test.ts`, `lib/safe-write.test.ts` | lógica pura sin dependencias de DB |
 
-`lib/__tests__/product-status.test.ts` — con `today` fijo: sin venta nunca + stock>0 → estancado; venta hace 6 días → no; hace 7 → sí; stock 0 → nunca estancado; vencimiento en 0-7 días → alerta, vencido (días<0) → no alerta (comportamiento actual: [lib/product-status.ts:23](../lib/product-status.ts#L23) — decidir si un producto **ya vencido** debería alertar también; hoy no lo hace y parece un bug de especificación).
+Fuera de alcance (documentado, no un olvido): `lib/backup.ts`, `lib/excel.ts`, `lib/notifications.ts` (wrappers de I/O sobre módulos nativos de Expo — exigen mocks pesados y no son lógica financiera) y tests de UI/componentes/E2E (Maestro/Detox) — coste alto para un solo desarrollador, reconsiderar tras validar Etapa 2.
 
-### Paso 3 — Tests de la capa db contra SQLite real
+## Hábito para el futuro
 
-Las funciones de `db/` importan `db` desde [db/client.ts](../db/client.ts) (singleton sobre `expo-sqlite`, que no corre en Node). Dos opciones:
+Toda función nueva en `db/queries.ts`, `db/*.ts` o `lib/` que calcule dinero o stock entra con su test — el umbral de cobertura en CI ya lo hace cumplir automáticamente. Los reportes nuevos que se agreguen (agregaciones, rankings) nacen testeados siguiendo el patrón de `reports.test.ts`.
 
-- **Opción recomendada:** `pnpm add -D better-sqlite3 @types/better-sqlite3` y mapear el módulo en Jest (`moduleNameMapper` de `./client` → un client de test con `drizzle-orm/better-sqlite3` que aplica `drizzle/0000_dark_payback.sql` a una DB `:memory:`). Drizzle expone la misma API sync sobre better-sqlite3, así que `registerSalesSession` (transacción sync) funciona igual.
-- Alternativa mínima: refactorizar las funciones para recibir `db` como parámetro (inyección). Más invasivo; solo si el mapping da guerra.
+## Qué no reemplaza esto
 
-Casos prioritarios:
-1. **Costo promedio:** entrada 4u×100 + entrada 10u×130 → promedio 121.43 (caso del ROADMAP T-01/T-06); stock 0 previo → toma el costo nuevo.
-2. **Stock derivado:** entrada 10, venta 3, merma 2, ajuste −1 → stock 4; venta anulada no descuenta.
-3. **`registerSalesSession`:** inserta N filas, utilidad correcta, usa `averageCost` actual del producto (no el del carrito).
-4. **`getDailySummary`:** mezcla efectivo/transferencia/costo → totales por método correctos; ventas de otra fecha no cuentan.
-
-### Paso 4 — CI con GitHub Actions
-
-`.github/workflows/ci.yml`:
-
-```yaml
-name: CI
-on: [push, pull_request]
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-```
-
-### Paso 5 (hábito) — Regla para el futuro
-
-Toda función nueva en `db/queries.ts` o `lib/` que calcule dinero o stock entra con su test. Los reportes de M5 (T-16–T-18) son el caso ideal: sus agregaciones nuevas (`getRangeSummary`, rankings) nacen testeadas.
-
-## Criterio de hecho
-
-- `pnpm test` corre en verde con los casos de los pasos 2-3.
-- `pnpm typecheck` existe y pasa.
-- El workflow de CI corre lint + typecheck + test en cada push.
-
-## No entra en este plan
-
-Tests de UI/componentes y E2E (Maestro/Detox): valor real pero coste alto para un solo desarrollador; reconsiderar tras el MVP. El smoke-testing manual en dispositivo (pendiente de T-01) sigue siendo necesario y no lo sustituye esto.
+El smoke-testing manual en dispositivo real sigue siendo necesario: los tests corren contra `better-sqlite3` en Node, no contra `expo-sqlite` en el runtime real. Antes de dar por buena una migración de esquema (como la de SP1), validar también en dispositivo.

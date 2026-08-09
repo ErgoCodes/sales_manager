@@ -36,6 +36,12 @@ Bugs y features detectados por Yamile probando la app (conversación de WhatsApp
 | [17 · Constancia de salidas por producto](17-constancia-salidas-por-producto.md) | Añadir cantidad/unidad y tipo "otro concepto" al reporte de salidas | MEDIA | ~1 día |
 | [18 · Resumen de venta por método de pago](18-resumen-venta-por-metodo-pago.md) | Agrupar productos por efectivo/transferencia en el resumen del carrito | MEDIA | ~½-1 día |
 
+## Fase previa a Etapa 2
+
+| Doc | Tema | Prioridad | Esfuerzo |
+|---|---|---|---|
+| [19 · Preparación para Etapa 2](19-preparacion-etapa2.md) | Cobertura de tests sobre lógica financiera (sección 1, completa) + split a monorepo (sección 2, pendiente) | ALTA | L |
+
 ## Orden de ataque recomendado
 
 1. **Primero, una tarde de deuda crítica** antes de seguir con features — son arreglos pequeños que protegen todo lo demás:
