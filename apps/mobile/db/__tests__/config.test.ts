@@ -1,7 +1,5 @@
 import { CONFIG_DEFAULTS, CONFIG_KEYS, getAllConfig, getConfig, setConfig } from '../config';
 
-// This will load db/__mocks__/client.ts
-jest.mock('../client');
 import { resetDb } from './helpers';
 
 describe('db/config', () => {

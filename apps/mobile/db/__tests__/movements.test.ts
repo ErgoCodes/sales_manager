@@ -17,8 +17,6 @@ import {
   updateOutflow,
 } from '../movements';
 
-// This will load db/__mocks__/client.ts
-jest.mock('../client');
 import { getDb } from '../client';
 import { calculateStock } from '../queries';
 import { products, warehouseMovements } from '../schema';

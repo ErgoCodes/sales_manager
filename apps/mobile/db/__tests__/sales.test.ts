@@ -10,8 +10,6 @@ import {
   verifySessionStock,
 } from '../sales';
 
-// This will load db/__mocks__/client.ts
-jest.mock('../client');
 import { getDb } from '../client';
 import { calculateStock, getDailySummary } from '../queries';
 import { products, saleSessions, sales } from '../schema';

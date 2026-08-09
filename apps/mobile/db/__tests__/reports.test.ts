@@ -8,8 +8,6 @@ import {
   getRangeSummary,
 } from '../queries';
 
-// This will load db/__mocks__/client.ts
-jest.mock('../client');
 import { resetDb, seedExpense, seedOutflow, seedProduct, seedSale } from './helpers';
 
 describe('db/queries reports', () => {

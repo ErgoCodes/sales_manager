@@ -76,14 +76,14 @@
     "preset": "jest-expo",
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "<rootDir>/db/__tests__/helpers.ts"
+      "<rootDir>/db/__tests__/helpers.ts",
+      "<rootDir>/db/__tests__/test-db.ts"
     ],
     "collectCoverageFrom": [
       "db/**/*.ts",
       "lib/**/*.ts",
       "!db/client.ts",
       "!db/schema.ts",
-      "!db/__mocks__/**",
       "!db/__tests__/**",
       "!lib/backup.ts",
       "!lib/excel.ts",

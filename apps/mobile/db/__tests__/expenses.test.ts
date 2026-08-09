@@ -10,8 +10,6 @@ import {
   updateExpense,
 } from '../expenses';
 
-// This will load db/__mocks__/client.ts
-jest.mock('../client');
 import { getDb } from '../client';
 import { expenses } from '../schema';
 import { resetDb, seedExpense } from './helpers';

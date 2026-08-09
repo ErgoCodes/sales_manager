@@ -2,8 +2,6 @@ import { eq } from 'drizzle-orm';
 
 import { archiveProduct, createProduct, getProduct, listProducts, restoreProduct, updateProduct } from '../products';
 
-// This will load db/__mocks__/client.ts
-jest.mock('../client');
 import { getDb } from '../client';
 import { products } from '../schema';
 import { resetDb, seedEntry, seedProduct } from './helpers';

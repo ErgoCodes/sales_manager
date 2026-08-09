@@ -1,3 +1,4 @@
+import './test-db';
 import { getDb } from '../client';
 import {
   configuration,
@@ -8,11 +9,6 @@ import {
   warehouseMovements,
 } from '../schema';
 
-/**
- * Call this from `getDb()` import must already be mocked (each test file needs its
- * own `jest.mock('../client')` before importing this helper — Jest hoists
- * mocks per-file, so it can't be centralized here).
- */
 export function resetDb() {
   getDb().delete(sales).run();
   getDb().delete(saleSessions).run();

@@ -8,8 +8,6 @@ import {
   recalculateAverageCostFromScratch,
 } from '../queries';
 
-// This will load db/__mocks__/client.ts
-jest.mock('../client');
 import { CONFIG_KEYS, setConfig } from '../config';
 import { resetDb, seedEntry, seedOutflow, seedProduct, seedSale } from './helpers';
 
