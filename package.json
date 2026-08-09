@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },
@@ -72,6 +73,30 @@
   "private": true,
   "packageManager": "pnpm@11.18.0+sha512.33d83c77da82f49fba836925c6f1b841181ec3132b670639bd012f7075f5c7cf634c5f870147c19aae7478fac01df09d8892e880454896edd23ee9b33757563c",
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/db/__tests__/helpers.ts"
+    ],
+    "collectCoverageFrom": [
+      "db/**/*.ts",
+      "lib/**/*.ts",
+      "!db/client.ts",
+      "!db/schema.ts",
+      "!db/__mocks__/**",
+      "!db/__tests__/**",
+      "!lib/backup.ts",
+      "!lib/excel.ts",
+      "!lib/notifications.ts",
+      "!lib/__tests__/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 93,
+        "branches": 71,
+        "functions": 95,
+        "lines": 95
+      }
+    }
   }
 }

@@ -1,191 +1,256 @@
-import { getEntriesSummaryByProduct, listEntries, registerEntry } from '../movements';
-import { products, warehouseMovements } from '../schema';
 import { eq } from 'drizzle-orm';
+
+import {
+  cancelEntry,
+  cancelOutflow,
+  getEntriesSummaryByProduct,
+  getEntryById,
+  getOutflowById,
+  listEntries,
+  listMovements,
+  registerEntry,
+  registerOutflow,
+  restoreEntry,
+  restoreOutflow,
+  sumLossOutflowsValue,
+  updateEntry,
+  updateOutflow,
+} from '../movements';
 
 // This will load db/__mocks__/client.ts
 jest.mock('../client');
 import { db } from '../client';
+import { calculateStock } from '../queries';
+import { products, warehouseMovements } from '../schema';
+import { resetDb, seedEntry, seedOutflow, seedProduct } from './helpers';
 
 describe('db/movements', () => {
   beforeEach(() => {
-    db.delete(warehouseMovements).run();
-    db.delete(products).run();
+    resetDb();
   });
 
   describe('registerEntry', () => {
     it('sets average cost to the entry cost on the very first entry (not halved)', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Test Product',
-          category: 'Bebidas',
-          unitOfMeasure: 'u',
-          averageCost: 0,
-          cashPrice: 150,
-          transferPrice: 150,
-          lowStockThreshold: 5,
-        })
-        .run();
+      const productId = seedProduct({ averageCost: 0 });
 
       await registerEntry({
-        productId: 1,
+        productId,
         quantity: 10,
         unitCostPrice: 100,
         date: '2026-07-01T10:00:00Z',
       });
 
-      const [product] = await db.select().from(products).where(eq(products.id, 1));
+      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBe(100);
     });
 
     it('weights a second entry against the pre-existing stock (4u * 100 + 10u * 130 -> 121.43)', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Test Product',
-          category: 'Bebidas',
-          unitOfMeasure: 'u',
-          averageCost: 100,
-          cashPrice: 150,
-          transferPrice: 150,
-          lowStockThreshold: 5,
-        })
-        .run();
-
-      db.insert(warehouseMovements)
-        .values({
-          productId: 1,
-          type: 'entrada',
-          quantity: 4,
-          unitCostPrice: 100,
-          date: '2026-07-01T10:00:00Z',
-        })
-        .run();
+      const productId = seedProduct({ averageCost: 100 });
+      seedEntry(productId, { quantity: 4, unitCostPrice: 100, date: '2026-07-01T10:00:00Z' });
 
       await registerEntry({
-        productId: 1,
+        productId,
         quantity: 10,
         unitCostPrice: 130,
         date: '2026-07-02T10:00:00Z',
       });
 
-      const [product] = await db.select().from(products).where(eq(products.id, 1));
+      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
       expect(product.averageCost).toBeCloseTo(121.42857, 5);
+    });
+  });
+
+  describe('updateEntry', () => {
+    it('recalculates averageCost from scratch and updates stock after changing quantity and cost', async () => {
+      const productId = seedProduct({ averageCost: 100 });
+      const entryId = seedEntry(productId, { quantity: 4, unitCostPrice: 100, date: '2026-07-01T10:00:00Z' });
+
+      await updateEntry(entryId, {
+        productId,
+        quantity: 10,
+        unitCostPrice: 130,
+        date: '2026-07-01T10:00:00Z',
+      });
+
+      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      expect(product.averageCost).toBe(130);
+      expect(await calculateStock(productId)).toBe(10);
+    });
+  });
+
+  describe('cancelEntry / restoreEntry', () => {
+    it('excludes a cancelled entry from stock and averageCost, then restores it exactly', async () => {
+      const productId = seedProduct({ averageCost: 0, costPrice: 50 });
+      seedEntry(productId, { quantity: 4, unitCostPrice: 100, date: '2026-07-01T10:00:00Z' });
+      const secondEntryId = seedEntry(productId, { quantity: 10, unitCostPrice: 130, date: '2026-07-02T10:00:00Z' });
+
+      await cancelEntry(secondEntryId);
+      expect(await calculateStock(productId)).toBe(4);
+      let [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      expect(product.averageCost).toBe(100);
+
+      await restoreEntry(secondEntryId);
+      expect(await calculateStock(productId)).toBe(14);
+      [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      expect(product.averageCost).toBeCloseTo(121.42857, 5);
+    });
+
+    it('is a no-op when cancelling an entry id that does not exist', async () => {
+      await expect(cancelEntry(9999)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('updateOutflow / cancelOutflow', () => {
+    it('reflects quantity changes in stock', async () => {
+      const productId = seedProduct();
+      seedEntry(productId, { quantity: 10 });
+      const outflowId = seedOutflow(productId, { type: 'merma', quantity: 2, unitCostPrice: 10 });
+
+      expect(await calculateStock(productId)).toBe(8);
+
+      await updateOutflow(outflowId, { quantity: 5 });
+      expect(await calculateStock(productId)).toBe(5);
+    });
+
+    it('excludes a cancelled outflow from stock and loss totals', async () => {
+      const productId = seedProduct();
+      seedEntry(productId, { quantity: 10 });
+      const outflowId = seedOutflow(productId, {
+        type: 'merma',
+        quantity: 2,
+        unitCostPrice: 10,
+        date: '2026-07-02T10:00:00Z',
+      });
+
+      expect(await sumLossOutflowsValue('2026-07-01', '2026-07-31')).toBe(20);
+
+      await cancelOutflow(outflowId);
+      expect(await calculateStock(productId)).toBe(10);
+      expect(await sumLossOutflowsValue('2026-07-01', '2026-07-31')).toBe(0);
+    });
+
+    it('restoreOutflow reverts a cancellation exactly', async () => {
+      const productId = seedProduct();
+      seedEntry(productId, { quantity: 10 });
+      const outflowId = seedOutflow(productId, { type: 'merma', quantity: 2, unitCostPrice: 10 });
+
+      await cancelOutflow(outflowId);
+      expect(await calculateStock(productId)).toBe(10);
+
+      await restoreOutflow(outflowId);
+      expect(await calculateStock(productId)).toBe(8);
+    });
+  });
+
+  describe('registerOutflow', () => {
+    it('inserts the movement without touching averageCost (only entries recalculate it)', async () => {
+      const productId = seedProduct({ averageCost: 45 });
+
+      await registerOutflow({
+        productId,
+        type: 'merma',
+        quantity: 2,
+        unitCostPrice: 10,
+        date: '2026-07-01T10:00:00Z',
+      });
+
+      const [product] = db.select().from(products).where(eq(products.id, productId)).all();
+      expect(product.averageCost).toBe(45);
+      expect(await calculateStock(productId)).toBe(-2);
+    });
+  });
+
+  describe('getEntryById / getOutflowById', () => {
+    it('getEntryById returns the joined entry, and null for a non-entrada movement', async () => {
+      const productId = seedProduct({ name: 'Producto' });
+      const entryId = seedEntry(productId, { quantity: 5, unitCostPrice: 10 });
+      const outflowId = seedOutflow(productId, { type: 'merma', quantity: 1 });
+
+      const entry = await getEntryById(entryId);
+      expect(entry).toMatchObject({ productId, productName: 'Producto', quantity: 5 });
+
+      expect(await getEntryById(outflowId)).toBeNull();
+    });
+
+    it('getOutflowById returns the joined outflow', async () => {
+      const productId = seedProduct({ name: 'Producto' });
+      const outflowId = seedOutflow(productId, { type: 'retiro_owner', quantity: 3 });
+
+      const outflow = await getOutflowById(outflowId);
+      expect(outflow).toMatchObject({ productId, productName: 'Producto', type: 'retiro_owner', quantity: 3 });
+    });
+  });
+
+  describe('sumLossOutflowsValue', () => {
+    it('excludes ajuste from the loss total', async () => {
+      const productId = seedProduct();
+      seedOutflow(productId, { type: 'merma', quantity: 2, unitCostPrice: 100, date: '2026-07-15T10:00:00Z' });
+      seedOutflow(productId, { type: 'retiro_owner', quantity: 1, unitCostPrice: 100, date: '2026-07-18T10:00:00Z' });
+      seedOutflow(productId, { type: 'ajuste', quantity: -5, unitCostPrice: 100, date: '2026-07-16T10:00:00Z' });
+
+      const lossSum = await sumLossOutflowsValue('2026-07-01', '2026-07-31');
+      // 2 * 100 (merma) + 1 * 100 (retiro_owner) = 300; ajuste excluded
+      expect(lossSum).toBe(300);
+    });
+  });
+
+  describe('listMovements', () => {
+    it('filters by type and date range, ordered by date descending', async () => {
+      const productId = seedProduct();
+      seedOutflow(productId, { type: 'merma', quantity: 2, date: '2026-07-15T10:00:00Z' });
+      seedOutflow(productId, { type: 'retiro_owner', quantity: 1, date: '2026-07-18T10:00:00Z' });
+      seedOutflow(productId, { type: 'ajuste', quantity: -5, date: '2026-07-16T10:00:00Z' });
+      // Previous month, excluded by the date filter.
+      seedOutflow(productId, { type: 'retiro_owner', quantity: 3, date: '2026-06-20T10:00:00Z' });
+
+      const result = await listMovements({
+        types: ['merma', 'retiro_owner'],
+        dateFrom: '2026-07-01',
+        dateTo: '2026-07-31',
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((m) => m.type)).toEqual(['retiro_owner', 'merma']);
     });
   });
 
   describe('getEntriesSummaryByProduct', () => {
     it('aggregates entries by product and excludes cancelled entries', async () => {
-      db.insert(products)
-        .values([
-          {
-            id: 1,
-            name: 'Producto A',
-            unitOfMeasure: 'u',
-            averageCost: 100,
-          },
-          {
-            id: 2,
-            name: 'Producto B',
-            unitOfMeasure: 'kg',
-            averageCost: 50,
-          },
-        ])
-        .run();
+      const productA = seedProduct({ name: 'Producto A' });
+      const productB = seedProduct({ name: 'Producto B', unitOfMeasure: 'kg' });
 
-      db.insert(warehouseMovements)
-        .values([
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 5,
-            unitCostPrice: 100,
-            date: '2026-07-10T08:00:00Z',
-            cancelled: false,
-          },
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 15,
-            unitCostPrice: 100,
-            date: '2026-07-15T10:00:00Z',
-            cancelled: false,
-          },
-          // Cancelled entry for product 1 - should be excluded
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 100,
-            unitCostPrice: 100,
-            date: '2026-07-12T10:00:00Z',
-            cancelled: true,
-          },
-          {
-            productId: 2,
-            type: 'entrada',
-            quantity: 10,
-            unitCostPrice: 50,
-            date: '2026-07-14T09:00:00Z',
-            cancelled: false,
-          },
-        ])
-        .run();
+      seedEntry(productA, { quantity: 5, unitCostPrice: 100, date: '2026-07-10T08:00:00Z' });
+      seedEntry(productA, { quantity: 15, unitCostPrice: 100, date: '2026-07-15T10:00:00Z' });
+      // Cancelled entry for product A - should be excluded.
+      seedEntry(productA, { quantity: 100, unitCostPrice: 100, date: '2026-07-12T10:00:00Z', cancelled: true });
+      seedEntry(productB, { quantity: 10, unitCostPrice: 50, date: '2026-07-14T09:00:00Z' });
 
       const summary = await getEntriesSummaryByProduct('2026-07-01', '2026-07-31');
 
       expect(summary).toHaveLength(2);
-      // Product 1 total value = (5*100) + (15*100) = 2000. Product 2 = 10*50 = 500.
-      // Order should be product 1 first.
-      expect(summary[0].productId).toBe(1);
-      expect(summary[0].productName).toBe('Producto A');
-      expect(summary[0].totalQuantity).toBe(20);
-      expect(summary[0].totalCostValue).toBe(2000);
-      expect(summary[0].entriesCount).toBe(2);
-      expect(summary[0].lastEntryDate).toBe('2026-07-15T10:00:00Z');
-
-      expect(summary[1].productId).toBe(2);
-      expect(summary[1].productName).toBe('Producto B');
-      expect(summary[1].totalQuantity).toBe(10);
-      expect(summary[1].totalCostValue).toBe(500);
-      expect(summary[1].entriesCount).toBe(1);
-      expect(summary[1].lastEntryDate).toBe('2026-07-14T09:00:00Z');
+      // Product A total value = (5*100) + (15*100) = 2000. Product B = 10*50 = 500.
+      expect(summary[0]).toMatchObject({
+        productId: productA,
+        productName: 'Producto A',
+        totalQuantity: 20,
+        totalCostValue: 2000,
+        entriesCount: 2,
+        lastEntryDate: '2026-07-15T10:00:00Z',
+      });
+      expect(summary[1]).toMatchObject({
+        productId: productB,
+        productName: 'Producto B',
+        totalQuantity: 10,
+        totalCostValue: 500,
+        entriesCount: 1,
+      });
     });
 
     it('filters entries strictly by date range', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Producto A',
-          unitOfMeasure: 'u',
-          averageCost: 10,
-        })
-        .run();
-
-      db.insert(warehouseMovements)
-        .values([
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 10,
-            unitCostPrice: 10,
-            date: '2026-06-30T23:59:59Z',
-          },
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 5,
-            unitCostPrice: 10,
-            date: '2026-07-05T10:00:00Z',
-          },
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 8,
-            unitCostPrice: 10,
-            date: '2026-08-01T00:00:00Z',
-          },
-        ])
-        .run();
+      const productId = seedProduct();
+      seedEntry(productId, { quantity: 10, unitCostPrice: 10, date: '2026-06-30T23:59:59Z' });
+      seedEntry(productId, { quantity: 5, unitCostPrice: 10, date: '2026-07-05T10:00:00Z' });
+      seedEntry(productId, { quantity: 8, unitCostPrice: 10, date: '2026-08-01T00:00:00Z' });
 
       const summary = await getEntriesSummaryByProduct('2026-07-01', '2026-07-31');
       expect(summary).toHaveLength(1);
@@ -196,35 +261,9 @@ describe('db/movements', () => {
 
   describe('listEntries', () => {
     it('excludes cancelled entries', async () => {
-      db.insert(products)
-        .values({
-          id: 1,
-          name: 'Producto A',
-          unitOfMeasure: 'u',
-          averageCost: 10,
-        })
-        .run();
-
-      db.insert(warehouseMovements)
-        .values([
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 5,
-            unitCostPrice: 10,
-            date: '2026-07-05T10:00:00Z',
-            cancelled: false,
-          },
-          {
-            productId: 1,
-            type: 'entrada',
-            quantity: 20,
-            unitCostPrice: 10,
-            date: '2026-07-06T10:00:00Z',
-            cancelled: true,
-          },
-        ])
-        .run();
+      const productId = seedProduct();
+      seedEntry(productId, { quantity: 5, date: '2026-07-05T10:00:00Z', cancelled: false });
+      seedEntry(productId, { quantity: 20, date: '2026-07-06T10:00:00Z', cancelled: true });
 
       const entries = await listEntries();
       expect(entries).toHaveLength(1);

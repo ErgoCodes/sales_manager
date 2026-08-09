@@ -1,7 +1,6 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { CartItem } from '@/store';
-import { effectiveUnitCost } from '../lib/pricing';
 
 import { db } from './client';
 import { calculateAllStocks } from './queries';
