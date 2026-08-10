@@ -1,0 +1,397 @@
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+
+import { getDb } from './client';
+import { recalculateAverageCost, recalculateAverageCostFromScratch } from './queries';
+import { products, warehouseMovements } from './schema';
+
+interface EntryData {
+  productId: number;
+  quantity: number;
+  unitCostPrice: number;
+  salePrice?: number | null;
+  date: string;
+  notes?: string | null;
+}
+
+export async function registerEntry(data: EntryData): Promise<void> {
+  const newAverageCost = await recalculateAverageCost(
+    data.productId,
+    data.quantity,
+    data.unitCostPrice,
+  );
+
+  await getDb().insert(warehouseMovements).values({
+    productId: data.productId,
+    type: 'entrada',
+    quantity: data.quantity,
+    date: data.date,
+    unitCostPrice: data.unitCostPrice,
+    salePrice: data.salePrice ?? null,
+    notes: data.notes ?? null,
+  });
+
+  await getDb()
+    .update(products)
+    .set({ averageCost: newAverageCost })
+    .where(eq(products.id, data.productId));
+}
+
+/** Devuelve una entrada por su id (para edición). */
+export async function getEntryById(id: number) {
+  const [row] = await getDb()
+    .select({
+      id: warehouseMovements.id,
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      quantity: warehouseMovements.quantity,
+      unitCostPrice: warehouseMovements.unitCostPrice,
+      salePrice: warehouseMovements.salePrice,
+      date: warehouseMovements.date,
+      notes: warehouseMovements.notes,
+      cancelled: warehouseMovements.cancelled,
+      costPrice: products.costPrice,
+      cashPrice: products.cashPrice,
+      transferPrice: products.transferPrice,
+      averageCost: products.averageCost,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(
+      and(
+        eq(warehouseMovements.id, id),
+        eq(warehouseMovements.type, 'entrada'),
+      ),
+    );
+  return row ?? null;
+}
+
+/** Actualiza una entrada existente y recalcula el costo promedio del producto. */
+export async function updateEntry(
+  id: number,
+  data: {
+    productId: number;
+    quantity: number;
+    unitCostPrice: number;
+    date: string;
+    notes?: string | null;
+  },
+): Promise<void> {
+  await getDb()
+    .update(warehouseMovements)
+    .set({
+      productId: data.productId,
+      quantity: data.quantity,
+      unitCostPrice: data.unitCostPrice,
+      date: data.date,
+      notes: data.notes ?? null,
+    })
+    .where(eq(warehouseMovements.id, id));
+
+  const newAvg = await recalculateAverageCostFromScratch(data.productId);
+  await getDb()
+    .update(products)
+    .set({ averageCost: newAvg })
+    .where(eq(products.id, data.productId));
+}
+
+/** Soft-delete: marca la entrada como anulada y recalcula costo promedio. */
+export async function cancelEntry(id: number): Promise<void> {
+  const [row] = await getDb()
+    .select({ productId: warehouseMovements.productId })
+    .from(warehouseMovements)
+    .where(eq(warehouseMovements.id, id));
+  if (!row) return;
+
+  await getDb()
+    .update(warehouseMovements)
+    .set({ cancelled: true })
+    .where(eq(warehouseMovements.id, id));
+
+  const newAvg = await recalculateAverageCostFromScratch(row.productId);
+  await getDb()
+    .update(products)
+    .set({ averageCost: newAvg })
+    .where(eq(products.id, row.productId));
+}
+
+/** Restaura una entrada anulada y recalcula costo promedio. */
+export async function restoreEntry(id: number): Promise<void> {
+  const [row] = await getDb()
+    .select({ productId: warehouseMovements.productId })
+    .from(warehouseMovements)
+    .where(eq(warehouseMovements.id, id));
+  if (!row) return;
+
+  await getDb()
+    .update(warehouseMovements)
+    .set({ cancelled: false })
+    .where(eq(warehouseMovements.id, id));
+
+  const newAvg = await recalculateAverageCostFromScratch(row.productId);
+  await getDb()
+    .update(products)
+    .set({ averageCost: newAvg })
+    .where(eq(products.id, row.productId));
+}
+
+interface OutflowData {
+  productId: number;
+  /** 'merma' | 'retiro_owner' | 'ajuste' */
+  type: string;
+  /** Para 'ajuste' puede ser negativo (la fórmula de stock lo suma). */
+  quantity: number;
+  unitCostPrice: number;
+  date: string;
+  notes?: string | null;
+}
+
+/**
+ * Registra una salida de almacén que no es venta (T-13): merma, retiro del
+ * dueño o ajuste de inventario. A diferencia de una entrada, NO recalcula el
+ * costo promedio (el promedio ponderado solo cambia con entradas), lo que deja
+ * el costo congelado para valorar la pérdida en reportes (T-19).
+ */
+export async function registerOutflow(data: OutflowData): Promise<void> {
+  await getDb().insert(warehouseMovements).values({
+    productId: data.productId,
+    type: data.type,
+    quantity: data.quantity,
+    date: data.date,
+    unitCostPrice: data.unitCostPrice,
+    salePrice: null,
+    notes: data.notes ?? null,
+  });
+}
+
+/** Actualiza los campos editables de una salida existente (T-15). */
+export async function updateOutflow(
+  id: number,
+  data: Partial<{
+    productId: number;
+    type: string;
+    quantity: number;
+    unitCostPrice: number;
+    date: string;
+    notes: string | null;
+  }>,
+): Promise<void> {
+  await getDb().update(warehouseMovements).set(data).where(eq(warehouseMovements.id, id));
+}
+
+/** Devuelve una salida por su id (para edición T-15). */
+export async function getOutflowById(id: number) {
+  const [row] = await getDb()
+    .select({
+      id: warehouseMovements.id,
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      type: warehouseMovements.type,
+      quantity: warehouseMovements.quantity,
+      unitCostPrice: warehouseMovements.unitCostPrice,
+      date: warehouseMovements.date,
+      notes: warehouseMovements.notes,
+      cancelled: warehouseMovements.cancelled,
+      costPrice: products.costPrice,
+      cashPrice: products.cashPrice,
+      transferPrice: products.transferPrice,
+      averageCost: products.averageCost,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(eq(warehouseMovements.id, id));
+  return row ?? null;
+}
+
+/** Soft-delete: marca la salida como anulada (T-15). */
+export async function cancelOutflow(id: number): Promise<void> {
+  await getDb().update(warehouseMovements).set({ cancelled: true }).where(eq(warehouseMovements.id, id));
+}
+
+/** Restaura una salida anulada (undo). */
+export async function restoreOutflow(id: number): Promise<void> {
+  await getDb().update(warehouseMovements).set({ cancelled: false }).where(eq(warehouseMovements.id, id));
+}
+
+export interface EntrySummary {
+  productId: number;
+  productName: string;
+  unitOfMeasure: string;
+  totalQuantity: number;
+  totalCostValue: number;
+  entriesCount: number;
+  lastEntryDate: string;
+}
+
+/**
+ * Agrupa las entradas de inventario (tipo = 'entrada', cancelled = false) por producto
+ * en un rango de fechas opcional. Devuelve cantidad total, valor total a costo,
+ * cantidad de entradas y fecha de la última entrada, ordenadas por valor total descendente.
+ */
+export async function getEntriesSummaryByProduct(
+  from?: string,
+  to?: string,
+): Promise<EntrySummary[]> {
+  const conditions = [
+    eq(warehouseMovements.type, 'entrada'),
+    eq(warehouseMovements.cancelled, false),
+  ];
+  if (from)
+    conditions.push(sql`date(${warehouseMovements.date}) >= date(${from})`);
+  if (to)
+    conditions.push(sql`date(${warehouseMovements.date}) <= date(${to})`);
+
+  const totalQuantity = sql<number>`COALESCE(SUM(${warehouseMovements.quantity}), 0)`;
+  const totalCostValue = sql<number>`COALESCE(SUM(${warehouseMovements.quantity} * ${warehouseMovements.unitCostPrice}), 0)`;
+  const entriesCount = sql<number>`COUNT(*)`;
+  const lastEntryDate = sql<string>`MAX(${warehouseMovements.date})`;
+
+  const rows = await getDb()
+    .select({
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      totalQuantity,
+      totalCostValue,
+      entriesCount,
+      lastEntryDate,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(and(...conditions))
+    .groupBy(warehouseMovements.productId)
+    .orderBy(desc(totalCostValue));
+
+  return rows;
+}
+
+export interface EntryWithProduct {
+  id: number;
+  productId: number;
+  productName: string;
+  unitOfMeasure: string;
+  quantity: number;
+  unitCostPrice: number;
+  date: string;
+  notes: string | null;
+  cancelled: boolean;
+}
+
+interface ListOptions {
+  productId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  includeCancelled?: boolean;
+}
+
+export async function listEntries(opts: ListOptions = {}): Promise<EntryWithProduct[]> {
+  const conditions = [eq(warehouseMovements.type, 'entrada')];
+  if (!opts.includeCancelled) conditions.push(eq(warehouseMovements.cancelled, false));
+  if (opts.productId) conditions.push(eq(warehouseMovements.productId, opts.productId));
+  if (opts.dateFrom)
+    conditions.push(sql`date(${warehouseMovements.date}) >= date(${opts.dateFrom})`);
+  if (opts.dateTo)
+    conditions.push(sql`date(${warehouseMovements.date}) <= date(${opts.dateTo})`);
+
+  const rows = await getDb()
+    .select({
+      id: warehouseMovements.id,
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      quantity: warehouseMovements.quantity,
+      unitCostPrice: warehouseMovements.unitCostPrice,
+      date: warehouseMovements.date,
+      notes: warehouseMovements.notes,
+      cancelled: warehouseMovements.cancelled,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(and(...conditions))
+    .orderBy(desc(warehouseMovements.date));
+
+  return rows;
+}
+
+export interface MovementWithProduct {
+  id: number;
+  productId: number;
+  productName: string;
+  unitOfMeasure: string;
+  type: string;
+  quantity: number;
+  unitCostPrice: number;
+  date: string;
+  notes: string | null;
+  cancelled: boolean;
+}
+
+interface ListMovementsOptions {
+  types?: string[];
+  productId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  includeCancelled?: boolean;
+}
+
+/** Lista movimientos de almacén (filtrable por tipo, p. ej. las salidas T-13). */
+export async function listMovements(
+  opts: ListMovementsOptions = {},
+): Promise<MovementWithProduct[]> {
+  const conditions = [];
+  if (!opts.includeCancelled) conditions.push(eq(warehouseMovements.cancelled, false));
+  if (opts.types && opts.types.length > 0)
+    conditions.push(inArray(warehouseMovements.type, opts.types));
+  if (opts.productId) conditions.push(eq(warehouseMovements.productId, opts.productId));
+  if (opts.dateFrom)
+    conditions.push(sql`date(${warehouseMovements.date}) >= date(${opts.dateFrom})`);
+  if (opts.dateTo)
+    conditions.push(sql`date(${warehouseMovements.date}) <= date(${opts.dateTo})`);
+
+  return getDb()
+    .select({
+      id: warehouseMovements.id,
+      productId: warehouseMovements.productId,
+      productName: products.name,
+      unitOfMeasure: products.unitOfMeasure,
+      type: warehouseMovements.type,
+      quantity: warehouseMovements.quantity,
+      unitCostPrice: warehouseMovements.unitCostPrice,
+      date: warehouseMovements.date,
+      notes: warehouseMovements.notes,
+      cancelled: warehouseMovements.cancelled,
+    })
+    .from(warehouseMovements)
+    .innerJoin(products, eq(warehouseMovements.productId, products.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(warehouseMovements.date));
+}
+
+/**
+ * Valor de las salidas que cuentan como pérdida (merma + retiro del dueño)
+ * en un rango de fechas: SUM(|cantidad| × costo unitario). El 'ajuste' se
+ * excluye porque es una corrección de conteo, no una pérdida.
+ */
+export async function sumLossOutflowsValue(
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<number> {
+  const conditions = [
+    inArray(warehouseMovements.type, ['merma', 'retiro_owner']),
+    eq(warehouseMovements.cancelled, false),
+  ];
+  if (dateFrom)
+    conditions.push(sql`date(${warehouseMovements.date}) >= date(${dateFrom})`);
+  if (dateTo)
+    conditions.push(sql`date(${warehouseMovements.date}) <= date(${dateTo})`);
+
+  const [row] = await getDb()
+    .select({
+      total: sql<number>`COALESCE(SUM(ABS(${warehouseMovements.quantity}) * ${warehouseMovements.unitCostPrice}), 0)`,
+    })
+    .from(warehouseMovements)
+    .where(and(...conditions));
+
+  return row?.total ?? 0;
+}

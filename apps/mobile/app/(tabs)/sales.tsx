@@ -1,0 +1,232 @@
+import { format } from "date-fns";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import { FlatList, Pressable, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+
+import { DateBar } from "@/components/ui/date-bar";
+import { EmptyState } from "@/components/ui/empty-state";
+import { HeroCard } from "@/components/ui/hero-card";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { StatCard } from "@/components/ui/stat-card";
+import {
+  getDailyBreakdown,
+  getDailySummary,
+  type DailySummary,
+  type ProductDaySummary,
+} from "@/db/queries";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { formatCurrency } from "@monaco/domain";
+
+export default function SalesScreen() {
+  const c = useAppColors();
+  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [filter, setFilter] = useState<"all" | "efectivo" | "transferencia">("all");
+  const [summary, setSummary] = useState<DailySummary>({
+    cash: 0,
+    transfer: 0,
+    total: 0,
+    profit: 0,
+  });
+  const [breakdown, setBreakdown] = useState<ProductDaySummary[]>([]);
+
+  const load = useCallback(() => {
+    let active = true;
+    (async () => {
+      const [s, b] = await Promise.all([
+        getDailySummary(date),
+        getDailyBreakdown(date, filter === "all" ? undefined : filter),
+      ]);
+      if (active) {
+        setSummary(s);
+        setBreakdown(b);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [date, filter]);
+
+  useFocusEffect(load);
+
+  const totalUnits = useMemo(
+    () => breakdown.reduce((acc, item) => acc + item.totalQuantity, 0),
+    [breakdown]
+  );
+
+  return (
+    <View className="flex-1 bg-background">
+      <FlatList
+        data={breakdown}
+        keyExtractor={(item) => String(item.productId)}
+        contentContainerClassName="p-4 pb-[120px] gap-3"
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View className="gap-3.5 mb-1">
+            <Animated.View entering={FadeInDown.duration(360).springify()}>
+              <DateBar date={date} onChange={setDate} />
+            </Animated.View>
+
+            {/* HERO */}
+            <Animated.View
+              entering={FadeInDown.delay(60).duration(360).springify()}
+            >
+              <Pressable
+                onPress={() => setFilter("all")}
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.8 : (filter === "all" ? 1 : 0.4),
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                })}
+              >
+                <HeroCard padding={20}>
+                  <Text className="text-[13px] font-bold text-white/75 tracking-[1px] uppercase">
+                    Total vendido
+                  </Text>
+                  <Text
+                    selectable
+                    style={{ fontVariant: ["tabular-nums"] }}
+                    className="text-[36px] font-extrabold text-white tracking-[-1px] mt-1"
+                  >
+                    {formatCurrency(summary.total)}
+                  </Text>
+                  <View className="flex-row items-center gap-1.5 mt-1.5">
+                    <IconSymbol
+                      name="sparkles"
+                      size={13}
+                      color="rgba(255,255,255,0.85)"
+                    />
+                    <Text className="text-[15px] text-white/85">
+                      Utilidad
+                    </Text>
+                    <Text
+                      style={{ fontVariant: ["tabular-nums"] }}
+                      className="text-[15px] font-bold text-white"
+                    >
+                      {formatCurrency(summary.profit)}
+                    </Text>
+                  </View>
+                </HeroCard>
+              </Pressable>
+            </Animated.View>
+
+            {/* Mini stats row */}
+            <Animated.View
+              entering={FadeInDown.delay(120).duration(360).springify()}
+              className="flex-row gap-2.5"
+            >
+              <Pressable
+                style={({ pressed }) => ({
+                  flex: 1,
+                  opacity: pressed ? 0.8 : (filter === "all" || filter === "efectivo" ? 1 : 0.4),
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                })}
+                onPress={() => setFilter(filter === "efectivo" ? "all" : "efectivo")}
+              >
+                <StatCard
+                  icon="dollarsign.circle.fill"
+                  label="Efectivo"
+                  value={formatCurrency(summary.cash)}
+                  accent={c.cash}
+                  iconBg={c.cashSoft}
+                />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => ({
+                  flex: 1,
+                  opacity: pressed ? 0.8 : (filter === "all" || filter === "transferencia" ? 1 : 0.4),
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                })}
+                onPress={() => setFilter(filter === "transferencia" ? "all" : "transferencia")}
+              >
+                <StatCard
+                  icon="arrow.left.arrow.right.circle.fill"
+                  label="Transferencia"
+                  value={formatCurrency(summary.transfer)}
+                  accent={c.transfer}
+                  iconBg={c.transferSoft}
+                />
+              </Pressable>
+            </Animated.View>
+
+            {breakdown.length > 0 ? (
+              <Animated.View
+                entering={FadeInDown.delay(180).duration(360).springify()}
+                className="flex-row items-center justify-between mt-1.5"
+              >
+                <Text className="text-[11px] font-bold text-text-muted tracking-wide uppercase">
+                  Productos vendidos
+                </Text>
+                <Text
+                  className="text-[14px] text-tab-default"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {breakdown.length} · {totalUnits} unidades
+                </Text>
+              </Animated.View>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={
+          <EmptyState
+            icon="cart.fill"
+            title="Sin ventas este día"
+            description="Cuando registres una venta, aparecerá aquí el desglose por producto."
+            action={{
+              label: "Registrar venta",
+              onPress: () => router.push("/sales/new-session"),
+            }}
+          />
+        }
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={FadeInDown.delay(220 + index * 30).duration(280)}
+          >
+            <View className="flex-row items-center bg-surface rounded-2xl p-3.5 gap-3 shadow-sm">
+              <View className="w-10 h-10 rounded-[14px] bg-surface-muted items-center justify-center">
+                <IconSymbol name="bag.fill" size={18} color={c.tint} />
+              </View>
+              <View className="flex-1 gap-0.5">
+                <Text
+                  className="text-[16px] font-semibold text-text-strong"
+                  numberOfLines={1}
+                >
+                  {item.productName}
+                </Text>
+                <Text
+                  className="text-[14px] text-tab-default"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {item.totalQuantity} vendidos
+                </Text>
+              </View>
+              <View className="items-end gap-0.5">
+                <Text
+                  className="text-[15px] font-bold text-text-strong"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {formatCurrency(item.totalRevenue)}
+                </Text>
+                <Text
+                  style={{ fontVariant: ["tabular-nums"] }}
+                  className="text-[11px] text-semantic-cash font-semibold"
+                >
+                  +{formatCurrency(item.totalProfit)}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+        )}
+      />
+
+      <Pressable
+        onPress={() => router.push("/sales/new-session")}
+        className="absolute bottom-6 right-5 h-[56px] px-[22px] rounded-2xl bg-primary flex-row items-center gap-2 shadow-lg active:opacity-88 active:scale-[0.97]"
+      >
+        <IconSymbol name="plus" size={22} color="#FFFFFF" />
+        <Text className="text-white text-[15px] font-bold">
+          Vender
+        </Text>
+      </Pressable>
+    </View>
+  );
+}

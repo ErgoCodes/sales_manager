@@ -1,0 +1,362 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { z } from "zod";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import {
+  ProductPicker,
+  type SelectedProduct,
+} from "@/components/ui/product-picker";
+import { Text } from "@/components/ui/text";
+import { CONFIG_KEYS, getConfig } from "@/db/config";
+import { getEntryById, registerEntry, updateEntry } from "@/db/movements";
+import { updateProduct } from "@/db/products";
+import { Radius, Shadows } from "@/constants/theme";
+import { useAppColors } from "@/hooks/use-app-colors";
+import { calculateTransferPrice } from "@monaco/domain";
+import { safeWrite } from "@/lib/safe-write";
+
+const positivePrice = (msg: string) =>
+  z.string().refine((v) => v.trim() !== "" && Number(v) > 0, msg);
+
+const schema = z.object({
+  quantity: z.string().refine((v) => Number(v) > 0, "Debe ser mayor que 0"),
+  unitCostPrice: positivePrice(
+    "El costo es obligatorio y debe ser mayor que 0"
+  ),
+  date: z
+    .string()
+    .min(1, "La fecha es obligatoria")
+    .refine(
+      (v) => v <= format(new Date(), "yyyy-MM-dd"),
+      "La fecha no puede ser futura"
+    ),
+  notes: z.string().optional(),
+  newCostPrice: z.string().optional(),
+  newCashPrice: z.string().optional(),
+  newTransferPrice: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+export default function StockEntryScreen() {
+  const c = useAppColors();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEdit = !!id;
+  const [product, setProduct] = useState<SelectedProduct | null>(null);
+  const [productError, setProductError] = useState("");
+  const [updatePrices, setUpdatePrices] = useState(false);
+  const [transferSurchargePct, setTransferSurchargePct] = useState(10);
+
+  useEffect(() => {
+    (async () => {
+      const surchargeStr = await getConfig(CONFIG_KEYS.transferSurchargePercent);
+      if (surchargeStr) {
+        setTransferSurchargePct(Number(surchargeStr));
+      }
+    })();
+  }, []);
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      quantity: "",
+      unitCostPrice: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      notes: "",
+      newCostPrice: "",
+      newCashPrice: "",
+      newTransferPrice: "",
+    },
+  });
+
+  useEffect(() => {
+    if (id) {
+      (async () => {
+        const row = await getEntryById(Number(id));
+        if (row) {
+          setProduct({
+            id: row.productId,
+            name: row.productName,
+            unitOfMeasure: row.unitOfMeasure,
+            costPrice: row.costPrice,
+            cashPrice: row.cashPrice,
+            transferPrice: row.transferPrice,
+            averageCost: row.averageCost,
+          });
+          reset({
+            quantity: String(row.quantity),
+            unitCostPrice: String(row.unitCostPrice),
+            date: row.date,
+            notes: row.notes ?? "",
+            newCostPrice: "",
+            newCashPrice: "",
+            newTransferPrice: "",
+          });
+        }
+      })();
+    }
+  }, [id, reset]);
+
+  function onProductSelected(p: SelectedProduct) {
+    setProduct(p);
+    setProductError("");
+    if (p.costPrice != null) {
+      setValue("unitCostPrice", String(p.costPrice));
+    }
+    if (updatePrices) {
+      if (p.costPrice != null) setValue("newCostPrice", String(p.costPrice));
+      if (p.cashPrice != null) setValue("newCashPrice", String(p.cashPrice));
+      if (p.transferPrice != null)
+        setValue("newTransferPrice", String(p.transferPrice));
+    }
+  }
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (!product) {
+      setProductError("Selecciona un producto");
+      return;
+    }
+
+    const result = await safeWrite(
+      async () => {
+        if (isEdit) {
+          await updateEntry(Number(id), {
+            productId: product.id,
+            quantity: Number(values.quantity),
+            unitCostPrice: Number(values.unitCostPrice),
+            date: values.date,
+            notes: values.notes || null,
+          });
+        } else {
+          await registerEntry({
+            productId: product.id,
+            quantity: Number(values.quantity),
+            unitCostPrice: Number(values.unitCostPrice),
+            date: values.date,
+            notes: values.notes || null,
+          });
+        }
+
+        if (!isEdit && updatePrices) {
+          const cost = values.newCostPrice
+            ? Number(values.newCostPrice)
+            : undefined;
+          const cash = values.newCashPrice
+            ? Number(values.newCashPrice)
+            : undefined;
+          const transfer = values.newTransferPrice
+            ? Number(values.newTransferPrice)
+            : undefined;
+          if (cost && cost > 0 && cash && cash > 0) {
+            await updateProduct(product.id, {
+              name: product.name,
+              unitOfMeasure: product.unitOfMeasure,
+              category: null,
+              lowStockThreshold: null,
+              costPrice: cost,
+              cashPrice: cash,
+              transferPrice:
+                transfer && transfer > 0
+                  ? transfer
+                  : calculateTransferPrice(cash, transferSurchargePct),
+            });
+          }
+        }
+      },
+      isEdit ? "Error al guardar cambios" : "No se pudo guardar"
+    );
+
+    if (result.ok) {
+      router.back();
+    }
+  });
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: c.background }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={100}
+    >
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        <Stack.Screen options={{ title: isEdit ? "Editar entrada" : "Registrar entrada" }} />
+
+        <ProductPicker
+          label="Producto"
+          value={product}
+          onChange={onProductSelected}
+          error={productError}
+        />
+
+        {product ? (
+          <View
+            style={{
+              borderRadius: Radius.xl,
+              backgroundColor: c.surface,
+              padding: 12,
+              boxShadow: Shadows.sm,
+              gap: 4,
+            }}
+          >
+            <Text variant="label">Precios actuales</Text>
+            <Text variant="caption">
+              Costo: ${product.costPrice ?? "—"} · Efectivo: $
+              {product.cashPrice ?? "—"} · Transferencia: $
+              {product.transferPrice ?? "—"}
+            </Text>
+          </View>
+        ) : null}
+
+        <Controller
+          control={control}
+          name="quantity"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label={`Cantidad${product ? ` (${product.unitOfMeasure})` : ""}`}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Ej. 10"
+              error={errors.quantity?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="unitCostPrice"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Precio costo unitario"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              placeholder="Obligatorio"
+              error={errors.unitCostPrice?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="date"
+          render={({ field: { onChange, value } }) => (
+            <DatePicker
+              label="Fecha"
+              value={value}
+              onChange={onChange}
+              placeholder="Seleccionar fecha"
+              error={errors.date?.message}
+              maxDate={format(new Date(), "yyyy-MM-dd")}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="notes"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Notas (opcional)"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ej. Proveedor ABC"
+              multiline
+            />
+          )}
+        />
+
+        {!isEdit ? (
+          <Checkbox
+            checked={updatePrices}
+            onPress={() => setUpdatePrices((v) => !v)}
+            label="Actualizar precios del catálogo"
+            activeColor={c.transfer}
+          />
+        ) : null}
+
+        {!isEdit && updatePrices ? (
+          <View
+            style={{
+              gap: 12,
+              borderRadius: Radius.xl,
+              backgroundColor: c.transferSoft,
+              padding: 12,
+            }}
+          >
+            <Controller
+              control={control}
+              name="newCostPrice"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Nuevo precio costo"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  keyboardType="numeric"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="newCashPrice"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Nuevo precio efectivo"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  keyboardType="numeric"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="newTransferPrice"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Nuevo precio transferencia"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  keyboardType="numeric"
+                  placeholder="Vacío = calculado automáticamente"
+                />
+              )}
+            />
+          </View>
+        ) : null}
+
+        <Button
+          label={
+            isSubmitting
+              ? isEdit
+                ? "Guardando…"
+                : "Registrando…"
+              : isEdit
+                ? "Guardar cambios"
+                : "Registrar entrada"
+          }
+          onPress={onSubmit}
+          disabled={isSubmitting}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
