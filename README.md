@@ -1,102 +1,88 @@
-# Sales Manager — MVP
+# Sales Manager
 
-Sistema de gestión de inventario y ventas offline-first para un solo usuario (Yamile), dueña de un pequeño mercado. El principal objetivo de la aplicación es permitir llevar un control preciso de las ventas diarias desglosadas por método de pago (**efectivo vs. transferencia**) y calcular la utilidad real del negocio en tiempo real.
+An offline-first inventory and sales app built for a real client: the owner of a small grocery store in Cuba.
 
-Este monorepo contiene la aplicación móvil offline-first en `apps/mobile` y reglas de dominio compartidas en `packages/domain`; los datos se almacenan localmente en SQLite.
+## The problem
 
----
+The store sells every product at **two prices**: one for cash and one for bank transfer. At the end of the day the owner needed to know exactly how much came in through each payment method and what the business really earned after costs, losses, staff purchases, salaries and taxes. That was all done on paper.
 
-## 🛠️ Stack Tecnológico
+The constraints shaped the design:
 
-La aplicación utiliza las siguientes tecnologías y librerías clave:
+- **Connectivity is unreliable and expensive**, so the app has to work fully offline. There is no backend: data lives in SQLite on the phone.
+- **One user, entering sales at the end of a busy day**, so data entry has to be fast (batch entry of the day's sales instead of a checkout per customer).
+- **Reports get shared over WhatsApp**, because that's how the owner already communicates.
+- **Losing the phone can't mean losing the business's history**, so backup and restore are part of the MVP, not an extra.
 
-- **Framework**: [Expo SDK 54](https://expo.dev/) (con [Expo Router v6](https://docs.expo.dev/router/introduction/) para enrutamiento basado en archivos).
-- **Lenguaje**: [TypeScript](https://www.typescriptlang.org/) (modo estricto).
-- **Base de Datos**: [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) gestionado con [Drizzle ORM](https://orm.drizzle.team/) para un acceso seguro y tipado.
-- **Estilos**: [uniwind](https://github.com/uniwind/uniwind) (Tailwind CSS v4 adaptado para React Native).
-- **Gestión de Estado**: [Zustand](https://github.com/pmndrs/zustand) (utilizado para el carrito de compras y estado transitorio de la sesión de venta).
-- **Formularios y Validación**: [react-hook-form](https://react-hook-form.com/) junto con [Zod](https://zod.dev/) para esquemas de validación de datos.
-- **Teclado**: [react-native-keyboard-controller](https://kirillzyusko.github.io/react-native-keyboard-controller/) para un comportamiento fluido y adaptativo de las pantallas con formularios.
-- **Animaciones**: [react-native-reanimated](https://docs.swmansion.com/react-native-reanimated/) para transiciones y animaciones fluidas.
-- **Fechas**: [date-fns](https://date-fns.org/) para el manejo y formateo de fechas con localización en español (`es`).
+## What it does
 
----
+- **Catalog and pricing**: products with unit of measure, cost, cash price and transfer price, plus a suggested price (cost + 30%).
+- **Warehouse inventory**: stock entries, real-time stock with low-stock alerts, expiry dates and alerts for products that aren't moving.
+- **Sales**: fast end-of-day batch entry, sales to staff at cost price, marketing discounts, and editing or voiding recorded sales.
+- **Daily summary**: cash vs. transfer, and real profit using weighted average cost.
+- **Losses and expenses**: owner withdrawals, shrinkage, salaries, fines, taxes (ONAT) and clearance markdowns.
+- **Reports**: daily, weekly and monthly; best-selling and most profitable products; a breakdown of losses and expenses; export and share via WhatsApp.
+- **Backup and restore** of the local database.
 
-## ⚙️ Requisitos Previos
+## Tech stack
 
-Asegúrate de tener instalado en tu entorno de desarrollo:
+- **Framework**: [Expo SDK 54](https://expo.dev/) with [Expo Router v6](https://docs.expo.dev/router/introduction/) (file-based routing).
+- **Language**: [TypeScript](https://www.typescriptlang.org/) in strict mode.
+- **Database**: [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) with [Drizzle ORM](https://orm.drizzle.team/) for typed queries and migrations.
+- **Styling**: [uniwind](https://github.com/uniwind/uniwind) (Tailwind CSS v4 for React Native).
+- **State**: [Zustand](https://github.com/pmndrs/zustand) for the cart and transient sale-session state.
+- **Forms and validation**: [react-hook-form](https://react-hook-form.com/) with [Zod](https://zod.dev/).
+- **Keyboard**: [react-native-keyboard-controller](https://kirillzyusko.github.io/react-native-keyboard-controller/) for form-heavy screens.
+- **Animations**: [react-native-reanimated](https://docs.swmansion.com/react-native-reanimated/).
+- **Dates**: [date-fns](https://date-fns.org/) with Spanish locale.
 
-- **Node.js**: `^18.18.0` o superior (se recomienda `^20`).
-- **pnpm**: `^9.0.0` o superior para la gestión de dependencias.
-- **Android SDK / Xcode**: Para emulación o desarrollo en dispositivos físicos.
-  - *Nota*: Ciertas funcionalidades como las notificaciones locales requieren una *development build* en dispositivo real Android/iOS, ya que no son 100% compatibles con Expo Go convencional.
+The UI is in Spanish, for its user.
 
----
+## Repository layout
 
-## 🚀 Instalación y Configuración
+A pnpm monorepo:
 
-Sigue estos pasos para levantar el entorno local:
+```
+apps/mobile/       # Expo app (screens, components, local SQLite)
+  app/             # routes: sales, inventory, catalog, expenses, reports, configuration
+  db/              # schema, repositories and tests
+  drizzle/         # generated SQL migrations
+packages/domain/   # shared business rules (pricing, profit, stock), framework-free
+```
 
-1. **Instalar dependencias**:
-   ```bash
-   pnpm install
-   ```
+Keeping the business rules in `packages/domain`, independent of React Native, means the profit and stock logic is tested without a device and can be reused if the app gets a second platform.
 
-2. **Iniciar el servidor de desarrollo de Expo**:
-   ```bash
-   pnpm start
-   ```
+## Design decisions
 
-3. **Verificar calidad**:
-   ```bash
-   pnpm lint
-   pnpm typecheck
-   pnpm test:coverage
-   ```
+- **Repository pattern over SQLite** (`apps/mobile/db/`): `products`, `sales`, `movements` (stock in, withdrawals, shrinkage, adjustments), `expenses`, `queries` (aggregated financial reports) and `config`. Screens never write SQL directly.
+- **Every write from the UI goes through `safeWrite`** (`lib/safe-write`), so every failed write is caught and reported to the user the same way.
+- **Migrations run automatically on startup** with Drizzle's `useMigrations` hook in `app/_layout.tsx`, so updating the app never requires a manual step from the user.
+- **Cost price on stock entries is mandatory, with no default**, because a silent default would corrupt every profit report downstream.
 
-4. **Ejecutar en emulador o dispositivo**:
-   - Presiona `a` para abrir en un emulador Android (o ejecuta `pnpm android`).
-   - Presiona `i` para abrir en un simulador iOS (o ejecuta `pnpm ios`).
-   - Escanea el código QR desde la consola utilizando la aplicación Expo Go o tu build de desarrollo correspondiente.
+## Getting started
 
----
+Prerequisites: Node.js 18.18+ (20 recommended), pnpm 9+, and Android SDK or Xcode for emulators or devices. Local notifications need a development build on a real device; they don't fully work in Expo Go.
 
-## 🗄️ Base de Datos e Infraestructura Drizzle
+```bash
+pnpm install       # install dependencies
+pnpm start         # start the Expo dev server
+pnpm android       # or: pnpm ios
+```
 
-La base de datos local SQLite (`db.sqlite`) se gestiona mediante el **patrón repositorio** en la carpeta `db/`.
+Quality checks:
 
-### Convenciones del Código de Base de Datos
-- **Repositores específicos**:
-  - [db/products.ts](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/db/products.ts) — Productos y catálogo.
-  - [db/sales.ts](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/db/sales.ts) — Transacciones de venta y sesiones.
-  - [db/movements.ts](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/db/movements.ts) — Movimientos de almacén (entradas, retiros, mermas, ajustes).
-  - [db/expenses.ts](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/db/expenses.ts) — Gastos operativos (ONAT, salarios, multas, rebajas por liquidación).
-  - [db/queries.ts](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/db/queries.ts) — Consultas complejas y reportes financieros agregados.
-  - [db/config.ts](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/db/config.ts) — Configuración del sistema.
-- **Escrituras seguras**: Todas las escrituras en la base de datos realizadas desde la UI deben estar envueltas en el helper `safeWrite` importado de `@/lib/safe-write` para garantizar el manejo de errores unificado.
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test:coverage
+```
 
-### Migraciones de Base de Datos
-Las migraciones se ejecutan de manera automática al inicializar la aplicación utilizando el hook `useMigrations` en `app/_layout.tsx`.
-
-Si realizas cambios en el esquema de la base de datos en [db/schema.ts](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/db/schema.ts), debes generar una nueva migración ejecutando:
+After changing `apps/mobile/db/schema.ts`, generate a migration:
 
 ```bash
 npx drizzle-kit generate
 ```
 
-Esto generará un archivo SQL correspondiente dentro del directorio `drizzle/`.
+## Project docs
 
----
-
-## 🎨 Temas y Estilos
-
-La aplicación cuenta con una paleta de colores coherente y soporta personalización mediante constantes semánticas definidas en `constants/theme`.
-- Se recomienda el uso del hook `useAppColors` (`hooks/use-app-colors`) para acceder dinámicamente a los colores del tema en componentes y layouts.
-
----
-
-## 📚 Enlaces de Interés y Documentación
-
-- **Índice de Documentación Técnica**: Revisa [docs/README.md](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/docs/README.md) para un listado detallado de análisis, deuda técnica y especificaciones de mejora.
-- **Seguimiento del Proyecto (Notion)**: Las tareas y el roadmap activo se gestionan y monitorizan en nuestro [Tablero de Notion › Mercado Mónaco MVP](https://app.notion.com/p/39a19c33c39081fab767c40eb46cc347).
-- **Roadmap MVP Histórico**: El listado de tareas inicial y su estado de compleción se puede revisar en [ROADMAP.md](file:///media/ergo/047E4AB87E4AA1F246/VS_Code_Projects/sales_manager/wt-tsk-17-18-19/ROADMAP.md).
+- [ROADMAP.md](./ROADMAP.md): the MVP task list and its completion status (in Spanish).
+- [docs/](./docs/README.md): technical analyses, tech debt and improvement specs (in Spanish).
