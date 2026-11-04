@@ -1,0 +1,48 @@
+import { resolve } from 'node:path';
+
+import { ESLint } from 'eslint';
+import { describe, expect, it } from 'vitest';
+
+// Keeps the hexagonal boundary rule (ADR 0001) honest: if someone loosens
+// eslint.config.js, these fail.
+const eslint = new ESLint({ cwd: resolve(__dirname, '../..') });
+
+async function restrictedImports(filePath: string, code: string): Promise<string[]> {
+  const [result] = await eslint.lintText(code, { filePath });
+  return result.messages.filter((m) => m.ruleId === 'no-restricted-imports').map((m) => m.message);
+}
+
+const domainFile = 'src/modules/health/domain/probe.ts';
+const applicationFile = 'src/modules/health/application/probe.ts';
+
+describe('hexagonal import boundaries', () => {
+  it.each([
+    ["import { sql } from 'drizzle-orm';"],
+    ["import { Injectable } from '@nestjs/common';"],
+    ["import { createZodDto } from 'nestjs-zod';"],
+    ["import { Pool } from 'pg';"],
+    ["import { StubDatabaseHealthAdapter } from '../infrastructure/stub-database-health.adapter';"],
+    ["import { HealthController } from '../http/health.controller';"],
+    ["import { CheckHealth } from '../application/check-health.use-case';"],
+  ])('domain/ rejects %s', async (code) => {
+    expect(await restrictedImports(domainFile, `${code}\nexport {};\n`)).toHaveLength(1);
+  });
+
+  it.each([
+    ["import { sql } from 'drizzle-orm';"],
+    ["import { Injectable } from '@nestjs/common';"],
+    ["import { HealthController } from '../http/health.controller';"],
+  ])('application/ rejects %s', async (code) => {
+    expect(await restrictedImports(applicationFile, `${code}\nexport {};\n`)).toHaveLength(1);
+  });
+
+  it('allows ports and @monaco/domain in inner layers', async () => {
+    const code = [
+      "import type { DatabaseHealthPort } from '../domain/database-health.port';",
+      "import { calculateProfit } from '@monaco/domain';",
+      'export type X = DatabaseHealthPort;',
+      'export const y = calculateProfit;',
+    ].join('\n');
+    expect(await restrictedImports(applicationFile, code)).toEqual([]);
+  });
+});

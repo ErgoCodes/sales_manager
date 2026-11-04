@@ -4,6 +4,5 @@ Decisiones de arquitectura de la Etapa 2, una por archivo, con formato corto: co
 
 | # | Decisión | Estado |
 |---|---|---|
+| [0001](0001-arquitectura-hexagonal-api.md) | Arquitectura hexagonal por módulo en la API (NestJS) | Aceptada |
 | [0002](0002-contratos-zod-openapi.md) | Contratos con Zod 4 como fuente de verdad → OpenAPI → clientes generados | Aceptada |
-
-El 0001 (arquitectura hexagonal de la API) llega con la tarea T3 de SP1.

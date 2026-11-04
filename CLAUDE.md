@@ -64,6 +64,6 @@ All code identifiers (file names, variables, functions, types, constants) must b
 
 **State management** — Zustand for cross-screen state (`store/index.ts`). `useCartStore` manages the batch sales cart session. Use React local state for screen-only state.
 
-**Backend/API** — not yet added. No `.env` files present; add them (gitignored) when integrating a backend.
+**Backend/API** — `apps/api` (NestJS 11, hexagonal per module; see `docs/adr/0001-arquitectura-hexagonal-api.md` and copy `src/modules/health/` as the template). Env in `apps/api/.env` (gitignored, from `.env.example`). After changing a contract or endpoint run `pnpm openapi:generate` and commit `packages/contracts/openapi.json`. This app is not used by mobile.
 
 **New Architecture** is enabled (`newArchEnabled: true`). Avoid legacy NativeModules API; use the new Fabric/TurboModules path.
