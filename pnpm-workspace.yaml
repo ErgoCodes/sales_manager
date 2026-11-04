@@ -7,7 +7,10 @@ allowBuilds:
   '@scarf/scarf': false
   '@swc/core': false
   better-sqlite3: true
+  cpu-features: false
   esbuild: true
+  protobufjs: false
+  ssh2: false
   unrs-resolver: true
 networkTimeout: '300000'
 fetchRetries: 8
