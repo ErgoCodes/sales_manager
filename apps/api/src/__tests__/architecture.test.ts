@@ -21,7 +21,7 @@ describe('hexagonal import boundaries', () => {
     ["import { Injectable } from '@nestjs/common';"],
     ["import { createZodDto } from 'nestjs-zod';"],
     ["import { Pool } from 'pg';"],
-    ["import { StubDatabaseHealthAdapter } from '../infrastructure/stub-database-health.adapter';"],
+    ["import { DrizzleDatabaseHealthAdapter } from '../infrastructure/drizzle-database-health.adapter';"],
     ["import { HealthController } from '../http/health.controller';"],
     ["import { CheckHealth } from '../application/check-health.use-case';"],
     ["import { HealthModule } from '../health.module';"],

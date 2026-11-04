@@ -8,6 +8,7 @@ import { bodyParsers } from './common/http/body-parsers';
 import { buildLoggerParams } from './common/logging/logger.config';
 import { AppConfigModule } from './config/app-config.module';
 import type { AppConfig } from './config/env';
+import { DatabaseModule } from './infrastructure/db/database.module';
 import { HealthModule } from './modules/health/health.module';
 
 /**
@@ -23,7 +24,12 @@ export class AppModule implements NestModule {
   static forRoot(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [AppConfigModule.forRoot(config), LoggerModule.forRoot(buildLoggerParams(config)), HealthModule],
+      imports: [
+        AppConfigModule.forRoot(config),
+        LoggerModule.forRoot(buildLoggerParams(config)),
+        DatabaseModule,
+        HealthModule,
+      ],
       providers: [
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },

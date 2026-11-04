@@ -8,6 +8,7 @@ import { AppModule } from '../app.module';
 import { configureApp } from '../bootstrap';
 import { createOpenApiDocument } from '../common/openapi/openapi';
 import type { AppConfig } from '../config/env';
+import { DATABASE } from '../infrastructure/db/database.tokens';
 
 const config: AppConfig = {
   NODE_ENV: 'test',
@@ -18,11 +19,24 @@ const config: AppConfig = {
   APP_VERSION: '9.9.9-test',
 };
 
+// Hermetic: the real Drizzle health adapter runs against a fake database, so
+// these tests never depend on a local Postgres (that is SP1·T5's job).
+let databaseUp = false;
+const fakeDatabase = {
+  execute: async () => {
+    if (!databaseUp) throw new Error('ECONNREFUSED');
+    return { rows: [{ '?column?': 1 }] };
+  },
+};
+
 describe('API (in-process HTTP)', () => {
   let app: NestExpressApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
+      .overrideProvider(DATABASE)
+      .useValue(fakeDatabase)
+      .compile();
     app = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
     configureApp(app, config);
     await app.init();
@@ -32,9 +46,15 @@ describe('API (in-process HTTP)', () => {
     await app.close();
   });
 
-  it('GET /health answers with the HealthResponse contract (stub DB reports down)', async () => {
-    const res = await request(app.getHttpServer()).get('/health').expect(200);
-    expect(HealthResponse.parse(res.body)).toEqual({ status: 'error', version: '9.9.9-test', db: 'down' });
+  it('GET /health answers with the HealthResponse contract and reports the database state', async () => {
+    databaseUp = false;
+    const down = await request(app.getHttpServer()).get('/health').expect(200);
+    expect(HealthResponse.parse(down.body)).toEqual({ status: 'error', version: '9.9.9-test', db: 'down' });
+
+    databaseUp = true;
+    const up = await request(app.getHttpServer()).get('/health').expect(200);
+    expect(HealthResponse.parse(up.body)).toEqual({ status: 'ok', version: '9.9.9-test', db: 'up' });
+    databaseUp = false;
   });
 
   it('tags every response with a request id and reuses a well-formed incoming one', async () => {

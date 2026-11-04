@@ -17,5 +17,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "vitest.config.mts"]
+  "include": ["src", "vitest.config.mts", "drizzle.config.ts"]
 }
