@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import createClient from 'openapi-fetch';
 import type { paths } from '../api/schema';
 import { fetchHealth } from '../api/health';
@@ -20,6 +20,11 @@ function clientWith(fetchImpl: typeof fetch) {
 }
 
 describe('fetchHealth', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
   it('returns the health report on 200', async () => {
     const body = { status: 'ok', db: 'up', version: '1.2.3' };
     const fetchImpl = vi.fn(async () => Response.json(body)) as unknown as typeof fetch;
@@ -34,15 +39,27 @@ describe('fetchHealth', () => {
   });
 
   it('maps network failures to unreachable', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     const fetchImpl = vi.fn(async () => {
       throw new TypeError('fetch failed');
     }) as unknown as typeof fetch;
     expect(await fetchHealth(clientWith(fetchImpl))).toEqual({ ok: false, reason: 'unreachable' });
   });
 
-  it('maps invalid configuration to unreachable instead of throwing', async () => {
+  it('reports misconfiguration and logs only name/message', async () => {
     vi.stubEnv('API_URL', '');
-    expect(await fetchHealth()).toEqual({ ok: false, reason: 'unreachable' });
-    vi.unstubAllEnvs();
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await fetchHealth()).toEqual({ ok: false, reason: 'misconfigured' });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(String(spy.mock.calls[0][0])).toContain('Invalid server environment');
+  });
+
+  it('logs network failures without leaking the URL', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetchImpl = vi.fn(async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    await fetchHealth(clientWith(fetchImpl));
+    expect(spy).toHaveBeenCalledWith('health: request failed: TypeError: fetch failed');
   });
 });

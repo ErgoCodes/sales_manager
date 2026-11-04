@@ -23,4 +23,9 @@ describe('HealthStatus', () => {
     render(<HealthStatus result={{ ok: false, reason: 'bad-response' }} />);
     expect(screen.getByRole('alert')).toHaveTextContent('error inesperado');
   });
+
+  it('renders a fixed message when misconfigured', () => {
+    render(<HealthStatus result={{ ok: false, reason: 'misconfigured' }} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('configuración');
+  });
 });

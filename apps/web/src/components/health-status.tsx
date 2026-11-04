@@ -1,15 +1,19 @@
 import type { HealthResult } from '@/lib/api/health';
 import { cn } from '@/lib/utils';
 
+const MESSAGES = {
+  unreachable: 'El servidor no responde. Verifica que la API esté en ejecución e inténtalo de nuevo.',
+  'bad-response': 'La API respondió con un error inesperado.',
+  misconfigured: 'La configuración de la aplicación es inválida. Contacta al administrador.',
+} as const;
+
 export function HealthStatus({ result }: { result: HealthResult }) {
   if (!result.ok) {
     return (
       <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
         <p className="font-medium">No se pudo consultar la API</p>
         <p className="text-sm">
-          {result.reason === 'unreachable'
-            ? 'El servidor no responde. Verifica que la API esté en ejecución e inténtalo de nuevo.'
-            : 'La API respondió con un error inesperado.'}
+          {MESSAGES[result.reason]}
         </p>
       </div>
     );
