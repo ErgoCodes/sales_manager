@@ -11,6 +11,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build": "pnpm -r --filter \"./packages/**\" build"
   }
 }

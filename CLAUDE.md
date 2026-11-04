@@ -33,7 +33,7 @@ pnpm typecheck
 pnpm test:coverage
 ```
 
-Run Expo-specific commands from `apps/mobile/`. Shared pricing, stock, catalog, formatting, and product-status rules belong in `packages/domain/`.
+Run Expo-specific commands from `apps/mobile/`. Shared pricing, stock, catalog, formatting, and product-status rules belong in `packages/domain/`. It compiles to `dist/` (`pnpm build`; mobile's lint/typecheck/test scripts build it first via `pre*` hooks) and tests with Vitest. Non-Expo TS packages share `@monaco/eslint-config`.
 
 ## Naming Convention
 

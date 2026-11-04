@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { calculateTransferPrice, effectiveUnitCost } from '../pricing';
 
 describe('calculateTransferPrice', () => {
