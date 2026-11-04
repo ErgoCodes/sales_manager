@@ -7,6 +7,14 @@ const frameworkImports = [
   { group: ['drizzle-orm', 'drizzle-orm/*', 'pg', 'pg-*', 'postgres'], message: 'Persistence belongs in infrastructure/ behind a port.' },
   { group: ['express', 'express/*', 'helmet', 'pino', 'pino-*'], message: 'HTTP and logging concerns belong in http/ or common/.' },
   { group: ['**/infrastructure/**', '**/infrastructure', '**/http/**', '**/http'], message: 'Inner layers cannot import outer layers (infrastructure/, http/).' },
+  {
+    group: ['**/*.module', '**/*.module.ts', '**/*.tokens', '**/*.tokens.ts', '**/app.module', '**/bootstrap', '**/main', '**/scripts/**'],
+    message: 'Composition roots (modules, DI tokens, bootstrap) are wired from the outside, never imported by inner layers.',
+  },
+  {
+    group: ['**/common/**', '**/common', '**/config/**', '**/config'],
+    message: 'src/common and src/config are Nest/HTTP infrastructure; pass values in through constructors instead.',
+  },
 ];
 
 module.exports = defineConfig([

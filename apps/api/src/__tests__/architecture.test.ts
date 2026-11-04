@@ -24,16 +24,27 @@ describe('hexagonal import boundaries', () => {
     ["import { StubDatabaseHealthAdapter } from '../infrastructure/stub-database-health.adapter';"],
     ["import { HealthController } from '../http/health.controller';"],
     ["import { CheckHealth } from '../application/check-health.use-case';"],
+    ["import { HealthModule } from '../health.module';"],
+    ["import { DATABASE_HEALTH_PORT } from '../health.tokens';"],
+    ["import { AppModule } from '../../../app.module';"],
+    ["import { configureApp } from '../../../bootstrap';"],
+    ["import { AllExceptionsFilter } from '../../../common/http/all-exceptions.filter';"],
+    ["import { APP_CONFIG } from '../../../config/app-config.token';"],
   ])('domain/ rejects %s', async (code) => {
-    expect(await restrictedImports(domainFile, `${code}\nexport {};\n`)).toHaveLength(1);
+    expect(await restrictedImports(domainFile, `${code}\nexport {};\n`)).not.toEqual([]);
   });
 
   it.each([
     ["import { sql } from 'drizzle-orm';"],
     ["import { Injectable } from '@nestjs/common';"],
     ["import { HealthController } from '../http/health.controller';"],
+    ["import { HealthModule } from '../health.module';"],
+    ["import { DATABASE_HEALTH_PORT } from '../health.tokens';"],
+    ["import { buildLoggerParams } from '../../../common/logging/logger.config';"],
+    ["import { loadConfig } from '../../../config/env';"],
+    ["import { createOpenApiDocument } from '../../../scripts/generate-openapi';"],
   ])('application/ rejects %s', async (code) => {
-    expect(await restrictedImports(applicationFile, `${code}\nexport {};\n`)).toHaveLength(1);
+    expect(await restrictedImports(applicationFile, `${code}\nexport {};\n`)).not.toEqual([]);
   });
 
   it('allows ports and @monaco/domain in inner layers', async () => {

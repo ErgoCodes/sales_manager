@@ -11,6 +11,8 @@ import { PinoLogger } from 'nestjs-pino';
 import { ZodSerializationException, ZodValidationException } from 'nestjs-zod';
 import type { ZodError } from 'zod';
 
+import { BODY_PARSER_MESSAGES } from './body-parsers';
+
 const MAX_MESSAGE_LENGTH = 500;
 const MAX_DETAILS = 50;
 const INTERNAL_MESSAGE = 'Internal server error';
@@ -45,11 +47,20 @@ function toDetails(error: ZodError): Details {
 }
 
 /** Body-parser (JSON syntax, size limit) errors arrive as plain errors with these fields. */
-function isClientHttpError(error: unknown): error is { status: number; expose: true; message: string } {
+function isClientHttpError(error: unknown): error is { status: number; expose: true; type?: unknown } {
   if (typeof error !== 'object' || error === null) return false;
   const { status, expose } = error as { status?: unknown; expose?: unknown };
   return typeof status === 'number' && status >= 400 && status < 500 && expose === true;
 }
+
+/** Path without query string: queries may carry tokens or PII. */
+export function stripQuery(url: string): string {
+  const index = url.indexOf('?');
+  return index === -1 ? url : url.slice(0, index);
+}
+
+/** Nest's unmatched-route 404 is `Cannot <METHOD> <url>`, url including the query. */
+const ROUTE_NOT_FOUND = /^Cannot ([A-Z]+) (.*)$/s;
 
 export interface MappedError {
   status: number;
@@ -84,9 +95,11 @@ export function mapException(exception: unknown): MappedError {
           : typeof (response as { message?: unknown }).message === 'string'
             ? (response as { message: string }).message
             : exception.message;
+      const routeNotFound = status === HttpStatus.NOT_FOUND ? ROUTE_NOT_FOUND.exec(message) : null;
+      const safeMessage = routeNotFound ? `Cannot ${routeNotFound[1]} ${stripQuery(routeNotFound[2])}` : message;
       return {
         status,
-        body: { error: { code: CODE_BY_STATUS[status] ?? 'CLIENT_ERROR', message: truncate(message) } },
+        body: { error: { code: CODE_BY_STATUS[status] ?? 'CLIENT_ERROR', message: truncate(safeMessage) } },
       };
     }
     // Keep the status (e.g. 503 tells clients to retry) but never the message.
@@ -97,12 +110,13 @@ export function mapException(exception: unknown): MappedError {
   }
 
   if (isClientHttpError(exception)) {
+    const known = typeof exception.type === 'string' ? BODY_PARSER_MESSAGES[exception.type] : undefined;
     return {
       status: exception.status,
       body: {
         error: {
           code: CODE_BY_STATUS[exception.status] ?? 'CLIENT_ERROR',
-          message: truncate(exception.message),
+          message: known ?? 'Invalid request',
         },
       },
     };
@@ -137,7 +151,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         exception instanceof ZodSerializationException
           ? { message: 'Response failed its contract', issues: exception.getZodError() }
           : exception;
-      this.logger.error({ err, reqId: request.id, method: request.method, url: request.originalUrl }, 'Unhandled error');
+      this.logger.error({ err, reqId: request.id, method: request.method, path: stripQuery(request.originalUrl) }, 'Unhandled error');
     }
 
     if (response.headersSent) return;

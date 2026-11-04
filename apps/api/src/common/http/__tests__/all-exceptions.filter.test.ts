@@ -11,7 +11,7 @@ import { ZodSerializationException, ZodValidationException } from 'nestjs-zod';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { AllExceptionsFilter, mapException } from '../all-exceptions.filter';
+import { AllExceptionsFilter, mapException, stripQuery } from '../all-exceptions.filter';
 
 function zodErrorFor(schema: z.ZodType, input: unknown): z.ZodError {
   const result = schema.safeParse(input);
@@ -54,14 +54,36 @@ describe('mapException', () => {
     expect(() => ErrorResponse.parse(body)).not.toThrow();
   });
 
-  it('maps body-parser client errors (bad JSON, too large)', () => {
-    const tooLarge = Object.assign(new Error('request entity too large'), { status: 413, expose: true });
+  it('maps body-parser errors to fixed messages, never echoing their text', () => {
+    const parse = Object.assign(new SyntaxError('Unexpected token s in JSON at position 9: {"pw":"s3cret"'), {
+      status: 400,
+      expose: true,
+      type: 'entity.parse.failed',
+    });
+    expect(mapException(parse)).toEqual({
+      status: 400,
+      body: { error: { code: 'BAD_REQUEST', message: 'Malformed JSON body' } },
+    });
+    const tooLarge = Object.assign(new Error('request entity too large'), {
+      status: 413,
+      expose: true,
+      type: 'entity.too.large',
+    });
     expect(mapException(tooLarge)).toEqual({
       status: 413,
-      body: { error: { code: 'PAYLOAD_TOO_LARGE', message: 'request entity too large' } },
+      body: { error: { code: 'PAYLOAD_TOO_LARGE', message: 'Payload too large' } },
     });
-    const teapot = Object.assign(new Error('odd'), { status: 418, expose: true });
-    expect(mapException(teapot).body.error.code).toBe('CLIENT_ERROR');
+    const unknown = Object.assign(new Error('odd internals'), { status: 418, expose: true, type: 'x' });
+    expect(mapException(unknown).body.error).toEqual({ code: 'CLIENT_ERROR', message: 'Invalid request' });
+    const untyped = Object.assign(new Error('odd internals'), { status: 400, expose: true });
+    expect(mapException(untyped).body.error.message).toBe('Invalid request');
+  });
+
+  it('drops the query string from route-not-found messages', () => {
+    expect(mapException(new NotFoundException('Cannot GET /nope?token=abc&x=1')).body.error.message).toBe(
+      'Cannot GET /nope',
+    );
+    expect(mapException(new NotFoundException('Product not found?')).body.error.message).toBe('Product not found?');
   });
 
   it('keeps the status of other 5xx HttpExceptions but not their message', () => {
@@ -90,7 +112,7 @@ describe('AllExceptionsFilter', () => {
     const logger = { setContext: vi.fn(), error: vi.fn() };
     const json = vi.fn();
     const response = { headersSent, status: vi.fn(() => ({ json })) };
-    const request = { id: 'req-1', method: 'GET', originalUrl: '/x' };
+    const request = { id: 'req-1', method: 'GET', originalUrl: '/x?token=abc' };
     const host = {
       switchToHttp: () => ({ getRequest: () => request, getResponse: () => response }),
     } as unknown as ArgumentsHost;
@@ -104,7 +126,7 @@ describe('AllExceptionsFilter', () => {
     filter.catch(boom, host);
 
     expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ err: boom, reqId: 'req-1', method: 'GET', url: '/x' }),
+      expect.objectContaining({ err: boom, reqId: 'req-1', method: 'GET', path: '/x' }),
       'Unhandled error',
     );
     expect(response.status).toHaveBeenCalledWith(500);
@@ -128,5 +150,15 @@ describe('AllExceptionsFilter', () => {
     const { filter, host, response } = setup(true);
     filter.catch(new Error('late'), host);
     expect(response.status).not.toHaveBeenCalled();
+  });
+});
+
+describe('stripQuery', () => {
+  it.each([
+    ['/a?b=1', '/a'],
+    ['/a', '/a'],
+    ['/?', '/'],
+  ])('%s -> %s', (url, expected) => {
+    expect(stripQuery(url)).toBe(expected);
   });
 });

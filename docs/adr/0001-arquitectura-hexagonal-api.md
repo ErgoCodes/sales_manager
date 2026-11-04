@@ -23,7 +23,7 @@ modules/<contexto>/
 
 Reglas:
 
-1. **`domain/` y `application/` no importan `@nestjs/*`, `nestjs-*`, `drizzle-orm`, `pg`, `express`, `helmet` ni `pino`, ni las capas `infrastructure/` o `http/`.** `domain/` tampoco importa `application/`. Lo impone `no-restricted-imports` en `apps/api/eslint.config.js` y lo vigila `src/__tests__/architecture.test.ts`.
+1. **`domain/` y `application/` no importan `@nestjs/*`, `nestjs-*`, `drizzle-orm`, `pg`, `express`, `helmet` ni `pino`, ni las capas `infrastructure/` o `http/`, ni `*.module`, `*.tokens`, `src/common`, `src/config`, bootstrap o scripts.** `domain/` tampoco importa `application/`. Lo impone `no-restricted-imports` en `apps/api/eslint.config.js` y lo vigila `src/__tests__/architecture.test.ts`.
 2. **Sin `@Injectable()` en los casos de uso.** Se decidió no permitir ni siquiera `@nestjs/common`: los casos de uso se construyen en el módulo con `useFactory` + `inject`. Cuesta unas líneas por caso de uso y a cambio la capa queda libre de decoradores y de `reflect-metadata`.
 3. **Los puertos se inyectan con `Symbol`** (`DATABASE_HEALTH_PORT`), porque una interfaz de TypeScript no existe en runtime.
 4. **Los DTOs HTTP son envoltorios de `@monaco/contracts`** (`class X extends createZodDto(Schema) {}`); nunca redefinen formas. Las respuestas se declaran con `@ZodResponse({ status, type })`, que valida la salida, la documenta en OpenAPI y hace fallar el typecheck si el caso de uso devuelve otra forma.
@@ -38,7 +38,7 @@ El módulo `health` es la plantilla de referencia: puerto `DatabaseHealthPort` (
 - `AllExceptionsFilter` traduce todo a `ErrorResponse`. `details` solo lleva `{ path, message }` de errores de validación. Los 5xx devuelven un mensaje genérico y se registran con el request-id; nunca stack, SQL ni objetos internos al cliente.
 - `nestjs-pino` con request-id por petición (`x-request-id` entrante si es seguro, si no un UUID; se devuelve en la respuesta). Los logs de request no incluyen headers, cuerpo ni query string.
 - Swagger UI en `/docs` solo fuera de producción; el contrato público es `packages/contracts/openapi.json`, generado sin abrir puertos (`pnpm openapi:generate`) y determinista.
-- `helmet`, CORS con lista explícita de orígenes desde `CORS_ORIGINS` (se rechaza `*`), límite de cuerpo de 100 kB y `enableShutdownHooks()`. El `Dockerfile` (multi-stage, `pnpm deploy --legacy --prod`, usuario `node`) deja la imagen sin devDependencies.
+- `helmet`, CORS con lista explícita de orígenes desde `CORS_ORIGINS` (se rechaza `*`), límite de cuerpo de 100 kB (parsers como middleware de Nest, después del request-id; sus errores salen con mensajes fijos) y `enableShutdownHooks()`. El `Dockerfile` (multi-stage, `pnpm deploy --legacy --prod`, usuario `node`) deja la imagen sin devDependencies.
 
 ### Versiones
 

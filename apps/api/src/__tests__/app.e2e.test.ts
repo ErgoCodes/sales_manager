@@ -53,20 +53,29 @@ describe('API (in-process HTTP)', () => {
     expect(ErrorResponse.parse(res.body).error.code).toBe('NOT_FOUND');
   });
 
-  it('rejects bodies over the limit and malformed JSON with ErrorResponse', async () => {
+  it('rejects bodies over the limit and malformed JSON with ErrorResponse and a request id', async () => {
     const big = await request(app.getHttpServer())
       .post('/health')
       .set('content-type', 'application/json')
       .send(JSON.stringify({ blob: 'x'.repeat(200 * 1024) }))
       .expect(413);
-    expect(ErrorResponse.parse(big.body).error.code).toBe('PAYLOAD_TOO_LARGE');
+    expect(ErrorResponse.parse(big.body).error).toEqual({ code: 'PAYLOAD_TOO_LARGE', message: 'Payload too large' });
+    expect(big.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
 
     const malformed = await request(app.getHttpServer())
       .post('/health')
       .set('content-type', 'application/json')
-      .send('{"oops":')
+      .set('x-request-id', 'edge-400')
+      .send('{"password":"s3cret"')
       .expect(400);
-    expect(ErrorResponse.parse(malformed.body).error.code).toBe('BAD_REQUEST');
+    expect(ErrorResponse.parse(malformed.body).error).toEqual({ code: 'BAD_REQUEST', message: 'Malformed JSON body' });
+    expect(malformed.headers['x-request-id']).toBe('edge-400');
+    expect(JSON.stringify(malformed.body)).not.toContain('s3cret');
+  });
+
+  it('does not echo the query string in 404 messages', async () => {
+    const res = await request(app.getHttpServer()).get('/nope?token=abc').expect(404);
+    expect(res.body.error.message).toBe('Cannot GET /nope');
   });
 
   it('allows only allow-listed CORS origins', async () => {

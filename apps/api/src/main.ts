@@ -19,7 +19,7 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config), {
     bufferLogs: true,
-    // Body parsers are registered in configureApp with an explicit size limit.
+    // Body parsers are Nest middleware in AppModule (after request-id/logging).
     bodyParser: false,
   });
   app.useLogger(app.get(Logger));
