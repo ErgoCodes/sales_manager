@@ -3,8 +3,14 @@ import { z } from 'zod';
 /** Query params for cursor pagination. */
 export const PaginationQuery = z
   .object({
-    cursor: z.string().min(1).optional().meta({ description: 'Opaque cursor from a previous page' }),
-    limit: z.coerce.number().int().min(1).max(100).default(50),
+    cursor: z.string().min(1).max(512).optional().meta({ description: 'Opaque cursor from a previous page' }),
+    limit: z
+      .union([
+        z.string().regex(/^\d+$/).transform(Number),
+        z.number(),
+      ])
+      .pipe(z.int().min(1).max(100))
+      .default(50),
   })
   .meta({ id: 'PaginationQuery' });
 export type PaginationQuery = z.infer<typeof PaginationQuery>;

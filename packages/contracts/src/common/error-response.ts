@@ -4,8 +4,11 @@ export const ErrorResponse = z
   .object({
     error: z.object({
       code: z.string().min(1).meta({ description: 'Stable machine-readable error code' }),
-      message: z.string().meta({ description: 'Human-readable message' }),
-      details: z.unknown().optional().meta({ description: 'Optional structured details' }),
+      message: z.string().max(500).meta({ description: 'Human-readable message' }),
+      details: z
+        .array(z.object({ path: z.string(), message: z.string().max(500) }))
+        .optional()
+        .meta({ description: 'Validation issues only; never stack traces, SQL or internal objects' }),
     }),
   })
   .meta({ id: 'ErrorResponse' });

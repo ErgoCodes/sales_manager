@@ -22,6 +22,9 @@ Verificada contra la documentación de `nestjs-zod` 5.x y Zod 4:
 
 - **Todo esquema reutilizable lleva `.meta({ id: 'Nombre' })`.** `nestjs-zod` lo publica en `components.schemas` con ese nombre y lo referencia con `$ref`, en vez de inlinearlo o nombrarlo por la clase DTO. `cleanupOpenApiDoc` es obligatorio al generar el documento.
 - `id` en PascalCase, igual al nombre del export (`Uuid`, `Money`, `ErrorResponse`, `HealthResponse`). Dos esquemas distintos con el mismo `id` hacen fallar la generación.
+- `ErrorResponse.details` es solo para errores de validación (`[{ path, message }]`); nunca stack, SQL ni objetos internos. `message` máx. 500 caracteres.
+- `Uuid` acepta solo minúsculas (forma canónica); mayúsculas se rechazan.
+- `PaginationQuery.limit` se parsea estrictamente desde strings de solo dígitos (`10abc`, `0x10`, `1e1` se rechazan); `cursor` máx. 512.
 - Cada esquema exporta un `const` y un `type` con el mismo nombre (`export const X = z...; export type X = z.infer<typeof X>`).
 - Descripciones y ejemplos van en `.meta({ description, example })` sobre el campo.
 - Esquemas genéricos (p. ej. `Paginated(item, id)`) son fábricas que reciben el `id` explícito para que cada instanciación tenga su propio componente (`PaginatedProducts`).
@@ -31,12 +34,12 @@ Verificada contra la documentación de `nestjs-zod` 5.x y Zod 4:
 
 ### `Money`
 
-**Entero en unidades menores (centavos) + moneda ISO 4217:** `{ amount: number (int), currency: 'CUP' }`.
+**Entero en unidades menores (centavos) + moneda soportada:** `{ amount: z.int() no negativo, currency: 'CUP' | 'USD' | 'MLC' }`. `z.int()` limita a enteros seguros (±2^53−1). MLC no es ISO 4217; el resto sí. `amount` no admite negativos: deltas y reembolsos tendrán su propio esquema cuando hagan falta.
 
 Motivos:
 - Aritmética exacta sin flotantes ni parseo de strings; sumas y comparaciones directas en SQL (`bigint`) y TS.
 - El dominio actual (`@monaco/domain`) maneja números en CUP, con precios por método de pago; esos importes se convierten a centavos en el borde (`Math.round(pesos * 100)`) al mapear a contratos, y no se mezclan unidades dentro del dominio.
-- `currency` explícita permite el multi-moneda por método de pago (CUP/USD/MLC) sin cambiar el contrato.
+- `currency` explícita permite el multi-moneda por método de pago sin cambiar el contrato.
 - Un `number` entero es seguro hasta 2^53 (≈ 90 billones de unidades), de sobra para este producto.
 
 Descartado: decimal en string (`"125.50"`) por obligar a parsear y a aritmética con una librería decimal en cada cliente; no aporta precisión adicional porque la menor unidad es el centavo. Si algún día hiciera falta precisión sub-centavo (costo promedio), se define un esquema aparte, no se cambia `Money`.
