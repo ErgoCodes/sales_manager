@@ -1,76 +1,69 @@
-# Etapa 2 · Plataforma multi-negocio — diseño
+# Etapa 2 · Plataforma multi-location POS SaaS — diseño
 
-> Resultado del brainstorm del 2026-07-11 sobre `docs/12-vision-multiplataforma.md`. Define la descomposición en sub-proyectos y el diseño de SP1+SP2. **La implementación sigue gateada por el cierre de la Etapa 1** (tests sobre lógica financiera y validación en dispositivo real como mínimo); este spec existe para que el diseño no se pierda y SP1 pueda arrancar sin re-discutir todo.
+> **Reescrito el 2026-11-04.** Reemplaza el diseño del 2026-07-11 (enfoque Cuba/LATAM, tenant = punto de venta, VPS mínimo, monetización). El objetivo cambió: el proyecto pasa a ser una **pieza de portafolio fullstack con énfasis en arquitectura**. Las decisiones previas que no aparecen aquí quedan descartadas.
 
-## Decisiones de producto (respuestas del brainstorm)
+## Objetivo
 
-- **Motivación:** visión de producto propio para negocios pequeños, sin cliente concreto aún. **Cuba primero, LATAM después** — el modelo de datos no debe hardcodear nada cubano nuevo; la regla efectivo/transferencia (+10% redondeado a 5) queda como configuración del punto.
-- **Operación:** VPS propio (~5-10 USD/mes), sin dependencia de free tiers ni SaaS de sync. Docker Compose + Caddy.
-- **Jerarquía de usuarios:** `owner` (visión global de todos los puntos del negocio) → `admin` (gestión completa de uno o varios puntos) → `vendedor` (varios por punto, normalmente alternándose).
-- **Concurrencia:** hoy basta **1 caja activa por punto**; el modelo debe permitir varias simultáneas mañana sin migración dolorosa. (De ahí: UUIDs y op-log append-only desde el día 1.)
-- **Catálogo:** **por punto de venta, independiente** — cada punto gestiona su catálogo, precios y stock como la app actual. Hallazgo estructural: *punto de venta ≈ la base de datos completa de la app actual*; el tenant real es el punto, y el negocio es una capa de agrupación y permisos encima. La app existente casi no cambia conceptualmente.
-- **Offline-first se conserva:** el sync jamás bloquea una venta; la app funciona idéntica sin conexión.
+Construir un **multi-location POS SaaS multi-tenant**: un punto de venta centralizado para negocios con varios locales, con back-office web, caja mobile offline-first y un backend propio que consumen ambos clientes. El criterio de cada decisión es demostrar buen juicio de ingeniería (fronteras claras, dominio compartido, contratos tipados, seguridad, tests), no minimizar costo operativo ni atender un mercado concreto.
 
-## Descomposición (cada sub-proyecto con su propio ciclo spec → plan → código)
+Términos de referencia de la categoría: *multi-location POS*, *multi-store POS*, *multi-tenant POS SaaS*, *retail management system*, *offline-first POS*.
+
+## Decisiones
+
+| Tema | Decisión |
+|---|---|
+| Rol objetivo del portafolio | Fullstack con refuerzo en arquitectura |
+| Tenant | El **negocio** (organización), con N puntos de venta (*locations*) |
+| Web | **Next.js** en `apps/web`: back-office (catálogo, inventario, usuarios, roles, puntos) + dashboard completo |
+| Mobile | **Expo** en `apps/mobile`: caja del punto de venta (Android/iOS) |
+| Backend | **NestJS + Drizzle + Postgres** en `apps/api`, arquitectura hexagonal |
+| Mobile y servidor | **Offline-first completo con sync** por op-log: SQLite local como verdad inmediata, push/pull con el servidor |
+| Catálogo | **Central del negocio**, con stock y precio opcional **por punto**. Cada dato tiene un único escritor: el catálogo lo escribe el back-office; ventas y movimientos los escribe la caja de su punto |
+| Autorización | **RBAC con permisos**: cada acción de la aplicación es un permiso |
+| Dashboard | Completo en la web; vista compacta "Hoy" en mobile. Mismos endpoints, protegidos por `reports:view` |
+| Autenticación | Propia en NestJS: email + contraseña (argon2), JWT de acceso corto y refresh token rotativo **por dispositivo**, revocable |
+
+### RBAC
+
+- **Permisos = código:** catálogo fijo y versionado (`sales:create`, `sales:void`, `catalog:write`, `reports:view`, …). No se crean desde la UI.
+- **Roles = datos por tenant:** cada negocio recibe tres roles por defecto y puede crear roles nuevos combinando permisos.
+
+| Rol por defecto | Alcance típico | Puede |
+|---|---|---|
+| Owner | Todo el negocio | Todo, más gestionar usuarios, puntos y configuración del negocio. Protegido: un negocio nunca queda sin owner |
+| Manager | Uno o varios puntos | Catálogo y precios, inventario, transferencias, dashboard de sus puntos, anular ventas |
+| Cashier | Un punto | Vender, ver el stock de su punto y su propio cierre de caja |
+
+- **Asignación = usuario + rol + alcance** (todo el negocio o una lista de puntos). La API valida *permiso + punto*, nunca el nombre del rol.
+- **Offline:** mobile cachea los permisos efectivos del usuario para decidir sin red; el servidor es la autoridad final al sincronizar.
+
+### Supuestos (pendientes de confirmar en el spec de cada sub-proyecto)
+
+- Sin cobros, planes ni registro público: un tenant demo con datos sembrados.
+- Los datos locales actuales de la app mobile no se migran.
+- Aislamiento entre tenants: esquema compartido con `tenant_id` + **Row-Level Security de Postgres** como segunda barrera.
+- Se reutiliza `packages/domain` (precios, stock derivado, costo promedio) en el backend. El stock derivado (suma de movimientos, nunca contador almacenado) mantiene el dominio *append-mostly* y reduce los conflictos de sync.
+
+## Descomposición
+
+Cada sub-proyecto sigue su propio ciclo spec → plan → código. Mientras tanto, la app mobile sigue funcionando como hoy. El sync va último y aislado, para que exista un producto demostrable de punta a punta antes de abordar la parte más riesgosa.
 
 | # | Sub-proyecto | Entrega | Depende de |
 |---|---|---|---|
-| SP1 | Base local sync-ready | La app genera UUIDs y registra cada escritura en un op-log local. Sin backend; comportamiento visible idéntico. | Etapa 1 cerrada |
-| SP2 | Backend núcleo | Auth + negocio/puntos/roles + sync push/pull con 1 escritor por punto + restore en teléfono nuevo + onboarding/migración de Yamile. | SP1 |
-| SP3 | Vista global del owner | Reportes agregados cross-punto, solo lectura, servidos desde las tablas materializadas del servidor. | SP2 |
-| SP4 | Multi-caja por punto | Varios vendedores despachando a la vez en el mismo punto. | SP2 + demanda real |
+| SP1 | Fundaciones | `apps/api` y `apps/web` en el monorepo, `packages/contracts` (esquemas Zod compartidos), Postgres en Docker Compose, CI | — |
+| SP2 | Identidad y tenancy | Auth por dispositivo, tenants, puntos de venta, RBAC completo y su gestión desde la web | SP1 |
+| SP3 | Catálogo e inventario | Catálogo central, precio y stock por punto, movimientos y transferencias (API + web) | SP2 |
+| SP4 | Dashboard | KPIs en la web y vista "Hoy" en mobile, sobre datos demo sembrados | SP3 |
+| SP5 | Sync offline de mobile | UUIDv7, op-log local, push/pull idempotente, catálogo descargado de solo lectura, ventas offline | SP3 |
 
-## Enfoque de sync elegido: log de operaciones propio (opción A)
+## Fuera de alcance
 
-Cada escritura de la app es una operación append-only replicada a un servidor propio. Alternativas descartadas: **(B)** motores de réplica self-hosted (ElectricSQL/PowerSync) — infra pesada para el VPS, self-hosting inmaduro, y su last-write-wins por fila encaja peor que ops append con el dominio; **(C)** respaldo continuo de archivo (estilo Litestream por dispositivo) — solo da backup/restore, sin vista global del owner y callejón sin salida para multi-caja.
-
-Por qué A es barato aquí: el diseño existente de **stock derivado (nunca contador almacenado)** hace el dominio append-mostly — ventas y movimientos son inserts que se suman; las ediciones de catálogo (raras, del admin) toleran last-write-wins a nivel de fila. Con 1 escritor por punto, sync = replicación ordenada, trivialmente correcta.
-
-## SP1 · Base local sync-ready
-
-1. **PKs a UUIDv7** en las tablas sincronizables (`productos`, `movimientos_almacen`, `ventas`, `gastos`): TEXT generado en JS, v7 por ser ordenado por tiempo (índices sanos). Migración de recreación de tablas en SQLite — barata hoy con un solo dispositivo real, carísima después. Descartada la columna `guid` paralela: dejaría dos sistemas de identidad para siempre.
-2. **Tabla `operaciones` local:** `id` (UUIDv7), `entity`, `entityId`, `type` (`upsert` | `delete`), `payload` (snapshot JSON completo de la fila tras el cambio), `createdAt`, `synced`. Semántica **snapshot/upsert, no event-sourcing de comandos**: el replay es aplicar upserts en orden, sin lógica de dominio.
-3. **Punto de enganche: los repositorios `db/*.ts`** (ya son el único punto de escritura). Cada función de escritura añade sus ops dentro de la transacción que ya tiene. Cero cambios en pantallas.
-4. **`configuracion` se parte:** lista blanca de claves sincronizables (nombre del negocio, umbrales, % rebaja); claves de dispositivo (`weeklyReminderScheduled`, `lastBackup`) quedan locales.
-
-SP1 se shippea antes de que exista el servidor: la app queda dejando el log listo. Prerrequisito de protección: los tests de lógica financiera de la Etapa 1.
-
-## SP2 · Backend núcleo
-
-**Stack:** NestJS + Drizzle + Postgres en Docker Compose sobre el VPS, Caddy para TLS. Drizzle (no Prisma) para compartir ORM y estilo de esquema con la app. El servidor **no contiene lógica de negocio** (precios/stock/utilidad viven en la app): solo auth, permisos, log ordenado y materialización.
-
-**Esquema (UUIDv7 en todo):**
-
-| Tabla | Campos clave | Notas |
-|---|---|---|
-| `users` | email, password_hash, nombre | Auth email+contraseña; JWT access + refresh por device |
-| `negocios` | nombre, owner_user_id | |
-| `puntos` | negocio_id, nombre, active_device_id | El tenant de los datos |
-| `role_bindings` | user_id, negocio_id, punto_id (NULL = todos), role | `owner` \| `admin` \| `vendedor` |
-| `devices` | user_id, punto_id, nombre, last_seen | Un refresh token por device |
-| `operaciones` | punto_id, seq (monotónico **por punto**, asignado en el ingest — no un bigserial global; cómo se implementa se decide en el plan), client_op_id UNIQUE, entity, payload, created_at | Log autoritativo, mismo formato que el local |
-| `productos`/`ventas`/`movimientos`/`gastos` + `punto_id` | espejo relacional | Materializadas al ingerir cada op → SP3 es puro SQL |
-
-**Protocolo (2 endpoints):**
-
-- **Push:** el device manda ops con `synced = false` en lotes; el servidor appendea (idempotente por `client_op_id` — reintentos nunca duplican), materializa y ackea; el device marca `synced = true`.
-- **Pull:** "ops del punto después de seq N". Restaurar teléfono nuevo = pull desde 0 + replay local.
-
-**Escritor único = candado advisory, no regla de correctitud.** `active_device_id` define la caja activa; push de otro device se rechaza con error claro y la app ofrece "Tomar la caja" (mismo usuario o admin). Ops tardías del escritor anterior (ventas hechas offline antes del takeover) **se aceptan al reconectar**: son hechos, no conflictos — el stock derivado las absorbe, igual que hoy absorbe el sobregiro como advertencia. El candado previene el uso concurrente accidental; nunca pierde datos.
-
-**Onboarding = migración.** Flujo en la app "Conectar a la nube": crear cuenta → negocio + punto → la app sintetiza ops `upsert` de todas las filas existentes (productos primero; luego movimientos/ventas/gastos por fecha) → push normal. Los datos actuales de Yamile entran por el mismo camino que cualquier negocio futuro con historial previo.
-
-**Errores de sync:** silenciosos y reintentables; badge "N operaciones sin subir" en Configuración. El sync jamás bloquea una operación local.
-
-## Fuera de alcance de SP1+SP2
-
-- Reportes cross-punto (SP3) y multi-caja simultánea (SP4).
-- Panel web de administración; alta de negocios self-service pública (el alta la hace el desarrollador al principio).
-- Cobro/planes/billing del producto.
+- Cobros, planes, billing y registro self-service público.
+- Variantes por país o región (Cuba/global).
 - Notificaciones push del servidor.
 
-## Riesgos señalados
+## Riesgos
 
-- **SP2 es XL:** al llegar a su plan de implementación hay que partirlo (auth/tenancy · protocolo sync · onboarding) en tareas independientes.
-- La migración UUIDv7 (SP1) toca todas las FKs del código local — es el paso más delicado; hacerla con la suite de tests de la Etapa 1 ya verde.
-- Bloqueo de plataformas de pago/hosting operando desde Cuba: mitigado por VPS propio, pero verificar proveedor de VPS y pasarela de pago antes de comprometerse.
+- **SP5 (sync) es el más difícil:** idempotencia, orden, conflictos y migración de IDs. Se mitiga con el principio de un único escritor por dato y con el dominio append-mostly.
+- **Permisos revocados mientras una caja está offline:** el spec de SP5 debe definir qué pasa con las operaciones hechas con permisos que ya no tiene el usuario.
+- **Migración a UUIDv7 en mobile:** toca todas las FKs locales; hacerla con la suite de tests financieros en verde.
