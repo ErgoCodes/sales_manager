@@ -1,57 +1,32 @@
-# 12 · Visión: plataforma multi-negocio (Etapa 2)
+# 12 · Visión: plataforma multi-location POS SaaS (Etapa 2)
 
-**Prioridad: BAJA (visión a futuro) · Estado: sin trabajo iniciado — solo documento de visión**
+**Estado: diseño de alto nivel aprobado (2026-11-04) · implementación sin iniciar**
 
-> Este doc registra hacia dónde se quiere escalar la app, para que la visión no viva solo en la cabeza del desarrollador. **No es un plan de ejecución**. Tracking en Notion: proyecto "Mercado Mónaco — Plataforma multi-negocio" en el Centro de Proyectos.
->
-> **Actualización 2026-07-11:** el brainstorm formal ya se hizo — las preguntas abiertas de abajo tienen respuesta en [el spec de la Etapa 2](superpowers/specs/2026-07-11-etapa2-plataforma-multinegocio-design.md) (descomposición SP1-SP4, sync por op-log propio, jerarquía owner/admin/vendedor, catálogo por punto, stack NestJS+Drizzle+Postgres en VPS). Las secciones siguientes se conservan como registro del razonamiento original; la fuente de verdad del diseño es el spec.
+> **Actualización 2026-11-04:** la visión original (producto para negocios pequeños en Cuba, tenant = punto de venta, VPS mínimo, Cuba/global y monetización) quedó **superada**. El proyecto pasa a ser una **pieza de portafolio fullstack con énfasis en arquitectura**. La fuente de verdad del diseño es [el spec de la Etapa 2](superpowers/specs/2026-07-11-etapa2-plataforma-multinegocio-design.md); este doc solo resume la visión.
 
 ## Las dos etapas
 
-1. **Etapa 1 — MVP multiplataforma (en curso):** consolidar la app actual para un solo negocio en las plataformas que Expo ya cubre (iOS, Android, Web). Es el proyecto activo en Notion; sus 15 tareas están verificadas contra el código a 2026-07-11.
-2. **Etapa 2 — Plataforma multi-negocio (este doc):** evolucionar de app single-tenant offline-first a una plataforma de gestión de puntos de venta e inventarios que sirva a varios negocios, con backend, cuentas y sincronización.
-
-**Prerrequisito explícito:** no arrancar la Etapa 2 hasta que la Etapa 1 esté cerrada (deuda crítica saldada, tests sobre la lógica financiera, validación en dispositivo real). Construir multi-tenant sobre una base sin tests ni validación en runtime multiplicaría el riesgo.
+1. **Etapa 1 — app mobile de un solo negocio (completa):** app Expo offline-first sobre SQLite local, con tests de lógica financiera, monorepo y `packages/domain` extraído (ver [19-preparacion-etapa2.md](19-preparacion-etapa2.md)).
+2. **Etapa 2 — plataforma multi-location POS SaaS (este doc):** un backend propio, un back-office web y la app mobile como caja offline-first que sincroniza con el servidor.
 
 ## Qué cambia conceptualmente
 
 | Hoy (Etapa 1) | Plataforma (Etapa 2) |
 |---|---|
-| 1 usuaria (Yamile), 1 negocio, 1 dispositivo | N negocios, cada uno con 1+ usuarios y 1+ dispositivos |
-| Sin cuentas ni auth | Registro, login, roles (dueño/empleado) |
-| Todo vive en `db.sqlite` local | SQLite local sigue siendo la verdad inmediata (offline-first se conserva), pero sincroniza con un backend |
-| Respaldo manual exportando el `.db` | Respaldo implícito por sincronización + export manual como fallback |
-| Configuración = tabla `configuracion` local | Configuración por negocio en el backend, cacheada localmente |
+| 1 negocio, 1 dispositivo, sin cuentas | N negocios (tenants), cada uno con N puntos de venta, usuarios y dispositivos |
+| Solo app mobile (Expo) | Back-office web en Next.js + caja mobile en Expo + API en NestJS/Drizzle/Postgres |
+| Sin auth | Auth propia con refresh token por dispositivo y RBAC con roles personalizables |
+| Todo vive en `db.sqlite` local | SQLite local sigue siendo la verdad inmediata en la caja y sincroniza con el servidor por op-log |
+| Catálogo local | Catálogo central del negocio, con stock y precio por punto |
+| Reportes locales | Dashboard completo en la web y vista "Hoy" en mobile |
 
-**Decisión de identidad que se conserva:** offline-first no es negociable. El caso de uso real (mercados pequeños, conectividad intermitente en Cuba) hace que "la app funciona igual sin internet y sincroniza cuando puede" sea la ventaja competitiva, no una limitación.
+**Decisión de identidad que se conserva:** offline-first en la caja. Vender jamás depende de la red; el sync ocurre cuando puede.
 
-## Preguntas abiertas de diseño
+## Sub-proyectos
 
-Cada una de estas debe resolverse en el spec formal de la Etapa 2; se listan para que no se pierdan:
-
-### Modelo de datos multi-tenant
-- ¿`business_id` en cada tabla (esquema compartido) o base de datos por negocio? El esquema actual (stock derivado, costo promedio ponderado, costo congelado al vender) se conserva — la pregunta es solo cómo se particiona.
-- ¿Qué pasa con las claves autoincrementales locales cuando dos dispositivos del mismo negocio crean filas offline? (Probable: UUIDs o IDs compuestos dispositivo+secuencia.)
-
-### Sincronización offline-first
-- Estrategia: ¿CRDT, log de operaciones con reconciliación en servidor, o sync por tabla con last-write-wins + resolución manual de conflictos?
-- Los conflictos reales del dominio son pocos pero delicados: dos dispositivos vendiendo el mismo stock, ediciones concurrentes de una venta (T-22), recálculo de costo promedio con entradas fuera de orden.
-- Candidatos a evaluar cuando toque: réplica SQLite (Turso/libSQL embedded replicas, PowerSync, ElectricSQL) vs. sync propio sobre un log de operaciones. No casarse con ninguno antes del spec.
-
-### Backend y auth
-- Alcance mínimo: auth + almacenamiento de operaciones + fan-out a dispositivos del mismo negocio. Nada de lógica de negocio en el servidor al principio (la app ya la tiene toda).
-- Elección de stack pospuesta al spec. Restricción a considerar: costo de operación cercano a cero mientras haya pocos negocios.
-
-### Producto
-- ¿Roles desde el día 1 (dueño ve reportes, empleado solo registra ventas) o un solo rol por negocio al inicio?
-- ¿La captura de ventas en lote (el flujo estrella de T-09) cambia en algo con múltiples cajas simultáneas?
-- Precios en CUP con la regla efectivo/transferencia (+10% redondeado a 5) están hardcodeados como regla de negocio de un mercado cubano — ¿se generaliza (reglas de precio configurables por negocio) o se acepta el nicho?
-
-### Migración
-- La instalación actual de Yamile debe migrar sin pérdida: su `db.sqlite` se convierte en el primer tenant. Diseñar la migración como parte del spec, no como afterthought.
+SP1 Fundaciones → SP2 Identidad y tenancy → SP3 Catálogo e inventario → SP4 Dashboard → SP5 Sync offline de mobile. El detalle, las dependencias y los riesgos están en el spec.
 
 ## Qué NO es la Etapa 2
 
-- No es reescribir la app: el frontend Expo, el esquema de dominio y la lógica financiera se conservan.
-- No es SaaS público con onboarding self-service (eso sería una Etapa 3, si algún día tiene sentido).
-- No es añadir features de venta nuevas — las features de dominio (fiado, etc.) viven en la Etapa 1 o en su propio análisis.
+- No es reescribir la lógica de dominio: precios, stock derivado y costo promedio se reutilizan desde `packages/domain`.
+- No incluye cobros, planes, registro público self-service ni variantes por país.
