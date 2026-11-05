@@ -1,2 +1,3 @@
+import { describe, expect, it } from 'vitest';
 import { blendAverageCost, weightedAverageCost } from '../average-cost';
 describe('average cost rules', () => { it('blends valid inventory costs', () => expect(blendAverageCost(4, 100, 10, 130)).toBeCloseTo(121.42857)); it('uses new cost for invalid prior inventory', () => { expect(blendAverageCost(0, 100, 2, 90)).toBe(90); expect(blendAverageCost(4, 0, 2, 90)).toBe(90); expect(blendAverageCost(4, 100, -4, 90)).toBe(90); }); it('weights entries and protects zero total quantity', () => { expect(weightedAverageCost([{ quantity: 4, unitCostPrice: 100 }, { quantity: 10, unitCostPrice: 130 }])).toBeCloseTo(121.42857); expect(weightedAverageCost([{ quantity: 0, unitCostPrice: 100 }])).toBe(0); }); });

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { isStagnant, isNearExpiration } from '../product-status';
 import { addDays, subDays, format } from 'date-fns';
 

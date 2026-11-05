@@ -1,6 +1,6 @@
 # 12 · Visión: plataforma multi-location POS SaaS (Etapa 2)
 
-**Estado: diseño de alto nivel aprobado (2026-11-04) · implementación sin iniciar**
+**Estado: diseño de alto nivel aprobado (2026-11-04) · plan de desarrollo en [docs/20](20-plan-etapa2.md) · SP1 listo para implementar**
 
 > **Actualización 2026-11-04:** la visión original (producto para negocios pequeños en Cuba, tenant = punto de venta, VPS mínimo, Cuba/global y monetización) quedó **superada**. El proyecto pasa a ser una **pieza de portafolio fullstack con énfasis en arquitectura**. La fuente de verdad del diseño es [el spec de la Etapa 2](superpowers/specs/2026-07-11-etapa2-plataforma-multinegocio-design.md); este doc solo resume la visión.
 
@@ -24,7 +24,7 @@
 
 ## Sub-proyectos
 
-SP1 Fundaciones → SP2 Identidad y tenancy → SP3 Catálogo e inventario → SP4 Dashboard → SP5 Sync offline de mobile. El detalle, las dependencias y los riesgos están en el spec.
+SP1 Fundaciones → SP2 Identidad y tenancy → SP3 Catálogo e inventario → SP4 Dashboard → SP5 Sync offline de mobile. El detalle, las dependencias y los riesgos están en el spec; el calendario y los gates de salida, en [docs/20](20-plan-etapa2.md).
 
 ## Qué NO es la Etapa 2
 

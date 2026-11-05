@@ -7,9 +7,13 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "prelint": "pnpm --filter @monaco/domain build",
     "lint": "expo lint",
+    "pretest": "pnpm --filter @monaco/domain build",
     "test": "jest",
+    "pretest:coverage": "pnpm --filter @monaco/domain build",
     "test:coverage": "jest --coverage",
+    "pretypecheck": "pnpm --filter @monaco/domain build",
     "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },

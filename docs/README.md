@@ -21,7 +21,7 @@ Conjunto de documentos generados el 2026-07-07 a partir del análisis del [ROADM
 | [09 · Accesibilidad](09-accesibilidad.md) | Roles, estados y áreas táctiles en componentes compartidos | MEDIA | ½-1 día |
 | [10 · Método de pago: costo y fiado](10-metodo-pago-costo-y-fiado.md) | Venta a costo debe permitir elegir efectivo/transferencia; diseño futuro de ventas fiadas (deuda) | MEDIA | ~2-3 días |
 | [11 · Editar/eliminar gastos + fecha futura](11-editar-eliminar-gastos.md) | Editar y eliminar gastos registrados; bloquear fecha futura en gastos | MEDIA | ~1 día |
-| [12 · Visión: plataforma multi-negocio](12-vision-multiplataforma.md) | Etapa 2 a futuro: multi-tenant, backend, sync offline-first — preguntas abiertas de diseño | BAJA | lectura |
+| [12 · Visión: plataforma multi-location POS SaaS](12-vision-multiplataforma.md) | Resumen de la Etapa 2; el diseño está en el spec y la ejecución en el doc 20 | ALTA | lectura |
 
 ## Feedback de la clienta (2026-07-19)
 
@@ -40,7 +40,14 @@ Bugs y features detectados por Yamile probando la app (conversación de WhatsApp
 
 | Doc | Tema | Prioridad | Esfuerzo |
 |---|---|---|---|
-| [19 · Preparación para Etapa 2](19-preparacion-etapa2.md) | Cobertura de tests sobre lógica financiera (sección 1, completa) + split a monorepo (sección 2, pendiente) | ALTA | L |
+| [19 · Preparación para Etapa 2](19-preparacion-etapa2.md) | Cobertura de tests sobre lógica financiera + split a monorepo (ambas completas) | ALTA | L |
+
+## Etapa 2
+
+| Doc | Tema | Prioridad | Esfuerzo |
+|---|---|---|---|
+| [20 · Plan de desarrollo de la Etapa 2](20-plan-etapa2.md) | Calendario SP1–SP5, gates de salida, decisiones técnicas abiertas del spec | ALTA | ~14,5 semanas |
+| [Plan SP1 · Fundaciones](superpowers/plans/2026-11-04-sp1-fundaciones.md) | Tareas T1–T8: domain portable, contracts, API Nest, Postgres/RLS, web Next, CI | ALTA | 1,5 semanas |
 
 ## Orden de ataque recomendado
 
