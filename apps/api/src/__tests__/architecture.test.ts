@@ -47,6 +47,21 @@ describe('hexagonal import boundaries', () => {
     expect(await restrictedImports(applicationFile, `${code}\nexport {};\n`)).not.toEqual([]);
   });
 
+  it('covers the iam module: its domain cannot reach frameworks or outer layers', async () => {
+    const iamDomain = 'src/modules/iam/domain/probe.ts';
+    for (const code of [
+      "import { Injectable } from '@nestjs/common';",
+      "import { sql } from 'drizzle-orm';",
+      "import { IamRepository } from '../infrastructure/iam.repository';",
+      "import { UsersController } from '../http/users.controller';",
+      "import { IamModule } from '../iam.module';",
+    ]) {
+      expect(await restrictedImports(iamDomain, `${code}\nexport {};\n`), code).not.toEqual([]);
+    }
+    const allowed = "import { PERMISSIONS } from '@monaco/contracts';\nexport const p = PERMISSIONS;\n";
+    expect(await restrictedImports(iamDomain, allowed)).toEqual([]);
+  });
+
   it('allows ports and @monaco/domain in inner layers', async () => {
     const code = [
       "import type { DatabaseHealthPort } from '../domain/database-health.port';",
