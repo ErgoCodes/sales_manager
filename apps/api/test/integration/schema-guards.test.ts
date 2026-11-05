@@ -4,7 +4,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminPool, resetTenants, seedTenants, urls } from './helpers';
 
 // Tables that are deliberately not tenant-scoped. Add by name, with a reason.
-const NON_TENANT_TABLES: string[] = [];
+// rate_limits: throttler store, used before any tenant is known. RLS forced with
+// NO policy and no privilege for monaco_app; only rate_limit_hit() (SECURITY
+// DEFINER, monaco_auth) touches it (ADR 0004, auth-db.test.ts).
+const NON_TENANT_TABLES: string[] = ['rate_limits'];
 // RLS + FORCE like every other table, but the row *is* the tenant: no
 // tenant_id column, its policy compares id (ADR 0003).
 const ROW_IS_TENANT = ['tenants'];
@@ -27,9 +30,7 @@ describe('real schema guards (ADR 0003)', () => {
     const { rows } = await admin.query<{ relname: string }>(
       `select relname from pg_class
        where relnamespace = 'public'::regnamespace and relkind = 'r'
-         and (not relrowsecurity or not relforcerowsecurity)
-         and relname <> all($1::text[])`,
-      [NON_TENANT_TABLES],
+         and (not relrowsecurity or not relforcerowsecurity)`,
     );
     expect(rows.map((row) => row.relname)).toEqual([]);
   });
@@ -75,6 +76,7 @@ describe('real schema guards (ADR 0003)', () => {
       'audit_events',
       'devices',
       'locations',
+      'rate_limits',
       'refresh_tokens',
       'role_assignment_locations',
       'role_assignments',
@@ -110,7 +112,8 @@ describe('real schema guards (ADR 0003)', () => {
       role_assignments: crud,
       role_permissions: crud,
       roles: crud,
-      tenants: ['SELECT', 'UPDATE'],
+      // Plus a column-level UPDATE on tenants.name only (auth-db.test.ts); no grant at all on rate_limits.
+      tenants: ['SELECT'],
       users: noDelete,
     });
   });

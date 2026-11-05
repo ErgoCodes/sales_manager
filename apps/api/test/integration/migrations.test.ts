@@ -89,9 +89,11 @@ describe('migrations on a database that already has the SP1 schema', () => {
       `select to_regclass('public._tenancy_probe') as probe,
               (select count(*)::int from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'
                  and relrowsecurity and relforcerowsecurity) as forced,
-              (select array_agg(proowner::regrole::text) from pg_proc where proname like 'auth\\_lookup\\_%') as owners`,
+              (select array_agg(proowner::regrole::text) from pg_proc
+                 where proname like 'auth\\_lookup\\_%' or proname = 'rate_limit_hit') as owners`,
     );
-    expect(rows).toEqual([{ probe: null, forced: 10, owners: ['monaco_auth', 'monaco_auth'] }]);
+    // 10 IAM tables + rate_limits (SP2·T3); 2 auth lookups + rate_limit_hit.
+    expect(rows).toEqual([{ probe: null, forced: 11, owners: ['monaco_auth', 'monaco_auth', 'monaco_auth'] }]);
     // monaco_auth only needed CREATE on public while the migration ran.
     expect((await target.query(`select has_schema_privilege('monaco_auth', 'public', 'CREATE') as can`)).rows).toEqual([{ can: false }]);
   });

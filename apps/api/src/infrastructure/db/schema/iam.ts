@@ -1,3 +1,4 @@
+import { PERMISSIONS } from '@monaco/contracts';
 import { sql } from 'drizzle-orm';
 import { boolean, check, foreignKey, index, integer, pgTable, primaryKey, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
@@ -71,14 +72,15 @@ export const rolePermissions = pgTable(
   'role_permissions',
   {
     roleId: uuid('role_id').notNull(),
-    // TODO(SP2·T2/T4): the catalog (PERMISSIONS) lives in packages/contracts;
-    // the use cases validate against it. The CHECK only enforces the shape.
+    // The catalog (PERMISSIONS) lives in packages/contracts. The use cases
+    // validate against it and the CHECK below is generated from it, so adding a
+    // permission means a new migration (a test fails until it exists).
     permission: text('permission').notNull(),
     tenantId: tenantRef(),
   },
   (t) => [
     primaryKey({ name: 'role_permissions_pkey', columns: [t.roleId, t.permission] }),
-    check('role_permissions_permission_check', sql`${t.permission} ~ '^[a-z]+:[a-z]+$'`),
+    check('role_permissions_permission_check', oneOf('permission', PERMISSIONS)),
     foreignKey({ name: 'role_permissions_role_fk', columns: [t.roleId, t.tenantId], foreignColumns: [roles.id, roles.tenantId] }).onDelete(
       'cascade',
     ),

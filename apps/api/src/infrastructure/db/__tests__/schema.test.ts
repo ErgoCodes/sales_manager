@@ -8,8 +8,11 @@ import * as schema from '../schema';
 // isolation policy for every command, with both USING and WITH CHECK.
 // `tenants` is the one explicit exception: no tenant_id, policy keyed on id.
 const ROW_IS_TENANT = 'tenants';
+// Not tenant-scoped on purpose: RLS enabled (and forced, migration 0006) with
+// no policy at all, reachable only through a SECURITY DEFINER function (ADR 0004).
+const NO_TENANT = ['rate_limits'];
 const tables: PgTable[] = (Object.values(schema) as unknown[]).filter((value): value is PgTable => is(value, PgTable));
-const tenantOwned = tables.filter((table) => getTableConfig(table).name !== ROW_IS_TENANT);
+const tenantOwned = tables.filter((table) => ![ROW_IS_TENANT, ...NO_TENANT].includes(getTableConfig(table).name));
 const dialect = new PgDialect();
 const policySql = (column: string) => `${column} = nullif(current_setting('app.tenant_id', true), '')::uuid`;
 
@@ -39,11 +42,19 @@ describe('schema tenancy convention', () => {
     expectSinglePolicy(tenants, policySql('id'));
   });
 
+  it('rate_limits has RLS enabled, no tenant_id and no policy (deny by default)', () => {
+    const config = getTableConfig(tables.find((table) => getTableConfig(table).name === 'rate_limits')!);
+    expect(config.enableRLS).toBe(true);
+    expect(config.policies).toEqual([]);
+    expect(config.columns.map((column) => column.name)).not.toContain('tenant_id');
+  });
+
   it('includes every SP2 table (the guards are not vacuous)', () => {
     expect(tables.map((table) => getTableConfig(table).name).sort()).toEqual([
       'audit_events',
       'devices',
       'locations',
+      'rate_limits',
       'refresh_tokens',
       'role_assignment_locations',
       'role_assignments',
