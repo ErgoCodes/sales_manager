@@ -1013,6 +1013,192 @@
           "users"
         ]
       }
+    },
+    "/devices": {
+      "get": {
+        "description": "A Manager only reaches users entirely inside its locations; only an Owner reaches an Owner.",
+        "operationId": "listDevices",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "Whose devices; defaults to the caller",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of devices, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDevices_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's devices, or another user's (devices:manage)",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/devices/{id}/revoke": {
+      "post": {
+        "operationId": "revokeDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The revoked device",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Device_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke a device and its sessions (own, or devices:manage)",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/audit-events": {
+      "get": {
+        "operationId": "listAuditEvents",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of audit events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAuditEvents_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Security log of the tenant, newest first (audit:view)",
+        "tags": [
+          "audit"
+        ]
+      }
     }
   },
   "info": {
@@ -1976,6 +2162,185 @@
         },
         "required": [
           "assignments"
+        ],
+        "additionalProperties": false
+      },
+      "Device_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "label": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/DevicePlatform_Output"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "lastSeenAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "revokedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "current": {
+            "type": "boolean",
+            "description": "True for the device that made the request"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "label",
+          "platform",
+          "createdAt",
+          "lastSeenAt",
+          "revokedAt",
+          "current"
+        ],
+        "additionalProperties": false
+      },
+      "DevicePlatform_Output": {
+        "type": "string",
+        "enum": [
+          "web",
+          "android",
+          "ios"
+        ]
+      },
+      "PaginatedDevices_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "AuditEvent_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "actorUserId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/AuditEventType_Output"
+          },
+          "targetType": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Never contains secrets or hashes"
+          },
+          "ip": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "actorUserId",
+          "type",
+          "targetType",
+          "targetId",
+          "metadata",
+          "ip",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "AuditEventType_Output": {
+        "type": "string",
+        "enum": [
+          "login_succeeded",
+          "login_failed",
+          "refresh_reuse_detected",
+          "password_changed",
+          "user_created",
+          "user_create_conflict",
+          "user_updated",
+          "user_disabled",
+          "user_password_reset",
+          "device_revoked",
+          "session_revoked",
+          "role_created",
+          "role_updated",
+          "role_deleted",
+          "assignments_replaced",
+          "location_created",
+          "location_updated",
+          "location_archived",
+          "escalation_denied"
+        ]
+      },
+      "PaginatedAuditEvents_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
         ],
         "additionalProperties": false
       }

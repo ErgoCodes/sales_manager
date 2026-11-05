@@ -311,6 +311,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's devices, or another user's (devices:manage)
+         * @description A Manager only reaches users entirely inside its locations; only an Owner reaches an Owner.
+         */
+        get: operations["listDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a device and its sessions (own, or devices:manage) */
+        post: operations["revokeDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Security log of the tenant, newest first (audit:view) */
+        get: operations["listAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -556,6 +610,44 @@ export interface components {
         };
         ReplaceAssignmentsResponse_Output: {
             assignments: components["schemas"]["Assignment_Output"][];
+        };
+        Device_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            userId: components["schemas"]["Uuid_Output"];
+            label: string;
+            platform: components["schemas"]["DevicePlatform_Output"];
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+            lastSeenAt: components["schemas"]["IsoDateTime_Output"] | null;
+            revokedAt: components["schemas"]["IsoDateTime_Output"] | null;
+            /** @description True for the device that made the request */
+            current: boolean;
+        };
+        /** @enum {string} */
+        DevicePlatform_Output: "web" | "android" | "ios";
+        PaginatedDevices_Output: {
+            items: components["schemas"]["Device_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        AuditEvent_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            actorUserId: components["schemas"]["Uuid_Output"] | null;
+            type: components["schemas"]["AuditEventType_Output"];
+            targetType: string | null;
+            targetId: components["schemas"]["Uuid_Output"] | null;
+            /** @description Never contains secrets or hashes */
+            metadata: {
+                [key: string]: unknown;
+            };
+            ip: string | null;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /** @enum {string} */
+        AuditEventType_Output: "login_succeeded" | "login_failed" | "refresh_reuse_detected" | "password_changed" | "user_created" | "user_create_conflict" | "user_updated" | "user_disabled" | "user_password_reset" | "device_revoked" | "session_revoked" | "role_created" | "role_updated" | "role_deleted" | "assignments_replaced" | "location_created" | "location_updated" | "location_archived" | "escalation_denied";
+        PaginatedAuditEvents_Output: {
+            items: components["schemas"]["AuditEvent_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
         };
     };
     responses: never;
@@ -1228,6 +1320,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReplaceAssignmentsResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listDevices: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+                /** @description Whose devices; defaults to the caller */
+                userId?: components["schemas"]["Uuid"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of devices, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDevices_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revokeDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The revoked device */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listAuditEvents: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of audit events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAuditEvents_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */
