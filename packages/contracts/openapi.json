@@ -446,6 +446,211 @@
           "locations"
         ]
       }
+    },
+    "/roles": {
+      "get": {
+        "operationId": "listRoles",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of roles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRoles_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Roles of the tenant (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      },
+      "post": {
+        "description": "Only permissions the caller holds tenant-wide; owner-only permissions need an Owner (403 otherwise).",
+        "operationId": "createRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a custom role (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/roles/{id}": {
+      "patch": {
+        "description": "Affects every holder. The Owner role is immutable (409); admin permissions on a role held per location are 422.",
+        "operationId": "updateRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a role or replace its permissions (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Role deleted"
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a custom role that nobody holds (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      }
     }
   },
   "info": {
@@ -960,6 +1165,133 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "description": "Short code, unique per tenant"
+          }
+        }
+      },
+      "Role_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "key": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SystemRoleKey_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null for custom roles"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission_Output"
+            }
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "isSystem",
+          "permissions",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "SystemRoleKey_Output": {
+        "type": "string",
+        "enum": [
+          "owner",
+          "manager",
+          "cashier"
+        ]
+      },
+      "PaginatedRoles_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "Permission": {
+        "type": "string",
+        "enum": [
+          "tenant:manage",
+          "locations:manage",
+          "users:manage",
+          "roles:manage",
+          "devices:manage",
+          "audit:view",
+          "catalog:write",
+          "inventory:write",
+          "inventory:transfer",
+          "sales:create",
+          "sales:void",
+          "reports:view",
+          "cash:close"
+        ],
+        "description": "Permission catalog entry"
+      },
+      "CreateRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "permissions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "UpdateRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "permissions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
           }
         }
       }

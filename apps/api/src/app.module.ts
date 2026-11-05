@@ -14,6 +14,7 @@ import { DatabaseModule } from './infrastructure/db/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { IamModule } from './modules/iam/iam.module';
 import { LocationsModule } from './modules/locations/locations.module';
+import { RolesModule } from './modules/roles/roles.module';
 
 /**
  * Root module. It receives an already-validated config instead of reading
@@ -37,6 +38,7 @@ export class AppModule implements NestModule {
         HealthModule,
         IamModule,
         LocationsModule,
+        RolesModule,
       ],
       providers: [
         { provide: APP_PIPE, useClass: ZodValidationPipe },

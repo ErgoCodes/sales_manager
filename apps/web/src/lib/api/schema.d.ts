@@ -170,6 +170,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roles of the tenant (roles:manage) */
+        get: operations["listRoles"];
+        put?: never;
+        /**
+         * Create a custom role (roles:manage)
+         * @description Only permissions the caller holds tenant-wide; owner-only permissions need an Owner (403 otherwise).
+         */
+        post: operations["createRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a custom role that nobody holds (roles:manage) */
+        delete: operations["deleteRole"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a role or replace its permissions (roles:manage)
+         * @description Affects every holder. The Owner role is immutable (409); admin permissions on a role held per location are 422.
+         */
+        patch: operations["updateRole"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -309,6 +351,35 @@ export interface components {
             name?: string;
             /** @description Short code, unique per tenant */
             code?: string;
+        };
+        Role_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            /** @description Null for custom roles */
+            key: components["schemas"]["SystemRoleKey_Output"] | null;
+            name: string;
+            isSystem: boolean;
+            permissions: components["schemas"]["Permission_Output"][];
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /** @enum {string} */
+        SystemRoleKey_Output: "owner" | "manager" | "cashier";
+        PaginatedRoles_Output: {
+            items: components["schemas"]["Role_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        /**
+         * @description Permission catalog entry
+         * @enum {string}
+         */
+        Permission: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:write" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
+        CreateRoleRequest: {
+            name: string;
+            permissions: components["schemas"]["Permission"][];
+        };
+        UpdateRoleRequest: {
+            name?: string;
+            permissions?: components["schemas"]["Permission"][];
         };
     };
     responses: never;
@@ -622,6 +693,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Location_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of roles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRoles_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description The new role */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Role deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated role */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */

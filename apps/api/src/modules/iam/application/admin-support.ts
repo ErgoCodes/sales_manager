@@ -18,7 +18,7 @@ export async function runAdmin<T>(
   uow: AdminUnitOfWork,
   request: AdminRequest,
   operation: string,
-  target: { readonly type: string; readonly id: string },
+  target: { readonly type: string; readonly id?: string },
   work: (scope: AdminTenantScope) => Promise<T>,
 ): Promise<T> {
   try {
