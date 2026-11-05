@@ -28,3 +28,18 @@ export function tenantIsolationPolicy(table: string) {
     withCheck: sql`tenant_id = ${currentTenant}`,
   });
 }
+
+/**
+ * The one exception to the convention: `tenants` has no `tenant_id`, its own
+ * `id` is the tenant. Same shape as `tenantIsolationPolicy`, keyed on `id`, so
+ * inside `withTenant` the app sees (and can lock) only its own tenant row.
+ */
+export function tenantRowPolicy(table: string) {
+  return pgPolicy(`${table}_tenant_isolation`, {
+    as: 'permissive',
+    for: 'all',
+    to: 'public',
+    using: sql`id = ${currentTenant}`,
+    withCheck: sql`id = ${currentTenant}`,
+  });
+}

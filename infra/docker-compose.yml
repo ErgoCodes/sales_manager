@@ -8,8 +8,10 @@
 # start of an empty volume. The API never connects with it:
 #   - monaco_owner owns the schema and runs migrations (DATABASE_MIGRATION_URL).
 #   - monaco_app is the runtime role: no superuser, no BYPASSRLS (DATABASE_URL).
-# init.sql only runs when the volume is empty; after changing it run
-# `docker compose -f infra/docker-compose.yml down -v`.
+#   - monaco_auth (NOLOGIN BYPASSRLS) owns the pre-login lookup functions.
+# init.sql only runs by itself when the volume is empty. It is idempotent: on an
+# existing volume (e.g. from SP1, before monaco_auth) run it again as postgres
+# (command in its header) and then migrate, or reset with `down -v`.
 name: monaco
 
 services:
