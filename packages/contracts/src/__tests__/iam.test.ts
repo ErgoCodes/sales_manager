@@ -263,6 +263,28 @@ describe('assignments', () => {
     bad(ReplaceAssignmentsRequest, { assignments: Array.from({ length: 51 }, () => input) });
     bad(ReplaceAssignmentsRequest, {});
   });
+
+  it('ReplaceAssignmentsRequest rejects duplicate (role, scope) pairs, ignoring location order', () => {
+    const tenant = { roleId: U1, scope: { type: 'tenant' } };
+    const ab = { roleId: U1, scope: { type: 'locations', locationIds: [U1, U2] } };
+    const ba = { roleId: U1, scope: { type: 'locations', locationIds: [U2, U1] } };
+    bad(ReplaceAssignmentsRequest, { assignments: [tenant, { ...tenant }] });
+    bad(ReplaceAssignmentsRequest, { assignments: [ab, ba] });
+    ok(ReplaceAssignmentsRequest, { assignments: [tenant, ab, { roleId: U2, scope: ab.scope }] });
+    ok(ReplaceAssignmentsRequest, { assignments: [ab, { roleId: U1, scope: { type: 'locations', locationIds: [U1] } }] });
+  });
+
+  it('MeResponse accepts more than 200 locations in a permission scope', () => {
+    const ids = Array.from({ length: 201 }, (_, i) => `018f3b5e-7c1a-7000-8000-${String(i).padStart(12, '0')}`);
+    const me = {
+      user: { id: U1, email: 'a@b.co', displayName: 'A', mustChangePassword: false },
+      tenant: { id: U1, name: 'T', slug: 't' },
+      deviceId: U1,
+      permissions: [{ permission: 'sales:create', scope: { type: 'locations', locationIds: ids } }],
+    };
+    ok(MeResponse, me);
+    bad(AssignmentScope, { type: 'locations', locationIds: ids });
+    bad(MeResponse, { ...me, permissions: [{ permission: 'sales:create', scope: { type: 'locations', locationIds: [] } }] });  });
   it('ReplaceAssignmentsResponse', () => {
     ok(ReplaceAssignmentsResponse, { assignments: [{ id: U2, ...input }] });
   });

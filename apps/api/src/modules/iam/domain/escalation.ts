@@ -1,10 +1,11 @@
 import type { Permission } from '@monaco/contracts';
 
-import { ForbiddenEscalation, type EscalationReason } from './errors';
+import { ForbiddenEscalation, InvalidScope, type EscalationReason } from './errors';
 import { assertRoleEditable, holdsOwnerRole } from './owner';
 import {
   effectivePermissions,
   hasPermissionAnywhere,
+  isAdminPermission,
   isOwnerOnlyPermission,
 } from './permissions';
 import { assertValidAssignment } from './scope';
@@ -19,7 +20,13 @@ export type EscalationCheck =
   /** `POST /roles`. */
   | { readonly kind: 'create_role'; readonly permissions: readonly Permission[] }
   /** `PATCH /roles/:id`; `permissions` is the resulting set (pass the current one for a rename). */
-  | { readonly kind: 'update_role'; readonly role: RoleDefinition; readonly permissions: readonly Permission[] }
+  | {
+      readonly kind: 'update_role';
+      readonly role: RoleDefinition;
+      readonly permissions: readonly Permission[];
+      /** True if any user holds this role with a locations scope (admin permissions cannot be added then). */
+      readonly hasLocationScopedAssignments: boolean;
+    }
   /** `PUT /users/:id/assignments`. */
   | {
       readonly kind: 'replace_assignments';
@@ -27,9 +34,9 @@ export type EscalationCheck =
       readonly current: readonly Assignment[];
       readonly next: readonly Assignment[];
     }
-  /** `POST /users/:id/disable` and `POST /users/:id/reset-password`. */
+  /** `POST /users/:id/disable`, `POST /users/:id/reset-password` and `PATCH /users/:id`. */
   | {
-      readonly kind: 'disable_user' | 'reset_password';
+      readonly kind: 'disable_user' | 'reset_password' | 'update_user';
       readonly targetUserId: string;
       readonly targetAssignments: readonly Assignment[];
     };
@@ -92,6 +99,7 @@ function changedAssignments(before: readonly Assignment[], after: readonly Assig
  *   permission TENANT-WIDE (and being an Owner for owner-only ones). Editing affects all holders.
  * - Assignments: nobody edits their own; only an Owner touches Owner assignments or an Owner user;
  *   every ADDED or REMOVED assignment must be covered by the actor (permission + scope).
+ * - Update user: yourself is fine (displayName); otherwise same rules as disable/reset.
  * - Disable/reset: not on yourself (use `/auth/password`); an Owner target needs an Owner actor;
  *   resetting is an account takeover, so the actor must cover everything the target holds.
  */
@@ -109,6 +117,9 @@ export function assertNoEscalation(actor: Actor, check: EscalationCheck): void {
       const before = new Set(check.role.permissions);
       const after = new Set(check.permissions);
       const changed = [...before, ...after].filter((p) => before.has(p) !== after.has(p));
+      if (check.hasLocationScopedAssignments && [...after].some((p) => !before.has(p) && isAdminPermission(p))) {
+        throw new InvalidScope('admin_permission_requires_tenant_scope');
+      }
       assertCovers(effective, actorIsOwner, changed, TENANT);
       return;
     }
@@ -126,8 +137,13 @@ export function assertNoEscalation(actor: Actor, check: EscalationCheck): void {
     }
 
     case 'disable_user':
-    case 'reset_password': {
-      if (check.targetUserId === actor.userId) throw new ForbiddenEscalation('self_modification');
+    case 'reset_password':
+    case 'update_user': {
+      if (check.targetUserId === actor.userId) {
+        // Editing your own profile (displayName) is fine; disabling/resetting yourself is not.
+        if (check.kind === 'update_user') return;
+        throw new ForbiddenEscalation('self_modification');
+      }
       if (holdsOwnerRole(check.targetAssignments) && !actorIsOwner) throw new ForbiddenEscalation('owner_only');
       for (const { role, scope } of check.targetAssignments) {
         assertCovers(effective, actorIsOwner, role.permissions, scope);
@@ -141,11 +157,15 @@ export function assertNoEscalation(actor: Actor, check: EscalationCheck): void {
  * `devices:manage` over ANOTHER user's devices. Tenant-wide holders manage anyone's. A
  * locations-scoped holder (Manager) only manages non-Owner users whose assignments are all
  * locations-scoped and entirely inside the locations where they hold `devices:manage`.
- * A user without assignments is out of any location's reach.
+ * A user without assignments is out of any location's reach. An Owner target's devices are
+ * managed only by an Owner (which also covers an Owner acting on their own devices).
  */
-export function canManageDevicesOf(effective: EffectivePermissions, targetAssignments: readonly Assignment[]): boolean {
+export function canManageDevicesOf(actor: Actor, targetAssignments: readonly Assignment[]): boolean {
+  const targetIsOwner = holdsOwnerRole(targetAssignments);
+  if (targetIsOwner && !holdsOwnerRole(actor.assignments)) return false;
+  const effective = effectivePermissions(actor.assignments);
   if (effective.tenantWide.has('devices:manage')) return true;
-  if (targetAssignments.length === 0 || holdsOwnerRole(targetAssignments)) return false;
+  if (targetAssignments.length === 0 || targetIsOwner) return false;
   return targetAssignments.every(
     ({ scope }) =>
       scope.type === 'locations' && scope.locationIds.every((id) => effective.byLocation.get(id)?.has('devices:manage')),

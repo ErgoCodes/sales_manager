@@ -3,11 +3,11 @@ import { z } from 'zod';
 import { Uuid } from '../common';
 import { Email } from './auth';
 import { Permission } from './permissions';
-import { AssignmentScope } from './scope';
+import { AssignmentScopeResponse } from './scope';
 
 /** One effective permission with the scope it holds in (union over all assignments). */
 export const PermissionGrant = z
-  .object({ permission: Permission, scope: AssignmentScope })
+  .object({ permission: Permission, scope: AssignmentScopeResponse })
   .meta({ id: 'PermissionGrant' });
 export type PermissionGrant = z.infer<typeof PermissionGrant>;
 

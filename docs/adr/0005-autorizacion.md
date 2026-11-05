@@ -38,9 +38,10 @@ Una función pura con una unión discriminada `EscalationCheck`, que T4 llama **
 | `kind` | Endpoint | Reglas |
 |---|---|---|
 | `create_role` | `POST /roles` | Cada permiso debe estar en poder del actor con alcance **tenant**. Los permisos solo-Owner exigen un Owner |
-| `update_role` | `PATCH /roles/:id` | El rol Owner no se edita (`SystemRoleImmutable`). Se exige la misma cobertura tenant sobre los permisos **añadidos y quitados** (diferencia simétrica); un cambio de nombre no exige nada |
+| `update_role` | `PATCH /roles/:id` | El rol Owner no se edita (`SystemRoleImmutable`). Si el rol tiene asignaciones por puntos (`hasLocationScopedAssignments`), añadirle un permiso administrativo es `InvalidScope`. Se exige la misma cobertura tenant sobre los permisos **añadidos y quitados** (diferencia simétrica); un cambio de nombre no exige nada |
 | `replace_assignments` | `PUT /users/:id/assignments` | Nadie modifica las suyas. Valida alcance (`InvalidScope`). Solo un Owner da o quita Owner, o toca cualquier asignación de un Owner. Cada asignación **añadida o quitada** debe estar cubierta por el actor (permiso y alcance) |
 | `disable_user`, `reset_password` | `POST /users/:id/disable`, `/reset-password` | No sobre uno mismo (la contraseña propia se cambia con `/auth/password`, que exige la actual). Un Owner como objetivo exige un Owner. El actor debe cubrir **todo** lo que el objetivo tiene |
+| `update_user` | `PATCH /users/:id` | Editarse a uno mismo (p. ej. `displayName`) está permitido. Sobre otro, mismas reglas que disable/reset: solo un Owner edita a un Owner y el actor debe cubrir todo lo que el objetivo tiene |
 
 **Solo-Owner** (`OWNER_ONLY_PERMISSIONS`): `users:manage`, `roles:manage`, `tenant:manage`, `audit:view`. Ni un no-Owner que ya los tenga puede otorgarlos. `locations:manage` es administrativo (solo tenant) pero no solo-Owner, como pide el spec.
 
@@ -51,7 +52,7 @@ Decisiones que van más allá del texto literal del spec, por la misma razón (c
 - **Roles: cobertura tenant-wide.** Un rol no tiene alcance y se puede asignar en cualquier parte, y editarlo cambia a todos sus titulares. Pedir el permiso solo en algún punto dejaría que un Manager ampliara a otros más allá de su propio alcance.
 - **Reset y desactivación exigen cubrir al objetivo.** Un reset es una toma de cuenta: sin esta regla, un admin custom sin `sales:void` podría resetear a un Manager y entrar como él.
 - **Solo se comprueba lo que cambia** en un reemplazo de asignaciones. Si no, un admin no podría tocar a un usuario que tiene, además, una asignación fuera de su alcance. A cambio, **quitar** una asignación fuera de alcance también se rechaza.
-- `canManageDevicesOf` implementa el `devices:manage` del Manager sobre dispositivos **ajenos**: el objetivo no es Owner, tiene asignaciones y todas son por puntos dentro de los puntos donde el actor tiene `devices:manage`. El tenant-wide gestiona a cualquiera.
+- `canManageDevicesOf(actor, targetAssignments)` implementa el `devices:manage` sobre dispositivos **ajenos**. Si el objetivo es Owner, solo un Owner puede gestionarlos (aunque otro tenga `devices:manage` tenant-wide; un Owner sobre los suyos entra por ser Owner). Para el Manager: el objetivo no es Owner, tiene asignaciones y todas son por puntos dentro de los puntos donde el actor tiene `devices:manage`. El tenant-wide gestiona a cualquiera.
 
 ### 5. Owner protegido
 

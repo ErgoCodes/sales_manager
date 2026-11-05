@@ -10,8 +10,16 @@ export const Assignment = z.object({ id: Uuid, roleId: Uuid, scope: AssignmentSc
 export type Assignment = z.infer<typeof Assignment>;
 
 /** PUT /users/:id/assignments replaces the whole set atomically. An empty list removes all. */
+const assignmentKey = ({ roleId, scope }: AssignmentInput): string =>
+  scope.type === 'tenant' ? `${roleId}|tenant` : `${roleId}|locations|${[...scope.locationIds].sort().join(',')}`;
+
 export const ReplaceAssignmentsRequest = z
-  .object({ assignments: z.array(AssignmentInput).max(50) })
+  .object({
+    assignments: z
+      .array(AssignmentInput)
+      .max(50)
+      .refine((items) => new Set(items.map(assignmentKey)).size === items.length, 'assignments must be unique'),
+  })
   .meta({ id: 'ReplaceAssignmentsRequest' });
 export type ReplaceAssignmentsRequest = z.infer<typeof ReplaceAssignmentsRequest>;
 

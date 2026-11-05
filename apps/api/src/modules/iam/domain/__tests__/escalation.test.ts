@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 
 import { InvalidScope, SystemRoleImmutable, type EscalationReason } from '../errors';
 import { assertNoEscalation, canManageDevicesOf, type EscalationCheck } from '../escalation';
-import { effectivePermissions } from '../permissions';
 import type { Actor, Assignment } from '../types';
 import {
   actor,
@@ -85,6 +84,7 @@ describe('update_role', () => {
     kind: 'update_role',
     role,
     permissions,
+    hasLocationScopedAssignments: false,
   });
 
   it('never edits the Owner role, not even an Owner', () => {
@@ -118,6 +118,33 @@ describe('update_role', () => {
     forbidden(holder, update(custom, 'sales:create', 'sales:void', 'users:manage'), 'owner_only');
     const withAdmin = customRole('c2', 'sales:create', 'audit:view');
     forbidden(admin, update(withAdmin, 'sales:create'), 'owner_only');
+  });
+
+  it('adding an admin permission to a role held with a locations scope is invalid (422)', () => {
+    const check: EscalationCheck = {
+      kind: 'update_role',
+      role: custom,
+      permissions: ['sales:create', 'sales:void', 'locations:manage'],
+      hasLocationScopedAssignments: true,
+    };
+    expect(() => assertNoEscalation(owner, check)).toThrow(InvalidScope);
+    expect(() => assertNoEscalation(owner, check)).toThrow(
+      expect.objectContaining({ reason: 'admin_permission_requires_tenant_scope' }),
+    );
+  });
+
+  it('with location-scoped holders, non-admin additions and removals are fine, and so are admin additions when none exist', () => {
+    const withAdmin = customRole('c5', 'sales:create', 'locations:manage');
+    const scoped = (role: typeof custom, ...permissions: Permission[]): EscalationCheck => ({
+      kind: 'update_role',
+      role,
+      permissions,
+      hasLocationScopedAssignments: true,
+    });
+    allowed(owner, scoped(custom, 'sales:create', 'sales:void', 'catalog:write'));
+    allowed(owner, scoped(withAdmin, 'sales:create')); // removing an admin permission
+    allowed(owner, scoped(withAdmin, 'sales:create', 'locations:manage', 'sales:void')); // already had it
+    allowed(owner, update(custom, 'sales:create', 'sales:void', 'locations:manage'));
   });
 
   it('a holder of the role cannot use its edit to widen their own reach', () => {
@@ -187,7 +214,7 @@ describe('replace_assignments', () => {
         InvalidScope,
       );
     });
-    it('only validates the new set: pre-existing data is not re-judged', () => {
+    it('only validates the new set: a legacy invalid assignment being removed does not block the change', () => {
       const legacy = atLocations(customRole('legacy', 'users:manage'), LOC_A);
       allowed(owner, replace('u', [legacy], [tenantWide(CASHIER_ROLE)]));
     });
@@ -284,8 +311,31 @@ describe('disable_user and reset_password', () => {
   });
 });
 
+describe('update_user', () => {
+  const check = (targetUserId: string, ...targetAssignments: Assignment[]): EscalationCheck => ({
+    kind: 'update_user',
+    targetUserId,
+    targetAssignments,
+  });
+
+  it('lets anyone edit their own profile', () => {
+    allowed(owner, check('owner-1', tenantWide(OWNER_ROLE)));
+    allowed(lead, check('lead-1'));
+  });
+  it('only an Owner edits an Owner', () => {
+    forbidden(admin, check('u', tenantWide(OWNER_ROLE)), 'owner_only');
+    allowed(owner, check('u', tenantWide(OWNER_ROLE)));
+  });
+  it('the actor must cover everything the target holds', () => {
+    allowed(lead, check('u', atLocations(CASHIER_ROLE, LOC_A)));
+    allowed(admin, check('u'));
+    forbidden(lead, check('u', atLocations(MANAGER_ROLE, LOC_C)), 'scope_exceeds');
+    forbidden(admin, check('u', atLocations(MANAGER_ROLE, LOC_A)), 'permission_not_held');
+  });
+});
+
 describe('canManageDevicesOf', () => {
-  const eff = (...a: Parameters<typeof effectivePermissions>[0]) => effectivePermissions(a);
+  const eff = (...a: Assignment[]) => actor('x', ...a);
   const managerAB = eff(atLocations(MANAGER_ROLE, LOC_A, LOC_B));
 
   it('a tenant-wide holder manages anyone, Owners included', () => {
@@ -311,6 +361,13 @@ describe('canManageDevicesOf', () => {
     expect(canManageDevicesOf(managerAB, [tenantWide(OWNER_ROLE)])).toBe(false);
     expect(canManageDevicesOf(managerAB, [atLocations(CASHIER_ROLE, LOC_A), tenantWide(OWNER_ROLE)])).toBe(false);
     expect(canManageDevicesOf(managerAB, [])).toBe(false);
+  });
+
+  it('only an Owner manages an Owner’s devices, even a non-Owner with tenant-wide devices:manage', () => {
+    const devAdmin = eff(tenantWide(customRole('dev', 'devices:manage')));
+    expect(canManageDevicesOf(devAdmin, [tenantWide(OWNER_ROLE)])).toBe(false);
+    expect(canManageDevicesOf(devAdmin, [tenantWide(MANAGER_ROLE)])).toBe(true);
+    expect(canManageDevicesOf(eff(tenantWide(OWNER_ROLE)), [tenantWide(OWNER_ROLE)])).toBe(true);
   });
 
   it('requires devices:manage in each location, not just any permission', () => {
