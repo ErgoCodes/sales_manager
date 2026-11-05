@@ -48,6 +48,7 @@ Bugs y features detectados por Yamile probando la app (conversación de WhatsApp
 |---|---|---|---|
 | [20 · Plan de desarrollo de la Etapa 2](20-plan-etapa2.md) | Calendario SP1–SP5, gates de salida, decisiones técnicas abiertas del spec | ALTA | ~14,5 semanas |
 | [Plan SP1 · Fundaciones](superpowers/plans/2026-11-04-sp1-fundaciones.md) | Tareas T1–T8: domain portable, contracts, API Nest, Postgres/RLS, web Next, CI | ALTA | 1,5 semanas |
+| [21 · Estado de SP2 y continuación en local](21-estado-sp2-y-continuacion-local.md) | Punto de traspaso: estado de cada tarea, bloqueante de T3, puesta en marcha local, flujo de agentes | ALTA | lectura |
 
 ## Orden de ataque recomendado
 
