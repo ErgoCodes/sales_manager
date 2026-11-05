@@ -32,7 +32,10 @@ export class ChangePassword {
     const outcome = await this.uow.run<Outcome>(actor.tenantId, async (scope) => {
       const user = await scope.users.findById(actor.userId);
       if (!user) return { ok: false, reason: 'gone' };
-      if (!(await this.hasher.verify(user.passwordHash, command.currentPassword))) return { ok: false, reason: 'bad_password' };
+      // An expired temporary password is no longer a password (72 h): a session
+      // opened before it expired cannot use it as the current one.
+      const temporaryExpired = user.mustChangePassword && user.passwordExpiresAt !== null && user.passwordExpiresAt <= now;
+      if (temporaryExpired || !(await this.hasher.verify(user.passwordHash, command.currentPassword))) return { ok: false, reason: 'bad_password' };
 
       await scope.users.setPassword(user.id, await this.hasher.hash(command.newPassword));
       const others = await scope.devices.revokeAllExcept(user.id, actor.deviceId, now);

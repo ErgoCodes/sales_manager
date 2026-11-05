@@ -121,6 +121,22 @@ describe('session use cases', () => {
       expect(iam.tokens.every((t) => t.revokedAt === null)).toBe(true);
     });
 
+    it('rejects an expired temporary password as the current one, even from a session opened before it expired', async () => {
+      Object.assign(iam.users.get(actor.userId)!, { passwordExpiresAt: clock.now() });
+      await expect(change().execute(actor, { currentPassword: 'secret password', newPassword: 'new long password', ip: null })).rejects.toBeInstanceOf(
+        InvalidCurrentPassword,
+      );
+      expect(iam.users.get(actor.userId)!.passwordHash).toBe('hash:secret password');
+      expect(iam.tokens.every((t) => t.revokedAt === null)).toBe(true);
+    });
+
+    it('accepts a temporary password that has not expired yet', async () => {
+      Object.assign(iam.users.get(actor.userId)!, { passwordExpiresAt: new Date(clock.now().getTime() + 1) });
+      await expect(change().execute(actor, { currentPassword: 'secret password', newPassword: 'new long password', ip: null })).resolves.toMatchObject({
+        mustChangePassword: false,
+      });
+    });
+
     it('fails as an invalid session if the user is gone', async () => {
       iam.users.clear();
       await expect(change().execute(actor, { currentPassword: 'secret password', newPassword: 'x'.repeat(12), ip: null })).rejects.toBeInstanceOf(
