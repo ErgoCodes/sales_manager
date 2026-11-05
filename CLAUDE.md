@@ -21,11 +21,17 @@ Use `pnpm` exclusively. Never use `npm` or `yarn`.
 ## Commands
 
 ```bash
-# Dev (from repository root)
+# Mobile (Expo), from repository root
 pnpm start
 pnpm android
 pnpm ios
-pnpm web
+pnpm web          # Expo web for mobile, not the Stage 2 web app
+
+# Stage 2 platform: Postgres, then API (:4000) and web (:3000) together
+pnpm db:up        # Postgres 17 from infra/docker-compose.yml
+pnpm db:migrate   # migrations as the owner role (needs apps/api/.env)
+pnpm dev          # api + web in parallel
+pnpm db:down
 
 # Quality
 pnpm lint
@@ -33,6 +39,9 @@ pnpm typecheck
 pnpm test:coverage
 # API integration tests (Testcontainers, needs Docker; override image with POSTGRES_IMAGE)
 pnpm --filter api test:integration
+# Contracts: after changing packages/contracts, regenerate and commit both outputs
+pnpm openapi:generate            # packages/contracts/openapi.json
+pnpm --filter web api:generate   # apps/web/src/lib/api/schema.d.ts
 ```
 
 Run Expo-specific commands from `apps/mobile/`. Shared pricing, stock, catalog, formatting, and product-status rules belong in `packages/domain/`. It compiles to `dist/` (`pnpm build`; mobile's lint/typecheck/test scripts build it first via `pre*` hooks) and tests with Vitest. Non-Expo TS packages share `@monaco/eslint-config`.
@@ -68,6 +77,12 @@ All code identifiers (file names, variables, functions, types, constants) must b
 
 **State management** — Zustand for cross-screen state (`store/index.ts`). `useCartStore` manages the batch sales cart session. Use React local state for screen-only state.
 
-**Backend/API** — `apps/api` (NestJS 11, hexagonal per module; see `docs/adr/0001-arquitectura-hexagonal-api.md` and copy `src/modules/health/` as the template). Env in `apps/api/.env` (gitignored, from `.env.example`). After changing a contract or endpoint run `pnpm openapi:generate` and commit `packages/contracts/openapi.json`. This app is not used by mobile.
+**Backend/API** — `apps/api` (NestJS 11, hexagonal per module; see `docs/adr/0001-arquitectura-hexagonal-api.md` and copy `src/modules/health/` as the template). Env in `apps/api/.env` (gitignored, from `.env.example`). The API connects as `monaco_app` (RLS applies); migrations run as `monaco_owner` (see `docs/adr/0003-aislamiento-tenants-rls.md`). This app is not used by mobile.
+
+**Contracts rule** — request/response schemas live in `packages/contracts` (Zod 4), not inline in the API or the web app. After changing a schema or endpoint, run `pnpm openapi:generate` and `pnpm --filter web api:generate`, then commit `packages/contracts/openapi.json` and `apps/web/src/lib/api/schema.d.ts`. CI's `openapi-drift` job fails if either is stale (see `docs/adr/0002-contratos-zod-openapi.md`).
+
+**Web** — `apps/web` (Next 16 App Router, Tailwind 4, typed API client in `src/lib/api`). Env in `apps/web/.env.local` (gitignored, from `.env.example`); server-only, never `NEXT_PUBLIC_`.
+
+**Before writing code against a framework**, read its current docs, not your memory: Next.js in `node_modules/next/dist/docs/` (Next 16 has breaking changes versus older versions), and the current NestJS, Drizzle, nestjs-zod and Vitest docs (via Context7 or the official sites).
 
 **New Architecture** is enabled (`newArchEnabled: true`). Avoid legacy NativeModules API; use the new Fabric/TurboModules path.

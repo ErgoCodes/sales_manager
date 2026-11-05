@@ -1,6 +1,6 @@
 # 20 · Plan de desarrollo de la Etapa 2
 
-**Estado: plan aprobado para arrancar (2026-11-04) · SP1 listo para implementar**
+**Estado: SP1 en revisión (PRs #21–#28)**
 
 > Este doc baja a ejecución el [spec de la Etapa 2](superpowers/specs/2026-07-11-etapa2-plataforma-multinegocio-design.md): orden, calendario, criterios de salida de cada sub-proyecto y las decisiones que el spec dejó abiertas. El *qué* y el *por qué* siguen en el spec; el estado de cada tarea vive en Notion ([PRJ «Plataforma multi-negocio»](https://app.notion.com/39a19c33c39081b99f1dc6a2cfdfa957)). El plan detallado de SP1 está en [superpowers/plans/2026-11-04-sp1-fundaciones.md](superpowers/plans/2026-11-04-sp1-fundaciones.md).
 
