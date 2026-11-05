@@ -6,28 +6,67 @@ import * as schema from '../schema';
 
 // Tenancy convention (ADR 0003): a table with tenant_id must carry the
 // isolation policy for every command, with both USING and WITH CHECK.
+// `tenants` is the one explicit exception: no tenant_id, policy keyed on id.
+const ROW_IS_TENANT = 'tenants';
 const tables: PgTable[] = (Object.values(schema) as unknown[]).filter((value): value is PgTable => is(value, PgTable));
+const tenantOwned = tables.filter((table) => getTableConfig(table).name !== ROW_IS_TENANT);
 const dialect = new PgDialect();
+const policySql = (column: string) => `${column} = nullif(current_setting('app.tenant_id', true), '')::uuid`;
+
+function expectSinglePolicy(table: PgTable, expected: string) {
+  const config = getTableConfig(table);
+  const [policy] = config.policies;
+  expect(config.policies).toHaveLength(1);
+  expect(policy).toMatchObject({ as: 'permissive', for: 'all', to: 'public' });
+  expect(dialect.sqlToQuery(policy!.using!).sql).toBe(expected);
+  expect(dialect.sqlToQuery(policy!.withCheck!).sql).toBe(expected);
+}
 
 describe('schema tenancy convention', () => {
-  it.each(tables.map((table) => [getTableConfig(table).name, table] as const))(
-    '%s has the tenant isolation policy',
+  it.each(tenantOwned.map((table) => [getTableConfig(table).name, table] as const))(
+    '%s has tenant_id and the tenant isolation policy',
     (_name, table) => {
-      const config = getTableConfig(table);
-      const tenantId = config.columns.find((column) => column.name === 'tenant_id');
+      const tenantId = getTableConfig(table).columns.find((column) => column.name === 'tenant_id');
       expect(tenantId?.notNull).toBe(true);
       expect(tenantId?.getSQLType()).toBe('uuid');
-
-      const [policy] = config.policies;
-      expect(config.policies).toHaveLength(1);
-      expect(policy).toMatchObject({ as: 'permissive', for: 'all', to: 'public' });
-      const expected = "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid";
-      expect(dialect.sqlToQuery(policy!.using!).sql).toBe(expected);
-      expect(dialect.sqlToQuery(policy!.withCheck!).sql).toBe(expected);
+      expectSinglePolicy(table, policySql('tenant_id'));
     },
   );
 
-  it('includes the probe table', () => {
-    expect(tables.map((table) => getTableConfig(table).name)).toContain('_tenancy_probe');
+  it('tenants has no tenant_id and its policy keys on id', () => {
+    const tenants = tables.find((table) => getTableConfig(table).name === ROW_IS_TENANT)!;
+    expect(getTableConfig(tenants).columns.map((column) => column.name)).not.toContain('tenant_id');
+    expectSinglePolicy(tenants, policySql('id'));
   });
+
+  it('includes every SP2 table (the guards are not vacuous)', () => {
+    expect(tables.map((table) => getTableConfig(table).name).sort()).toEqual([
+      'audit_events',
+      'devices',
+      'locations',
+      'refresh_tokens',
+      'role_assignment_locations',
+      'role_assignments',
+      'role_permissions',
+      'roles',
+      'tenants',
+      'users',
+    ]);
+  });
+
+  it.each(tenantOwned.map((table) => [getTableConfig(table).name, table] as const))(
+    '%s references other tenant-owned rows only through composite (x_id, tenant_id) FKs',
+    (_name, table) => {
+      for (const fk of getTableConfig(table).foreignKeys) {
+        const { columns, foreignTable, foreignColumns } = fk.reference();
+        if (getTableConfig(foreignTable).name === ROW_IS_TENANT) {
+          expect(columns.map((column) => column.name)).toEqual(['tenant_id']);
+          continue;
+        }
+        expect(columns.map((column) => column.name)).toContain('tenant_id');
+        const pairs = columns.map((column, i) => [column.name, foreignColumns[i]!.name]);
+        expect(pairs).toContainEqual(['tenant_id', 'tenant_id']);
+      }
+    },
+  );
 });
