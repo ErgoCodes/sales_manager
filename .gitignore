@@ -45,3 +45,7 @@ apps/mobile/android
 
 # apps/api local env (only .env.example is committed)
 apps/api/.env
+
+# agent teams / local tool state
+.atl/
+
