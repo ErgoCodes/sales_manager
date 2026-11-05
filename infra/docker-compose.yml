@@ -1,0 +1,36 @@
+# Local development database (SP1·T4). Development credentials only: never reuse
+# these passwords outside your machine.
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   pnpm --filter api db:migrate
+#
+# `postgres` is the bootstrap superuser, used only by init.sql on the first
+# start of an empty volume. The API never connects with it:
+#   - monaco_owner owns the schema and runs migrations (DATABASE_MIGRATION_URL).
+#   - monaco_app is the runtime role: no superuser, no BYPASSRLS (DATABASE_URL).
+# init.sql only runs when the volume is empty; after changing it run
+# `docker compose -f infra/docker-compose.yml down -v`.
+name: monaco
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: monaco
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - monaco-pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d monaco']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  monaco-pgdata:

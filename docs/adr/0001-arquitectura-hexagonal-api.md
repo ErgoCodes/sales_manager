@@ -30,7 +30,7 @@ Reglas:
 5. **Reglas de precio, stock y costo van a `@monaco/domain`**, no a `modules/*/domain/`. El `domain/` de un módulo de la API guarda lo propio del servidor (puertos, entidades de persistencia, invariantes de tenancy).
 6. **Transversal en `src/common/`:** filtro global de excepciones (`ErrorResponse`), logging, OpenAPI. **Config en `src/config/`:** `process.env` se valida con Zod una sola vez al arrancar (`loadConfig`) y `AppModule.forRoot(config)` recibe el resultado, así `main.ts`, el generador de OpenAPI y los tests eligen su config sin tocar el entorno.
 
-El módulo `health` es la plantilla de referencia: puerto `DatabaseHealthPort` (`domain/`), caso de uso `CheckHealth` (`application/`), `StubDatabaseHealthAdapter` (`infrastructure/`, reemplazado por Drizzle en T4), `HealthController` (`http/`) y la composición en `health.module.ts`.
+El módulo `health` es la plantilla de referencia: puerto `DatabaseHealthPort` (`domain/`), caso de uso `CheckHealth` (`application/`), `DrizzleDatabaseHealthAdapter` (`infrastructure/`, `select 1` sobre el pool de `src/infrastructure/db/`, ver ADR 0003; en T3 era un stub), `HealthController` (`http/`) y la composición en `health.module.ts`.
 
 ### Bordes HTTP (aplican a todos los módulos)
 
