@@ -59,6 +59,15 @@ export function stripQuery(url: string): string {
   return index === -1 ? url : url.slice(0, index);
 }
 
+/**
+ * A 4xx thrown as `new HttpException({ code, message }, status)` keeps its own
+ * machine-readable code (e.g. PASSWORD_CHANGE_REQUIRED) when it looks like one.
+ */
+function explicitCode(response: string | object): string | undefined {
+  const code = typeof response === 'object' ? (response as { code?: unknown }).code : undefined;
+  return typeof code === 'string' && /^[A-Z][A-Z_]{2,63}$/.test(code) ? code : undefined;
+}
+
 /** Nest's unmatched-route 404 is `Cannot <METHOD> <url>`, url including the query. */
 const ROUTE_NOT_FOUND = /^Cannot ([A-Z]+) (.*)$/s;
 
@@ -99,7 +108,7 @@ export function mapException(exception: unknown): MappedError {
       const safeMessage = routeNotFound ? `Cannot ${routeNotFound[1]} ${stripQuery(routeNotFound[2])}` : message;
       return {
         status,
-        body: { error: { code: CODE_BY_STATUS[status] ?? 'CLIENT_ERROR', message: truncate(safeMessage) } },
+        body: { error: { code: explicitCode(response) ?? CODE_BY_STATUS[status] ?? 'CLIENT_ERROR', message: truncate(safeMessage) } },
       };
     }
     // Keep the status (e.g. 503 tells clients to retry) but never the message.

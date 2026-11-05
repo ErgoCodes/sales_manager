@@ -9,15 +9,9 @@ import { configureApp } from '../bootstrap';
 import { createOpenApiDocument } from '../common/openapi/openapi';
 import type { AppConfig } from '../config/env';
 import { DATABASE } from '../infrastructure/db/database.tokens';
+import { testConfig } from './test-config';
 
-const config: AppConfig = {
-  NODE_ENV: 'test',
-  PORT: 0,
-  DATABASE_URL: 'postgres://test:test@localhost:5432/test',
-  CORS_ORIGINS: ['http://localhost:3000'],
-  LOG_LEVEL: 'silent',
-  APP_VERSION: '9.9.9-test',
-};
+const config: AppConfig = testConfig({ DATABASE_URL: 'postgres://test:test@localhost:5432/test' });
 
 // Hermetic: the real Drizzle health adapter runs against a fake database, so
 // these tests never depend on a local Postgres (that is SP1·T5's job).
@@ -121,6 +115,23 @@ describe('API (in-process HTTP)', () => {
       '#/components/schemas/HealthResponse_Output',
     );
     expect(responses.default.content['application/json'].schema.$ref).toBe('#/components/schemas/ErrorResponse');
-    expect(Object.keys(document.components?.schemas ?? {}).sort()).toEqual(['ErrorResponse', 'HealthResponse_Output']);
+    expect(Object.keys(document.components?.schemas ?? {})).toEqual(
+      expect.arrayContaining(['ErrorResponse', 'HealthResponse_Output', 'LoginRequest', 'AuthTokens_Output', 'MeResponse_Output']),
+    );
+  });
+
+  it('documents the auth endpoints, with bearer auth on the protected ones', () => {
+    const document = createOpenApiDocument(app);
+    expect(Object.keys(document.paths)).toEqual(expect.arrayContaining(['/auth/login', '/auth/refresh', '/auth/logout', '/auth/password', '/me']));
+    expect(document.paths['/me']?.get?.security).toEqual([{ bearer: [] }]);
+    expect(document.paths['/auth/login']?.post?.security).toBeUndefined();
+    expect(document.components?.securitySchemes?.bearer).toMatchObject({ type: 'http', scheme: 'bearer' });
+  });
+
+  it('requires a bearer token everywhere but the public routes (401 ErrorResponse)', async () => {
+    const missing = await request(app.getHttpServer()).get('/me').expect(401);
+    expect(ErrorResponse.parse(missing.body).error).toEqual({ code: 'UNAUTHORIZED', message: 'Authentication required' });
+    await request(app.getHttpServer()).get('/me').set('authorization', 'Basic abc').expect(401);
+    await request(app.getHttpServer()).post('/auth/logout').set('authorization', 'Bearer a.b.c').expect(401);
   });
 });

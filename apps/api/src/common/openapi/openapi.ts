@@ -10,6 +10,7 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setTitle('Mercado Mónaco API')
     .setDescription('Back-office and sync API. Errors always use the `ErrorResponse` schema.')
     .setVersion(API_CONTRACT_VERSION)
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Access token (EdDSA JWT, 10 min)' })
     .build();
   const document = SwaggerModule.createDocument(app, config);
   return cleanupOpenApiDoc(document);

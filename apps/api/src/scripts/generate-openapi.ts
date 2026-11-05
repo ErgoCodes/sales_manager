@@ -8,10 +8,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { createOpenApiDocument } from '../common/openapi/openapi';
 import type { AppConfig } from '../config/env';
+import { generateSigningJwk } from '../config/signing-keys';
 
 /**
  * Writes the OpenAPI document without opening a port or touching a database.
- * The config is a fixed placeholder so the output depends only on the code.
+ * The config is a fixed placeholder so the output depends only on the code
+ * (the signing key is ephemeral and never appears in the document).
  * Usage: node dist/scripts/generate-openapi.js <output.json>
  */
 const PLACEHOLDER_CONFIG: AppConfig = {
@@ -21,6 +23,9 @@ const PLACEHOLDER_CONFIG: AppConfig = {
   CORS_ORIGINS: ['http://localhost:3000'],
   LOG_LEVEL: 'silent',
   APP_VERSION: 'openapi',
+  JWT_PRIVATE_JWK: generateSigningJwk('openapi').privateJwk,
+  JWT_ISSUER: 'monaco-api',
+  JWT_AUDIENCE: 'monaco',
 };
 
 async function main(): Promise<void> {

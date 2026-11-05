@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 
 import { ApiErrorResponse } from '../../../common/http/api-error-response.decorator';
+import { Public } from '../../iam/http/auth.decorators';
 import { CheckHealth } from '../application/check-health.use-case';
 import { HealthResponseDto } from './health.dto';
 
@@ -13,6 +14,7 @@ import { HealthResponseDto } from './health.dto';
  *
  * Public on purpose (docs/20: only `/health` and `/auth/*` skip the guard).
  */
+@Public()
 @ApiTags('health')
 @ApiErrorResponse()
 @Controller('health')
