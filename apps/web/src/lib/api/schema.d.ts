@@ -212,6 +212,85 @@ export interface paths {
         patch: operations["updateRole"];
         trace?: never;
     };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users of the tenant (users:manage) */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Create a user with a temporary password (users:manage)
+         * @description The server generates the temporary password, shown once, valid 72 h. An email that already exists (in any tenant) gets a generic 409. Rate limited.
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A user with their assignments (users:manage) */
+        get: operations["getUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change the display name (users:manage) */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/users/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable a user and revoke all their devices (users:manage)
+         * @description Never oneself; an Owner only by an Owner; 409 if it would leave the tenant without an active Owner.
+         */
+        post: operations["disableUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the password with a temporary one and revoke all sessions (users:manage)
+         * @description Never oneself (use POST /auth/password); the caller must cover everything the user holds.
+         */
+        post: operations["resetUserPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -380,6 +459,64 @@ export interface components {
         UpdateRoleRequest: {
             name?: string;
             permissions?: components["schemas"]["Permission"][];
+        };
+        User_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            email: components["schemas"]["Email_Output"];
+            displayName: string;
+            status: components["schemas"]["UserStatus_Output"];
+            mustChangePassword: boolean;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /** @enum {string} */
+        UserStatus_Output: "active" | "disabled";
+        PaginatedUsers_Output: {
+            items: components["schemas"]["User_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        Assignment_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            roleId: components["schemas"]["Uuid_Output"];
+            scope: components["schemas"]["AssignmentScope_Output"];
+        };
+        /** @description Tenant-wide, or limited to the listed locations */
+        AssignmentScope_Output: {
+            /** @enum {string} */
+            type: "tenant";
+        } | {
+            /** @enum {string} */
+            type: "locations";
+            locationIds: components["schemas"]["Uuid_Output"][];
+        };
+        UserDetail_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            email: components["schemas"]["Email_Output"];
+            displayName: string;
+            status: components["schemas"]["UserStatus_Output"];
+            mustChangePassword: boolean;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+            assignments: components["schemas"]["Assignment_Output"][];
+        };
+        CreateUserRequest: {
+            email: components["schemas"]["Email"];
+            displayName: string;
+        };
+        CreateUserResponse_Output: {
+            user: components["schemas"]["User_Output"];
+            /** @description Shown once; communicate out of band */
+            temporaryPassword: string;
+            /** @description 72 h after issue */
+            temporaryPasswordExpiresAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        UpdateUserRequest: {
+            displayName: string;
+        };
+        ResetPasswordResponse_Output: {
+            /** @description Shown once; communicate out of band */
+            temporaryPassword: string;
+            /** @description 72 h after issue */
+            temporaryPasswordExpiresAt: components["schemas"]["IsoDateTime_Output"];
         };
     };
     responses: never;
@@ -823,6 +960,200 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Role_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUsers_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description The new user and its temporary password */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateUserResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDetail_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    disableUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The disabled user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resetUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The temporary password, shown once */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetPasswordResponse_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */
