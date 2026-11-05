@@ -89,23 +89,38 @@ describe('RefreshTokensRepository', () => {
       revokedAt: null,
       deviceRevokedAt: null,
     };
-    const { tx, queries } = fakeTx([], [row], [], [], [], [], []);
+    // Results in statement order; statements without a listed result get [].
+    const { tx, queries } = fakeTx([], [{ deviceId: 'd' }], [], [row], [], [], [{ deviceId: 'd' }], [], [], [], [], [], []);
     const repo = new RefreshTokensRepository(tx, TENANT);
     const token = { deviceId: 'd', tokenHash: new Uint8Array(32), expiresAt: NOW, absoluteExpiresAt: NOW, now: NOW };
 
     const family = await repo.startFamily(token);
     expect(queries[0]!.params.slice(1, 5)).toEqual([TENANT, 'd', family, Buffer.alloc(32)]);
+
+    // findForUpdate: owner device, device lock, then the token row lock.
     expect(await repo.findForUpdate(new Uint8Array(32))).toMatchObject({ id: 'r', expiresAt: NOW, absoluteExpiresAt: NOW, rotatedAt: null });
-    expect(queries[1]!.sql).toMatch(/for update of r$/);
+    expect(queries[2]!.sql).toMatch(/from devices where id = any\(\$1::uuid\[\]\) order by id for no key update$/);
+    expect(queries[2]!.params).toEqual([['d']]);
+    expect(queries[3]!.sql).toMatch(/for update of r$/);
+    // Unknown token: no lock at all.
     expect(await repo.findForUpdate(new Uint8Array(32))).toBeNull();
+    expect(queries).toHaveLength(5);
+
     await repo.markRotated('r', NOW);
+    // revokeFamily: the family's devices, their lock, then the UPDATE.
     await repo.revokeFamily(family, 'logout', NOW);
+    expect(queries[7]!.params).toEqual([['d']]);
+    expect(queries[8]!.sql).toMatch(/^update refresh_tokens/);
     await repo.revokeByDevices(['d1', 'd2'], 'password_changed', NOW);
-    expect(queries[5]!.params).toEqual([NOW, 'password_changed', ['d1', 'd2']]);
+    expect(queries[9]!.params).toEqual([['d1', 'd2']]);
+    expect(queries[10]!.params).toEqual([NOW, 'password_changed', ['d1', 'd2']]);
     await repo.revokeByDevices([], 'password_changed', NOW);
-    expect(queries).toHaveLength(6);
+    expect(queries).toHaveLength(11);
+    // A family with no tokens locks nothing.
+    await repo.revokeFamily(family, 'logout', NOW);
+    expect(queries).toHaveLength(13);
     await repo.append(family, token);
-    expect(queries[6]!.params[3]).toBe(family);
+    expect(queries[13]!.params[3]).toBe(family);
   });
 });
 
