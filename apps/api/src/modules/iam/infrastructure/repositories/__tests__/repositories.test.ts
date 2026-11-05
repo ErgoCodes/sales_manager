@@ -3,6 +3,7 @@ import type { SQL } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { TenantTransaction, Transaction } from '../../../../../infrastructure/db/with-tenant';
+import { DrizzleAdminUnitOfWork } from '../../drizzle-admin-unit-of-work';
 import { DrizzleTenantUnitOfWork } from '../../drizzle-tenant-unit-of-work';
 import { toBytea, toDate } from '../../sql-helpers';
 import { ActorStateRepository } from '../actor-state.repository';
@@ -63,6 +64,12 @@ describe('TenantsRepository', () => {
     expect(await repo.findCurrent()).toEqual({ id: TENANT, name: 'A', slug: 'a' });
     expect(await repo.findCurrent()).toBeNull();
   });
+
+  it('locks the current tenant row as the per-tenant mutex', async () => {
+    const { tx, queries } = fakeTx([]);
+    await new TenantsRepository(tx).lock();
+    expect(queries[0]!.sql).toBe('select 1 from tenants for update');
+  });
 });
 
 describe('DevicesRepository', () => {
@@ -76,6 +83,11 @@ describe('DevicesRepository', () => {
     expect(queries[2]!.params).toEqual([id, TENANT, 'u', 'Phone', 'ios', NOW, NOW]);
     await repo.touch('d', NOW);
     expect(await repo.revokeAllExcept('u', 'd', NOW)).toEqual(['d2', 'd3']);
+    expect(queries[4]!.params).toEqual([NOW, 'u', 'd', 'd']);
+    // null keeps nothing: every device of the user (disable, reset).
+    await repo.revokeAllExcept('u', null, NOW);
+    expect(queries[5]!.params).toEqual([NOW, 'u', null, null]);
+    expect(queries[5]!.sql).toMatch(/\(\$3::uuid is null or id <> \$4::uuid\)/);
   });
 });
 
@@ -176,5 +188,21 @@ describe('DrizzleTenantUnitOfWork', () => {
     });
     expect(tenant).toEqual({ id: TENANT, name: 'A', slug: 'a' });
     expect(queries[0]!.params).toEqual(['app.tenant_id', TENANT]);
+  });
+});
+
+describe('DrizzleAdminUnitOfWork', () => {
+  it('scopes the transaction to the tenant and adds the administration repositories', async () => {
+    const { tx, queries } = fakeTx([], []);
+    const db = { transaction: vi.fn(async (fn: (t: unknown) => unknown) => fn(tx)) };
+    await new DrizzleAdminUnitOfWork(db as never).run(TENANT, async (scope) => {
+      expect(Object.keys(scope).sort()).toEqual([
+        'actors', 'assignments', 'audit', 'auditEvents', 'deviceAdmin', 'devices', 'locations', 'mutex',
+        'refreshTokens', 'roles', 'tenants', 'userAdmin', 'users',
+      ]);
+      await scope.mutex.lock();
+    });
+    expect(queries[0]!.params).toEqual(['app.tenant_id', TENANT]);
+    expect(queries[1]!.sql).toBe('select 1 from tenants for update');
   });
 });

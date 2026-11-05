@@ -11,4 +11,4 @@ export const AUTH_POLICY = {
 } as const;
 
 /** Why a refresh family (session) was revoked; stored in `refresh_tokens.revoked_reason`. */
-export type SessionRevocationReason = 'logout' | 'reuse_detected' | 'superseded' | 'password_changed' | 'device_revoked';
+export type SessionRevocationReason = 'logout' | 'reuse_detected' | 'superseded' | 'password_changed' | 'device_revoked' | 'user_disabled' | 'password_reset';

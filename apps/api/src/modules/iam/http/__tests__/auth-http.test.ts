@@ -10,6 +10,18 @@ import { effectivePermissions } from '../../domain/permissions';
 import { AuthController } from '../auth.controller';
 import { AllowPendingPasswordChange, ClientIp, CurrentActor, Public, RequirePermission } from '../auth.decorators';
 import { AuthGuard } from '../auth.guard';
+import { mapException } from '../../../../common/http/all-exceptions.filter';
+import {
+  ForbiddenEscalation,
+  InvalidCursor,
+  InvalidScope,
+  OwnerInvariantViolation,
+  PermissionDenied,
+  ResourceConflict,
+  ResourceNotFound,
+  RoleInUse,
+  SystemRoleImmutable,
+} from '../../domain/errors';
 import { rethrowHttp, toHttpError } from '../auth-http-errors';
 import { MeController } from '../me.controller';
 
@@ -126,6 +138,20 @@ describe('auth HTTP errors', () => {
     const other = new Error('boom');
     expect(toHttpError(other)).toBe(other);
     expect(() => rethrowHttp(new InvalidSession())).toThrow(UnauthorizedException);
+  });
+
+  it.each([
+    [new PermissionDenied('users:manage'), 403, { code: 'FORBIDDEN', message: 'Forbidden' }],
+    [new ForbiddenEscalation('owner_only'), 403, { code: 'FORBIDDEN', message: 'Forbidden' }],
+    [new ResourceNotFound('user'), 404, { code: 'NOT_FOUND', message: 'Not found' }],
+    [new ResourceConflict('Could not create the user'), 409, { code: 'CONFLICT', message: 'Could not create the user' }],
+    [new InvalidCursor(), 400, { code: 'INVALID_CURSOR', message: 'Invalid cursor' }],
+    [new OwnerInvariantViolation(), 409, { code: 'LAST_OWNER', message: 'The tenant must keep at least one active Owner' }],
+    [new SystemRoleImmutable('delete'), 409, { code: 'SYSTEM_ROLE_IMMUTABLE', message: 'System role cannot be deleted' }],
+    [new RoleInUse(), 409, { code: 'ROLE_IN_USE', message: 'Role still has assignments' }],
+    [new InvalidScope('admin_permission_requires_tenant_scope'), 422, { code: 'INVALID_SCOPE', message: 'Invalid assignment scope' }],
+  ])('maps %o to its status and a generic ErrorResponse', (error, status, body) => {
+    expect(mapException(toHttpError(error))).toEqual({ status, body: { error: body } });
   });
 });
 

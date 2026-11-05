@@ -115,6 +115,25 @@ describe('mapException', () => {
   });
 });
 
+describe('mapException: Postgres constraint errors', () => {
+  // Drizzle wraps the driver error ("Failed query: ..."); the Postgres error is the cause.
+  const wrapped = (code: string) => Object.assign(new Error('Failed query: insert ...'), { cause: Object.assign(new Error('violates'), { code }) });
+
+  it('turns a foreign-key violation (23503) into a generic 404: it must not reveal ids of other tenants', () => {
+    expect(mapException(wrapped('23503'))).toEqual({ status: 404, body: { error: { code: 'NOT_FOUND', message: 'Not found' } } });
+  });
+
+  it('turns a unique violation (23505) into a generic 409, without naming the constraint', () => {
+    expect(mapException(wrapped('23505'))).toEqual({ status: 409, body: { error: { code: 'CONFLICT', message: 'Conflict' } } });
+    expect(mapException(Object.assign(new Error('raw'), { code: '23505' })).status).toBe(409);
+  });
+
+  it('keeps any other database error a 500', () => {
+    expect(mapException(wrapped('42501')).status).toBe(500);
+    expect(mapException(Object.assign(new Error('x'), { cause: 'text' })).status).toBe(500);
+  });
+});
+
 describe('AllExceptionsFilter', () => {
   function setup(headersSent = false) {
     const logger = { setContext: vi.fn(), error: vi.fn() };
