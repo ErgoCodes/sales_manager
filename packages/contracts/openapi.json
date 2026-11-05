@@ -956,6 +956,63 @@
           "users"
         ]
       }
+    },
+    "/users/{id}/assignments": {
+      "put": {
+        "description": "Never one's own (403). Owner only by an Owner; every added or removed assignment must be within the caller's permissions and scope (403). Administrative permissions only tenant-wide (422). 409 if no active Owner would remain.",
+        "operationId": "replaceAssignments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceAssignmentsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new assignments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplaceAssignmentsResponse_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a user's role assignments atomically (users:manage + roles:manage)",
+        "tags": [
+          "users"
+        ]
+      }
     }
   },
   "info": {
@@ -1832,6 +1889,93 @@
         "required": [
           "temporaryPassword",
           "temporaryPasswordExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "AssignmentInput": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/AssignmentScope"
+          }
+        },
+        "required": [
+          "roleId",
+          "scope"
+        ]
+      },
+      "AssignmentScope": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tenant"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "locations"
+                ]
+              },
+              "locationIds": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "locationIds"
+            ]
+          }
+        ],
+        "description": "Tenant-wide, or limited to the listed locations"
+      },
+      "ReplaceAssignmentsRequest": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentInput"
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "ReplaceAssignmentsResponse_Output": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Assignment_Output"
+            }
+          }
+        },
+        "required": [
+          "assignments"
         ],
         "additionalProperties": false
       }

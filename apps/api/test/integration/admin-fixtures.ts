@@ -134,3 +134,36 @@ export async function resetAll(admin: Pool): Promise<void> {
   await admin.query('truncate table tenants cascade');
   await admin.query('truncate table rate_limits');
 }
+
+/**
+ * Runs `requests` while the test itself holds the tenant mutex, and only
+ * releases it once `waiters` API transactions are queued behind it. Both
+ * requests are then past authentication and authorization when the first one
+ * commits, so the race on the Owner invariant happens every time, not by luck.
+ */
+export async function raceOnTenantMutex<T>(admin: Pool, tenantId: string, waiters: number, requests: () => Promise<T>): Promise<T> {
+  const client = await admin.connect();
+  try {
+    await client.query('begin');
+    await client.query('select 1 from tenants where id = $1 for update', [tenantId]);
+    const pending = requests();
+    for (let attempt = 0; ; attempt++) {
+      // pg_stat_activity is snapshotted once per transaction: refresh it on every poll.
+      await client.query('select pg_stat_clear_snapshot()');
+      const { rows } = await client.query<{ n: number }>(
+        `select count(*)::int as n from pg_stat_activity
+         where wait_event_type = 'Lock' and query ilike '%from tenants for update%' and pid <> pg_backend_pid()`,
+      );
+      if (rows[0]!.n >= waiters) break;
+      if (attempt > 200) throw new Error('The requests never queued on the tenant mutex');
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    await client.query('commit');
+    return await pending;
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}

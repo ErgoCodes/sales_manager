@@ -11,6 +11,7 @@ import { AppConfigModule } from './config/app-config.module';
 import { APP_CONFIG } from './config/app-config.token';
 import type { AppConfig } from './config/env';
 import { DatabaseModule } from './infrastructure/db/database.module';
+import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { HealthModule } from './modules/health/health.module';
 import { IamModule } from './modules/iam/iam.module';
 import { LocationsModule } from './modules/locations/locations.module';
@@ -41,6 +42,7 @@ export class AppModule implements NestModule {
         LocationsModule,
         RolesModule,
         UsersModule,
+        AssignmentsModule,
       ],
       providers: [
         { provide: APP_PIPE, useClass: ZodValidationPipe },

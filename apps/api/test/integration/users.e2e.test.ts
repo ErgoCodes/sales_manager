@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { CLIENT_IP_HEADER } from '../../src/common/http/client-ip';
 import { USER_CREATION_LIMIT } from '../../src/modules/users/http/users.controller';
-import { auditRows, loginAs, resetAll, type SeededTenant, Seeder } from './admin-fixtures';
+import { auditRows, loginAs, raceOnTenantMutex, resetAll, type SeededTenant, Seeder } from './admin-fixtures';
 import { createAuthApp, freshIp, PASSWORD, signedIpHeader } from './auth-fixtures';
 import { adminPool } from './helpers';
 
@@ -148,10 +148,11 @@ describe('POST /users/:id/disable', () => {
     const second = await seeder.user(a.id, 'owner2@a.example', [[a.roles.owner, 'tenant']]);
     const one = await loginAs(app, 'owner@a.example');
     const two = await loginAs(app, 'owner2@a.example');
-    const results = await Promise.all([one.post(`/users/${second}/disable`), two.post(`/users/${a.owner}/disable`)]);
-    // The loser either fails the invariant (409) or, if it ran second, was already cut off (401).
-    expect(results.map((r) => r.status).sort()).toEqual([200, expect.any(Number)]);
-    expect([401, 409]).toContain(results.find((r) => r.status !== 200)!.status);
+    const results = await raceOnTenantMutex(admin, a.id, 2, () =>
+      Promise.all([one.post(`/users/${second}/disable`), two.post(`/users/${a.owner}/disable`)]),
+    );
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(results.find((r) => r.status === 409)!.body.error.code).toBe('LAST_OWNER');
     const { rows } = await admin.query(`select count(*)::int as n from users where tenant_id = $1 and status = 'active'`, [a.id]);
     expect(rows[0].n).toBe(1);
   });

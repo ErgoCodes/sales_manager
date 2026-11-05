@@ -291,6 +291,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace a user's role assignments atomically (users:manage + roles:manage)
+         * @description Never one's own (403). Owner only by an Owner; every added or removed assignment must be within the caller's permissions and scope (403). Administrative permissions only tenant-wide (422). 409 if no active Owner would remain.
+         */
+        put: operations["replaceAssignments"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -517,6 +537,25 @@ export interface components {
             temporaryPassword: string;
             /** @description 72 h after issue */
             temporaryPasswordExpiresAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        AssignmentInput: {
+            roleId: components["schemas"]["Uuid"];
+            scope: components["schemas"]["AssignmentScope"];
+        };
+        /** @description Tenant-wide, or limited to the listed locations */
+        AssignmentScope: {
+            /** @enum {string} */
+            type: "tenant";
+        } | {
+            /** @enum {string} */
+            type: "locations";
+            locationIds: components["schemas"]["Uuid"][];
+        };
+        ReplaceAssignmentsRequest: {
+            assignments: components["schemas"]["AssignmentInput"][];
+        };
+        ReplaceAssignmentsResponse_Output: {
+            assignments: components["schemas"]["Assignment_Output"][];
         };
     };
     responses: never;
@@ -1154,6 +1193,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResetPasswordResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    replaceAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceAssignmentsRequest"];
+            };
+        };
+        responses: {
+            /** @description The new assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplaceAssignmentsResponse_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */
