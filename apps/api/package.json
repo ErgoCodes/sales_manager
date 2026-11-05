@@ -1,0 +1,52 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "prebuild": "pnpm --filter \"api^...\" build",
+    "build": "nest build",
+    "predev": "pnpm --filter \"api^...\" build",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "pretypecheck": "pnpm --filter \"api^...\" build",
+    "typecheck": "tsc --noEmit",
+    "pretest": "pnpm --filter \"api^...\" build",
+    "test": "vitest run",
+    "pretest:coverage": "pnpm --filter \"api^...\" build",
+    "test:coverage": "vitest run --coverage",
+    "openapi:generate": "pnpm build && node dist/scripts/generate-openapi.js ../../packages/contracts/openapi.json"
+  },
+  "dependencies": {
+    "@monaco/contracts": "workspace:*",
+    "@nestjs/common": "^11.2.8",
+    "@nestjs/core": "^11.2.8",
+    "@nestjs/platform-express": "^11.2.8",
+    "@nestjs/swagger": "^11.4.7",
+    "helmet": "^8.3.0",
+    "nestjs-pino": "^5.3.1",
+    "nestjs-zod": "^5.5.0",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "~4.4.3"
+  },
+  "devDependencies": {
+    "@monaco/eslint-config": "workspace:*",
+    "@nestjs/cli": "^11.0.24",
+    "@nestjs/testing": "^11.2.8",
+    "@swc/cli": "^0.8.2",
+    "@swc/core": "^1.16.21",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.2",
+    "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^9.39.4",
+    "pino-pretty": "^13.2.0",
+    "supertest": "^7.3.1",
+    "typescript": "~5.9.3",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^5.1.0"
+  }
+}

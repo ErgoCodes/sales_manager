@@ -1,0 +1,16 @@
+# Keep the build context small and free of secrets/local artefacts.
+**/node_modules
+**/dist
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.husky
+.claude
+.agents
+.vscode
+docs
+apps/mobile
+**/*.tsbuildinfo
