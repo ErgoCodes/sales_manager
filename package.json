@@ -17,5 +17,9 @@
     "prepare": "husky",
     "build": "pnpm -r --filter \"./packages/**\" build",
     "openapi:generate": "pnpm --filter api openapi:generate"
+  },
+  "devDependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   }
 }

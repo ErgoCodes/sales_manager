@@ -1,8 +1,27 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  HUSKY: '0'
+  # Override if Docker Hub rate-limits the runners (e.g. mirror.gcr.io/library/postgres:17-alpine).
+  POSTGRES_IMAGE: postgres:17-alpine
+
 jobs:
-  check:
+  quality:
+    name: Quality (lint, typecheck, unit tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -11,6 +30,68 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm build
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test:coverage
+      - name: Unit tests with coverage (domain, contracts, mobile, api, web)
+        run: pnpm test:coverage
+
+  api-integration:
+    name: API integration (Testcontainers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm build
+      - run: pnpm --filter api test:integration
+
+  openapi-drift:
+    name: OpenAPI drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm build
+      - name: Regenerate OpenAPI spec and web client types
+        run: |
+          pnpm openapi:generate
+          pnpm --filter web api:generate
+      - name: Fail if generated files are out of date
+        run: |
+          git diff --exit-code -- packages/contracts/openapi.json apps/web/src/lib/api/schema.d.ts \
+            || { echo "::error::Generated OpenAPI artifacts are stale. Run 'pnpm openapi:generate && pnpm --filter web api:generate' and commit."; exit 1; }
+
+  build:
+    name: Build (web, api image)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm build
+      - run: pnpm --filter web build
+        env:
+          API_URL: http://localhost:4000
+      - name: Build API Docker image
+        run: docker build -f apps/api/Dockerfile --build-arg NODE_IMAGE=node:24-alpine -t monaco-api:ci .
