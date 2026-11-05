@@ -60,4 +60,6 @@ Descartado: decimal en string (`"125.50"`) por obligar a parsear y a aritmética
 ## Consecuencias
 
 - Cambiar un esquema obliga a regenerar `openapi.json` y el cliente (CI lo comprobará en T3/T6).
+- Zod queda fijado en `~4.4` mientras `nestjs-zod` 5.5 no soporte el `$ref` raíz que emite Zod ≥ 4.5 (detalle en [ADR 0001](0001-arquitectura-hexagonal-api.md#versiones)).
+- En OpenAPI los esquemas de respuesta llevan sufijo `_Output` (`HealthResponse_Output`); los de entrada y `ErrorResponse` (declarado con `@ApiDefaultResponse`) usan el `id` tal cual. `openapi.json` se genera con `pnpm openapi:generate` y se commitea.
 - Mobile sigue en Zod 3 hasta SP4; `contracts` usa Zod 4, por lo que mobile no puede consumirlo antes de migrar.

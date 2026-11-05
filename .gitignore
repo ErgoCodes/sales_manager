@@ -42,3 +42,6 @@ app-example
 # generated native folders
 apps/mobile/ios
 apps/mobile/android
+
+# apps/api local env (only .env.example is committed)
+apps/api/.env

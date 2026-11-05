@@ -4,9 +4,17 @@ packages:
 
 nodeLinker: hoisted
 allowBuilds:
+  '@scarf/scarf': false
+  '@swc/core': false
   better-sqlite3: true
   esbuild: true
   unrs-resolver: true
 networkTimeout: '300000'
 fetchRetries: 8
 fetchRetryMintimeout: 20000
+# @hookform/resolvers 3 (mobile) imports `zod` types without declaring it. With
+# the hoisted linker the root `zod` is v4 (contracts, api), so pin its own v3.
+packageExtensions:
+  '@hookform/resolvers@3':
+    dependencies:
+      zod: ^3.23.8
