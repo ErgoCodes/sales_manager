@@ -10,7 +10,14 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/**/__tests__/**', 'src/main.ts', 'src/scripts/**'],
       // Unit-test floor, a few points under the current numbers (SP2 raises it).
-      thresholds: { statements: 97, branches: 90, functions: 95, lines: 97 },
+      thresholds: {
+        statements: 97,
+        branches: 90,
+        functions: 95,
+        lines: 97,
+        // Pure authorization rules: every branch is a security decision (SP2 · T2, ADR 0005).
+        'src/modules/iam/domain/**': { statements: 100, branches: 100, functions: 100, lines: 100 },
+      },
     },
     projects: [
       {

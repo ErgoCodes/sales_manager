@@ -7,7 +7,8 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.ts'],
       exclude: ['src/**/__tests__/**', 'src/index.ts'],
-      thresholds: { statements: 95, branches: 90, functions: 95, lines: 95 },
+      // SP2 · T2: the whole package is covered; keep every branch tested.
+      thresholds: { statements: 95, branches: 100, functions: 95, lines: 95 },
     },
   },
 });
