@@ -50,6 +50,13 @@
       "when": 1793876641851,
       "tag": "0006_auth_rate_limit_function_tenant_lock_grant",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793883630771,
+      "tag": "0007_rate_limits_window_index",
+      "breakpoints": true
     }
   ]
 }

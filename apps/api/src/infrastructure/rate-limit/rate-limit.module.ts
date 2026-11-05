@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { ExecutionContext } from '@nestjs/common';
@@ -29,8 +31,30 @@ interface TrackedRequest {
   body?: unknown;
 }
 
+/**
+ * The rate-limit subject of a client IP. An IPv6 client usually owns a whole
+ * /64 and can rotate addresses inside it at will, so IPv6 is keyed by its /64
+ * prefix (otherwise rotating defeats the limit and grows `rate_limits`). An
+ * IPv4-mapped IPv6 address is keyed as its IPv4. Anything else is kept as is.
+ */
+export function rateLimitSubject(ip: string): string {
+  const address = ip.split('%')[0]!.toLowerCase();
+  if (isIP(address) !== 6) return ip;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(address);
+  if (mapped) return mapped[1]!;
+  const [head = '', tail] = address.split('::');
+  const groups = (part: string) => (part === '' ? [] : part.split(':'));
+  const left = groups(head);
+  // A trailing dotted IPv4 (e.g. 64:ff9b::192.0.2.1) fills the last two groups;
+  // only the first four groups matter here, so its value is irrelevant.
+  const right = groups(tail ?? '').flatMap((group) => (group.includes('.') ? ['0', '0'] : [group]));
+  const full = tail === undefined ? left : [...left, ...Array<string>(8 - left.length - right.length).fill('0'), ...right];
+  const prefix = full.slice(0, 4).map((group) => parseInt(group, 16).toString(16));
+  return `${prefix.join(':')}::/64`;
+}
+
 export function ipTracker(req: TrackedRequest): string {
-  return `ip:${req.clientIp ?? 'unknown'}`;
+  return `ip:${req.clientIp ? rateLimitSubject(req.clientIp) : 'unknown'}`;
 }
 
 export function credentialTracker(req: TrackedRequest): string {

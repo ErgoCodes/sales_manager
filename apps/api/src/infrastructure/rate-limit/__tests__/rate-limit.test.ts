@@ -38,6 +38,25 @@ describe('trackers', () => {
     expect(ipTracker({})).toBe('ip:unknown');
   });
 
+  it('group IPv6 clients by their /64, so rotating addresses inside one prefix shares the limit', () => {
+    const key = 'ip:2001:db8:a:b::/64';
+    expect(ipTracker({ clientIp: '2001:db8:a:b::1' })).toBe(key);
+    expect(ipTracker({ clientIp: '2001:DB8:A:B:ffff:1:2:3' })).toBe(key);
+    expect(ipTracker({ clientIp: '2001:0db8:000a:000b:0:0:0:9' })).toBe(key);
+    expect(ipTracker({ clientIp: '2001:db8:a:b:1::%eth0' })).toBe(key);
+    expect(ipTracker({ clientIp: '2001:db8:a:c::1' })).toBe('ip:2001:db8:a:c::/64');
+    expect(ipTracker({ clientIp: '::1' })).toBe('ip:0:0:0:0::/64');
+    expect(ipTracker({ clientIp: '::' })).toBe('ip:0:0:0:0::/64');
+    expect(ipTracker({ clientIp: '2001:db8::' })).toBe('ip:2001:db8:0:0::/64');
+    expect(ipTracker({ clientIp: '64:ff9b::192.0.2.1' })).toBe('ip:64:ff9b:0:0::/64');
+  });
+
+  it('key IPv4-mapped IPv6 addresses as the IPv4 they carry, and leave anything else untouched', () => {
+    expect(ipTracker({ clientIp: '::ffff:10.0.0.1' })).toBe('ip:10.0.0.1');
+    expect(ipTracker({ clientIp: '::FFFF:10.0.0.1' })).toBe('ip:10.0.0.1');
+    expect(ipTracker({ clientIp: 'not-an-ip' })).toBe('ip:not-an-ip');
+  });
+
   it('key the credential throttler on (IP, normalized email) or (IP, user), never on the email alone', () => {
     expect(credentialTracker({ clientIp: '10.0.0.1', body: { email: ' Owner@Example.com ' } })).toBe('ip:10.0.0.1|email:owner@example.com');
     expect(credentialTracker({ clientIp: '10.0.0.1', body: { email: 42 } })).toBe('ip:10.0.0.1|email:');

@@ -78,6 +78,11 @@ describe('rate_limits store (ADR 0004)', () => {
     await expect(app.query(`insert into rate_limits (key, hits, window_expires_at) values ('k', 0, now())`)).rejects.toThrow(/permission denied/i);
   });
 
+  it('indexes window_expires_at for the opportunistic cleanup (SP2·T3 review)', async () => {
+    const { rows } = await admin.query<{ def: string }>(`select indexdef as def from pg_indexes where indexname = 'rate_limits_window_expires_at_idx'`);
+    expect(rows[0]?.def).toMatch(/ON public\.rate_limits USING btree \(window_expires_at\)/);
+  });
+
   it('rate_limit_hit is SECURITY DEFINER, owned by monaco_auth, with a fixed search_path and EXECUTE only for monaco_app', async () => {
     const { rows } = await admin.query(
       `select p.prosecdef, p.proowner::regrole::text as owner, p.proconfig,
