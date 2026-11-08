@@ -24,6 +24,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in with email and password
+         * @description Creates or reuses a device and starts a new session (refresh family). Every failure is the same 401. Rate limited per IP and per (IP, email).
+         */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate a refresh token
+         * @description Returns a new access token and a new refresh token. Within 10 s of a rotation the old token only gets an access token; after that, reusing it revokes the whole session (401). Rate limited per IP.
+         */
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke the current session */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the own password
+         * @description Requires the current password. Revokes every other device of the user and rotates the current session: use the returned tokens. Rate limited per IP and per (IP, user).
+         */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current user, tenant and effective permissions */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -47,6 +141,95 @@ export interface components {
             version: string;
             /** @enum {string} */
             db: "up" | "down";
+        };
+        /**
+         * Format: email
+         * @description Email address (unique across tenants)
+         */
+        Email: string;
+        /**
+         * Format: password
+         * @description Password, 12 to 256 characters, no composition rules
+         */
+        Password: string;
+        /** @description UUIDv7 identifier, canonical lowercase form */
+        Uuid: string & (unknown & unknown);
+        DeviceInfo: {
+            /** @description Human label, e.g. "Chrome on Windows" */
+            label: string;
+            platform: components["schemas"]["DevicePlatform"];
+        };
+        /** @enum {string} */
+        DevicePlatform: "web" | "android" | "ios";
+        LoginRequest: {
+            email: components["schemas"]["Email"];
+            password: components["schemas"]["Password"];
+            /** @description Known device of the same user; reused only if not revoked, otherwise a new one is created */
+            deviceId?: components["schemas"]["Uuid"];
+            device?: components["schemas"]["DeviceInfo"];
+        };
+        /** @description UUIDv7 identifier, canonical lowercase form */
+        Uuid_Output: string & (unknown & unknown);
+        AuthTokens_Output: {
+            accessToken: string;
+            refreshToken: string;
+            /** @description Access token lifetime in seconds */
+            expiresIn: number;
+            deviceId: components["schemas"]["Uuid_Output"];
+            mustChangePassword: boolean;
+        };
+        RefreshRequest: {
+            refreshToken: string;
+        };
+        RefreshResponse_Output: {
+            accessToken: string;
+            /** @description Access token lifetime in seconds */
+            expiresIn: number;
+            /** @description Absent when served from the grace window */
+            refreshToken?: string;
+        };
+        ChangePasswordRequest: {
+            currentPassword: string;
+            newPassword: components["schemas"]["Password"];
+        };
+        /**
+         * Format: email
+         * @description Email address (unique across tenants)
+         */
+        Email_Output: string;
+        PermissionGrant_Output: {
+            permission: components["schemas"]["Permission_Output"];
+            scope: components["schemas"]["AssignmentScopeResponse_Output"];
+        };
+        /**
+         * @description Permission catalog entry
+         * @enum {string}
+         */
+        Permission_Output: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:write" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
+        /** @description Tenant-wide, or limited to the listed locations */
+        AssignmentScopeResponse_Output: {
+            /** @enum {string} */
+            type: "tenant";
+        } | {
+            /** @enum {string} */
+            type: "locations";
+            locationIds: components["schemas"]["Uuid_Output"][];
+        };
+        MeResponse_Output: {
+            user: {
+                id: components["schemas"]["Uuid_Output"];
+                email: components["schemas"]["Email_Output"];
+                displayName: string;
+                mustChangePassword: boolean;
+            };
+            tenant: {
+                id: components["schemas"]["Uuid_Output"];
+                name: string;
+                slug: string;
+            };
+            deviceId: components["schemas"]["Uuid_Output"];
+            /** @description For hiding UI only; the API is the authority */
+            permissions: components["schemas"]["PermissionGrant_Output"][];
         };
     };
     responses: never;
@@ -73,6 +256,161 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Access and refresh tokens */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokens_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description New tokens */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description New tokens for the current device */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokens_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authenticated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */

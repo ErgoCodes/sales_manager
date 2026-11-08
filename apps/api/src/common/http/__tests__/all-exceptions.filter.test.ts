@@ -1,6 +1,7 @@
 import {
   type ArgumentsHost,
   BadRequestException,
+  HttpException,
   InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
@@ -46,6 +47,13 @@ describe('mapException', () => {
       code: 'BAD_REQUEST',
       message: 'Bad Request',
     });
+  });
+
+  it('keeps an explicit machine-readable code of a 4xx, and ignores one that does not look like a code', () => {
+    const coded = mapException(new HttpException({ code: 'PASSWORD_CHANGE_REQUIRED', message: 'Password change required' }, 403));
+    expect(coded).toEqual({ status: 403, body: { error: { code: 'PASSWORD_CHANGE_REQUIRED', message: 'Password change required' } } });
+    const odd = mapException(new HttpException({ code: 'not a code', message: 'x' }, 400));
+    expect(odd.body.error.code).toBe('BAD_REQUEST');
   });
 
   it('truncates long client messages to the contract limit', () => {

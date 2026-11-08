@@ -11,7 +11,7 @@ Cada petición debe autorizarse por **permiso + punto de venta**, nunca por el n
 
 ### 1. Permisos en código, roles en datos
 
-- El catálogo v1 vive en `packages/contracts` (`PERMISSIONS`, enum Zod `Permission`) porque la web también lo usa para ocultar UI. Agregar un permiso es un cambio de código más una migración de datos para los roles de sistema.
+- El catálogo v1 vive en `packages/contracts` (`PERMISSIONS`, enum Zod `Permission`) porque la web también lo usa para ocultar UI. Agregar un permiso es un cambio de código más una migración de datos para los roles de sistema. Además, el `CHECK` de `role_permissions.permission` es `permission IN (...)` generado desde `PERMISSIONS` (esquema Drizzle, migración 0005 de SP2·T3): al agregar un permiso, `pnpm --filter api db:generate` produce la migración que lo amplía, y `test/integration/auth-db.test.ts` falla mientras la base y el catálogo difieran.
 - `ADMIN_PERMISSIONS` (`tenant:manage`, `locations:manage`, `users:manage`, `roles:manage`, `audit:view`) **solo valen con alcance tenant**. `devices:manage` no es administrativo: el Manager lo tiene por punto.
 - Los roles pertenecen a un tenant y son conjuntos de permisos. Los de sistema (`owner`, `manager`, `cashier`, en `SYSTEM_ROLES`) se siembran en cada tenant; no se borran, y el Owner tampoco se edita.
 

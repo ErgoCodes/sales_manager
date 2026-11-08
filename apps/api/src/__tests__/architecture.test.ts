@@ -62,6 +62,21 @@ describe('hexagonal import boundaries', () => {
     expect(await restrictedImports(iamDomain, allowed)).toEqual([]);
   });
 
+  it('only the unit-of-work adapter (and the repositories themselves) can import tenant repositories', async () => {
+    const code = "import { UsersRepository } from './repositories/users.repository';\nexport const r = UsersRepository;\n";
+    for (const file of [
+      'src/modules/iam/infrastructure/pg-pre-auth-lookup.ts',
+      'src/modules/iam/http/me.controller.ts',
+      'src/modules/iam/iam.module.ts',
+      'src/infrastructure/db/probe.ts',
+      'test/integration/probe.test.ts',
+    ]) {
+      expect(await restrictedImports(resolve(__dirname, '../..', file), code), file).not.toEqual([]);
+    }
+    expect(await restrictedImports(resolve(__dirname, '../..', 'src/modules/iam/infrastructure/drizzle-tenant-unit-of-work.ts'), code)).toEqual([]);
+    expect(await restrictedImports(resolve(__dirname, '../..', 'src/modules/iam/infrastructure/repositories/probe.ts'), code)).toEqual([]);
+  });
+
   it('allows ports and @monaco/domain in inner layers', async () => {
     const code = [
       "import type { DatabaseHealthPort } from '../domain/database-health.port';",

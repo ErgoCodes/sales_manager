@@ -80,6 +80,7 @@ Prerequisites: Node.js 22 (CI uses 24), pnpm 11, and Docker.
 pnpm install                                 # 1. install dependencies
 cp apps/api/.env.example apps/api/.env       # 2. API env (development values)
 cp apps/web/.env.example apps/web/.env.local # 2. web env (development values)
+pnpm --filter api keys:generate              # 2b. dev JWT key + IP secret: paste into apps/api/.env
 pnpm db:up                                   # 3. start Postgres 17 in Docker
 pnpm db:migrate                              # 4. apply migrations
 pnpm dev                                     # 5. API on http://localhost:4000, web on http://localhost:3000

@@ -11,9 +11,9 @@
 | Tarea | Estado | Rama / PR | Notas |
 |---|---|---|---|
 | Plan de SP2 | Hecho | Viaja con el PR de T1 | `docs/superpowers/plans/2026-11-05-sp2-identidad-tenancy.md` |
-| T1 · Esquema IAM en Postgres | Revisado (PASS), PR abierto | `…-sp2-t1` · [#30](https://github.com/ErgoCodes/sales_manager/pull/30) | **Mergear primero** |
-| T2 · Dominio IAM + contratos | Revisado (PASS), arreglos aplicados, PR abierto | `…-sp2-t2` · [#31](https://github.com/ErgoCodes/sales_manager/pull/31) | Mergear después de #30. Se desarrolló en paralelo con T1 |
-| T3 · Autenticación en la API | Implementado. **Revisión de seguridad: FAIL, 1 bloqueante** (ver "Pendiente inmediato"). Sin PR | `…-sp2-t3` (SHA `77984db`) | Ya contiene T1 + T2 (merge `990cc13`) |
+| T1 · Esquema IAM en Postgres | Mergeado en `main` | `…-sp2-t1` · [#30](https://github.com/ErgoCodes/sales_manager/pull/30) | Mergeado |
+| T2 · Dominio IAM + contratos | Mergeado en `main` | `…-sp2-t2` · [#31](https://github.com/ErgoCodes/sales_manager/pull/31) | Mergeado |
+| T3 · Autenticación en la API | Completo, fixes de seguridad aplicados | `…-sp2-t3` | Re-verificado: 89/89 tests de integración pasando |
 | T4 · API de administración | Sin empezar | — | Depende de T3 |
 | T5 · CLI `tenant:create` + seed demo | Sin empezar | — | Depende de T4 |
 | T6 · Sesión web (BFF), CSRF, CSP | Sin empezar | — | Depende de T3; puede ir en paralelo con T4 |
@@ -24,26 +24,12 @@ El estado vivo de cada tarea está en Notion: proyecto «Mercado Mónaco — Pla
 
 ## Pendiente inmediato (en este orden)
 
-1. **Revisar y mergear #30 y luego #31.** Después de mergear #30, el diff de #31 se reduce solo a T2.
-2. **Cerrar T3.** La rama `claude/wonderful-rubin-0wnoi9-sp2-t3` está pusheada, pero no tiene PR porque la revisión de seguridad dio FAIL. Hay que corregir sobre esa rama, volver a revisar y recién entonces abrir el PR contra `main`. Con #30 y #31 mergeados, el diff queda solo en T3.
-
-   **[BLOQUEANTE] Carrera en la revocación de la familia de refresh** (`apps/api/src/modules/iam/infrastructure/repositories/refresh-tokens.repository.ts`, funciones `revokeFamily` y `revokeByDevices`).
-   - Hoy son un único `UPDATE … WHERE family_id = $1 AND revoked_at IS NULL`.
-   - Si la detección de reuso, un logout, un cambio de contraseña o un login que reemplaza el dispositivo coincide con una rotación que todavía no hizo commit, el `UPDATE` espera por el token bloqueado C. Pero, por READ COMMITTED, no ve el token nuevo D que inserta la rotación, así que D queda vivo.
-   - El revisor lo reprodujo con dos sesiones de psql: D quedó con `revoked_reason NULL`.
-   - Impacto: un atacante que rota en bucle sobrevive a la detección de reuso, y un logout puede dejar viva la sesión (el guard la acepta porque hay una fila no revocada).
-   - **Arreglo:** serializar por familia en todos los caminos que rotan o revocan. Hay dos opciones:
-     - Opción A (recomendada): tomar `pg_advisory_xact_lock(hashtextextended(family_id::text, 0))` en `RefreshSession` justo después de `findForUpdate`, y también antes de cada revocación.
-     - Opción B: hacer `SELECT … WHERE family_id = $1 FOR UPDATE` en una sentencia y el `UPDATE` en otra.
-   - Agregar un test de integración con dos conexiones concurrentes (rotación sin commit + revocación) que verifique que no queda ningún token vivo en la familia.
-
-   **[MENOR] Contraseña temporal vencida** (`apps/api/src/modules/iam/application/change-password.use-case.ts`). Rechazar si `mustChangePassword && passwordExpiresAt <= now`. Hoy, una sesión abierta antes de las 72 h puede usar la temporal vencida como contraseña actual.
-
-   **[MENOR] Rate limit e IPv6** (`apps/api/src/infrastructure/rate-limit/rate-limit.module.ts`).
-   - Agrupar las IPv6 por /64 en la clave por IP: hoy, rotando direcciones dentro de un /64 se eluden los límites y crece `rate_limits`.
-   - Agregar un índice en `rate_limits.window_expires_at` para la limpieza.
-
-   Lo demás pasó la revisión: JWT (EdDSA fijado, `kid` local, `alg:none` rechazado), ventana de gracia que no se encadena, reuso que hace commit antes del 401, rutas públicas solo las previstas, `must_change_password` sin forma de eludirlo, anti-enumeración, rate limit insensible a mayúsculas y espacios, HMAC de la IP, migraciones 0005/0006. Comprobado también: 85/85 tests de integración, sin drift de OpenAPI, y la API real responde login, `/me` y refresh. CI no necesita las claves nuevas (los tests usan claves efímeras).
+1. ~~**Revisar y mergear #30 y luego #31.**~~ Mergeados en `main`.
+2. ~~**Cerrar T3.**~~ Fixes aplicados y verificados:
+   - **[RESUELTO] Carrera en revocación de familia de refresh:** Serialización con bloqueo de fila de dispositivo (`FOR NO KEY UPDATE`) en rotaciones y revocaciones (`ba272a8`), más test concurrente de integración.
+   - **[RESUELTO] Contraseña temporal vencida:** Rechazo explícito si `mustChangePassword && passwordExpiresAt <= now` (`09e6ce6`).
+   - **[RESUELTO] Rate limit e IPv6:** Clave agrupada por `/64` e índice en `rate_limits.window_expires_at` (`282db3d`).
+   - 89/89 tests de integración y 356 tests unitarios pasando.
 3. **Seguir con T4** (y T6 en paralelo), según el plan de SP2.
 
 ## Lo que hay que saber de T1–T3

@@ -33,6 +33,207 @@
           "health"
         ]
       }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "Creates or reuses a device and starts a new session (refresh family). Every failure is the same 401. Rate limited per IP and per (IP, email).",
+        "operationId": "login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access and refresh tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokens_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Log in with email and password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "description": "Returns a new access token and a new refresh token. Within 10 s of a rotation the old token only gets an access token; after that, reusing it revokes the whole session (401). Rate limited per IP.",
+        "operationId": "refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rotate a refresh token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Session revoked"
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke the current session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/password": {
+      "post": {
+        "description": "Requires the current password. Revokes every other device of the user and rotates the current session: use the returned tokens. Rate limited per IP and per (IP, user).",
+        "operationId": "changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New tokens for the current device",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokens_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the own password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current user, tenant and effective permissions",
+        "tags": [
+          "auth"
+        ]
+      }
     }
   },
   "info": {
@@ -44,6 +245,14 @@
   "tags": [],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Access token (EdDSA JWT, 10 min)"
+      }
+    },
     "schemas": {
       "ErrorResponse": {
         "type": "object",
@@ -118,6 +327,333 @@
           "status",
           "version",
           "db"
+        ],
+        "additionalProperties": false
+      },
+      "Email": {
+        "type": "string",
+        "maxLength": 254,
+        "format": "email",
+        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+        "description": "Email address (unique across tenants)"
+      },
+      "Password": {
+        "type": "string",
+        "minLength": 12,
+        "maxLength": 256,
+        "description": "Password, 12 to 256 characters, no composition rules",
+        "format": "password"
+      },
+      "Uuid": {
+        "type": "string",
+        "allOf": [
+          {
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+          },
+          {
+            "pattern": "^[0-9a-f-]+$"
+          }
+        ],
+        "description": "UUIDv7 identifier, canonical lowercase form"
+      },
+      "DeviceInfo": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Human label, e.g. \"Chrome on Windows\""
+          },
+          "platform": {
+            "$ref": "#/components/schemas/DevicePlatform"
+          }
+        },
+        "required": [
+          "label",
+          "platform"
+        ]
+      },
+      "DevicePlatform": {
+        "type": "string",
+        "enum": [
+          "web",
+          "android",
+          "ios"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "$ref": "#/components/schemas/Email"
+          },
+          "password": {
+            "$ref": "#/components/schemas/Password"
+          },
+          "deviceId": {
+            "description": "Known device of the same user; reused only if not revoked, otherwise a new one is created",
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceInfo"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "Uuid_Output": {
+        "type": "string",
+        "allOf": [
+          {
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+          },
+          {
+            "pattern": "^[0-9a-f-]+$"
+          }
+        ],
+        "description": "UUIDv7 identifier, canonical lowercase form"
+      },
+      "AuthTokens_Output": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresIn": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Access token lifetime in seconds",
+            "minimum": 0
+          },
+          "deviceId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn",
+          "deviceId",
+          "mustChangePassword"
+        ],
+        "additionalProperties": false
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "RefreshResponse_Output": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresIn": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Access token lifetime in seconds",
+            "minimum": 0
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "Absent when served from the grace window",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn"
+        ],
+        "additionalProperties": false
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "newPassword": {
+            "$ref": "#/components/schemas/Password"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "Email_Output": {
+        "type": "string",
+        "maxLength": 254,
+        "format": "email",
+        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+        "description": "Email address (unique across tenants)"
+      },
+      "PermissionGrant_Output": {
+        "type": "object",
+        "properties": {
+          "permission": {
+            "$ref": "#/components/schemas/Permission_Output"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/AssignmentScopeResponse_Output"
+          }
+        },
+        "required": [
+          "permission",
+          "scope"
+        ],
+        "additionalProperties": false
+      },
+      "Permission_Output": {
+        "type": "string",
+        "enum": [
+          "tenant:manage",
+          "locations:manage",
+          "users:manage",
+          "roles:manage",
+          "devices:manage",
+          "audit:view",
+          "catalog:write",
+          "inventory:write",
+          "inventory:transfer",
+          "sales:create",
+          "sales:void",
+          "reports:view",
+          "cash:close"
+        ],
+        "description": "Permission catalog entry"
+      },
+      "AssignmentScopeResponse_Output": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tenant"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "locations"
+                ]
+              },
+              "locationIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Uuid_Output"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "locationIds"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "Tenant-wide, or limited to the listed locations"
+      },
+      "MeResponse_Output": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/Uuid_Output"
+              },
+              "email": {
+                "$ref": "#/components/schemas/Email_Output"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "mustChangePassword": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "displayName",
+              "mustChangePassword"
+            ],
+            "additionalProperties": false
+          },
+          "tenant": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/Uuid_Output"
+              },
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          "deviceId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionGrant_Output"
+            },
+            "description": "For hiding UI only; the API is the authority"
+          }
+        },
+        "required": [
+          "user",
+          "tenant",
+          "deviceId",
+          "permissions"
         ],
         "additionalProperties": false
       }

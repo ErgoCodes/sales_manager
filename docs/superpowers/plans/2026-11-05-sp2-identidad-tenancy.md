@@ -46,15 +46,15 @@ T2 (IAM) ┘                  └─> T6 (web BFF) ───┴─> T7 (web admi
 
 ### T3 · Autenticación en la API `XL` · `Difícil` (depende de T1 y T2)
 
-- [ ] Puerto `TenantUnitOfWork` con adaptador `withTenant`. Ningún repositorio IAM se puede construir fuera de él (por diseño de tipos o con una regla de lint).
-- [ ] Contraseñas con argon2id y parámetros OWASP. El hash dummy usa los mismos parámetros.
-- [ ] JWT EdDSA con `jose`: claves por env (JWKS local con la actual y la anterior, y `kid`), validaciones fijas según el spec y un script `keys:generate` para dev. `.env.example` sin claves reales; en tests las claves son efímeras.
-- [ ] Endpoints `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/password` y `GET /me`, con la semántica del spec: dispositivos, rotación, ventana de gracia que solo emite access, reuso que hace commit de la revocación y del audit antes del 401, y logout.
-- [ ] `AuthGuard` global. Las rutas públicas se marcan explícitamente. En cada petición verifica el estado del usuario, el dispositivo y la familia, y resuelve los permisos efectivos en la misma consulta. Bloquea el resto de las rutas mientras `must_change_password` esté activo.
-- [ ] Header de IP firmado con HMAC (`CLIENT_IP_HMAC_SECRET`): solo se acepta con firma válida.
-- [ ] Rate limiting con `@nestjs/throttler` y store en Postgres (tabla sin tenant, solo accesible para `monaco_app` vía función o con su propia política). Límites por (IP, email) y por IP, con backoff progresivo y sin bloqueo duro por email.
-- [ ] Puerto de auditoría y sus eventos. Los intentos con emails inexistentes van al log estructurado.
-- [ ] Tests de integración:
+- [x] Puerto `TenantUnitOfWork` con adaptador `withTenant`. Ningún repositorio IAM se puede construir fuera de él (por diseño de tipos o con una regla de lint).
+- [x] Contraseñas con argon2id y parámetros OWASP. El hash dummy usa los mismos parámetros.
+- [x] JWT EdDSA con `jose`: claves por env (JWKS local con la actual y la anterior, y `kid`), validaciones fijas según el spec y un script `keys:generate` para dev. `.env.example` sin claves reales; en tests las claves son efímeras.
+- [x] Endpoints `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/password` y `GET /me`, con la semántica del spec: dispositivos, rotación, ventana de gracia que solo emite access, reuso que hace commit de la revocación y del audit antes del 401, y logout.
+- [x] `AuthGuard` global. Las rutas públicas se marcan explícitamente. En cada petición verifica el estado del usuario, el dispositivo y la familia, y resuelve los permisos efectivos en la misma consulta. Bloquea el resto de las rutas mientras `must_change_password` esté activo.
+- [x] Header de IP firmado con HMAC (`CLIENT_IP_HMAC_SECRET`): solo se acepta con firma válida.
+- [x] Rate limiting con `@nestjs/throttler` y store en Postgres (tabla sin tenant, solo accesible para `monaco_app` vía función o con su propia política). Límites por (IP, email) y por IP, con backoff progresivo y sin bloqueo duro por email.
+- [x] Puerto de auditoría y sus eventos. Los intentos con emails inexistentes van al log estructurado.
+- [x] Tests de integración:
   - login, refresh y logout;
   - reuso fuera de la ventana revoca la familia, dentro de la ventana solo da access;
   - revocación inmediata: desactivar al usuario o revocar el dispositivo da 401 en la siguiente petición;
@@ -62,7 +62,7 @@ T2 (IAM) ┘                  └─> T6 (web BFF) ───┴─> T7 (web admi
   - el timing del email inexistente queda en el mismo orden que el de una contraseña incorrecta (tolerancia amplia);
   - el rate limit;
   - el header de IP sin firma se ignora.
-- [ ] ADR 0004 · Autenticación.
+- [x] ADR 0004 · Autenticación.
 
 **Hecho cuando:** todos esos tests pasan, `/docs` muestra los endpoints de auth, y `openapi.json` y `schema.d.ts` están regenerados y commiteados.
 

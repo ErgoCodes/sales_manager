@@ -1,3 +1,7 @@
+export * from './actor';
+export * from './auth-errors';
+export * from './auth-policy';
+export * from './auth-ports';
 export * from './errors';
 export * from './escalation';
 export * from './owner';

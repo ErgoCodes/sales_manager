@@ -20,6 +20,27 @@ const frameworkImports = [
 module.exports = defineConfig([
   ...require('@monaco/eslint-config'),
   {
+    // Tenant repositories only exist inside a unit of work (ADR 0004): they take
+    // a TenantTransaction, and only the *unit-of-work.ts adapter may build them.
+    // Listed first: the domain/application blocks below replace this rule with
+    // their stricter lists (which already forbid infrastructure/ as a whole).
+    files: ['src/**/*.ts', 'test/**/*.ts'],
+    ignores: ['src/modules/*/infrastructure/*unit-of-work.ts', 'src/modules/*/infrastructure/repositories/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/repositories/*', '**/repositories'],
+              message: 'Repositories are built only by the module\'s TenantUnitOfWork adapter; use TenantUnitOfWork.run(tenantId, scope => ...).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/modules/*/domain/**/*.ts'],
     rules: {
       'no-restricted-imports': [

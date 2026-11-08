@@ -7,17 +7,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
 import type { AppConfig } from '../../src/config/env';
+import { testConfig } from '../../src/__tests__/test-config';
 import { urls } from './helpers';
 
 async function createApp(databaseUrl: string): Promise<NestExpressApplication> {
-  const config: AppConfig = {
-    NODE_ENV: 'test',
-    PORT: 0,
-    DATABASE_URL: databaseUrl,
-    CORS_ORIGINS: ['http://localhost:3000'],
-    LOG_LEVEL: 'silent',
-    APP_VERSION: '9.9.9-it',
-  };
+  const config: AppConfig = testConfig({ DATABASE_URL: databaseUrl, APP_VERSION: '9.9.9-it' });
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] }).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
   configureApp(app, config);
