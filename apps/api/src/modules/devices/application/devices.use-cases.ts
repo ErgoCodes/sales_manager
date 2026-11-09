@@ -64,11 +64,15 @@ export class RevokeDevice {
 
   async execute({ actor, ip }: AdminRequest, id: string): Promise<Device> {
     const now = this.clock.now();
+    const canManage = hasPermissionAnywhere(actor.effective, 'devices:manage');
     const record = await this.uow.run(actor.tenantId, async (scope) => {
       const device = await scope.deviceAdmin.findById(id);
-      if (!device) throw new ResourceNotFound('device');
-      assertMayManageOthers(actor, device.userId);
-      await assertCanManageDevicesOf(scope, actor, device.userId);
+      if (!canManage) {
+        if (device?.userId !== actor.userId) throw new PermissionDenied('devices:manage');
+      } else {
+        if (!device) throw new ResourceNotFound('device');
+        await assertCanManageDevicesOf(scope, actor, device.userId);
+      }
       const revoked = (await scope.deviceAdmin.revoke(id, now))!;
       if (revoked.revokedAt?.getTime() !== now.getTime()) return revoked;
       await scope.refreshTokens.revokeByDevices([id], 'device_revoked', now);

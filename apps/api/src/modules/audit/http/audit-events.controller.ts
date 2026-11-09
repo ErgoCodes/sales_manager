@@ -7,7 +7,6 @@ import { ApiErrorResponse } from '../../../common/http/api-error-response.decora
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import { PaginationQueryDto } from '../../iam/http/admin.dto';
 import { CurrentActor, RequirePermission } from '../../iam/http/auth.decorators';
-import { rethrowHttp } from '../../iam/http/auth-http-errors';
 import { ListAuditEvents } from '../application/list-audit-events.use-case';
 
 class PaginatedAuditEventsDto extends createZodDto(PaginatedAuditEvents) {}
@@ -24,6 +23,6 @@ export class AuditEventsController {
   @ApiOperation({ operationId: 'listAuditEvents', summary: 'Security log of the tenant, newest first (audit:view)' })
   @ZodResponse({ status: 200, description: 'A page of audit events', type: PaginatedAuditEventsDto })
   list(@CurrentActor() actor: AuthenticatedActor, @Query() query: PaginationQueryDto) {
-    return this.listAuditEvents.execute(actor, query).catch(rethrowHttp);
+    return this.listAuditEvents.execute(actor, query);
   }
 }

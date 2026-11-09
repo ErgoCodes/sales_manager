@@ -7,7 +7,6 @@ import { ApiErrorResponse } from '../../../common/http/api-error-response.decora
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import { IdParamsDto } from '../../iam/http/admin.dto';
 import { ClientIp, CurrentActor } from '../../iam/http/auth.decorators';
-import { rethrowHttp } from '../../iam/http/auth-http-errors';
 import { ListDevices, RevokeDevice } from '../application/devices.use-cases';
 
 class DeviceDto extends createZodDto(Device) {}
@@ -32,7 +31,7 @@ export class DevicesController {
   })
   @ZodResponse({ status: 200, description: 'A page of devices, newest first', type: PaginatedDevicesDto })
   list(@CurrentActor() actor: AuthenticatedActor, @Query() query: ListDevicesQueryDto) {
-    return this.listDevices.execute(actor, query).catch(rethrowHttp);
+    return this.listDevices.execute(actor, query);
   }
 
   @Post(':id/revoke')
@@ -40,6 +39,6 @@ export class DevicesController {
   @ApiOperation({ operationId: 'revokeDevice', summary: 'Revoke a device and its sessions (own, or devices:manage)' })
   @ZodResponse({ status: 200, description: 'The revoked device', type: DeviceDto })
   revoke(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Param() params: IdParamsDto) {
-    return this.revokeDevice.execute({ actor, ip }, params.id).catch(rethrowHttp);
+    return this.revokeDevice.execute({ actor, ip }, params.id);
   }
 }

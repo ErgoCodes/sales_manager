@@ -9,7 +9,7 @@ import type {
 } from '@monaco/contracts';
 
 import { type AdminRequest, iso, runAdmin } from '../../iam/application/admin-support';
-import { toAssignments } from '../../iam/application/authenticate.use-case';
+import { isLiveAssignment, toAssignments, toScope } from '../../iam/application/authenticate.use-case';
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import type { AdminTenantScope, AdminUnitOfWork, PageRequest } from '../../iam/domain/admin-ports';
 import { AUTH_POLICY, type SessionRevocationReason } from '../../iam/domain/auth-policy';
@@ -74,15 +74,33 @@ export class GetUser {
     return {
       ...toUser(user),
       // An assignment whose locations are all archived grants nothing and has no valid scope to show.
-      assignments: stored
-        .filter((a) => a.scope === 'tenant' || a.locationIds.length > 0)
-        .map((a) => ({
-          id: a.id,
-          roleId: a.roleId,
-          scope: a.scope === 'tenant' ? { type: 'tenant' } : { type: 'locations', locationIds: [...a.locationIds] },
-        })),
+      assignments: stored.filter(isLiveAssignment).map((a) => ({
+        id: a.id,
+        roleId: a.roleId,
+        scope: toScope(a),
+      })),
     };
   }
+}
+
+export interface TemporaryPasswordIssue {
+  readonly temporaryPassword: string;
+  readonly passwordHash: string;
+  readonly expiresAt: Date;
+  readonly now: Date;
+}
+
+/** Generates and hashes a temporary password with standard policy expiry. */
+export async function issueTemporaryPassword(
+  passwords: TemporaryPasswordGenerator,
+  hasher: PasswordHasher,
+  clock: Clock,
+): Promise<TemporaryPasswordIssue> {
+  const now = clock.now();
+  const temporaryPassword = passwords.generate();
+  const expiresAt = new Date(now.getTime() + AUTH_POLICY.temporaryPasswordTtlMs);
+  const passwordHash = await hasher.hash(temporaryPassword);
+  return { temporaryPassword, passwordHash, expiresAt, now };
 }
 
 type CreateOutcome = { ok: true; user: ManagedUser } | { ok: false };
@@ -103,10 +121,7 @@ export class CreateUser {
 
   async execute({ actor, ip }: AdminRequest, input: CreateUserRequest): Promise<CreateUserResponse> {
     authorize(actor, 'users:manage');
-    const now = this.clock.now();
-    const temporaryPassword = this.passwords.generate();
-    const expiresAt = new Date(now.getTime() + AUTH_POLICY.temporaryPasswordTtlMs);
-    const passwordHash = await this.hasher.hash(temporaryPassword);
+    const { temporaryPassword, passwordHash, expiresAt, now } = await issueTemporaryPassword(this.passwords, this.hasher, this.clock);
     const outcome = await this.uow.run<CreateOutcome>(actor.tenantId, async (scope) => {
       const user = await scope.userAdmin.create({ ...input, passwordHash, passwordExpiresAt: expiresAt, now });
       if (!user) {
@@ -185,10 +200,7 @@ export class ResetUserPassword {
   async execute(request: AdminRequest, id: string): Promise<ResetPasswordResponse> {
     const { actor, ip } = request;
     authorize(actor, 'users:manage');
-    const now = this.clock.now();
-    const temporaryPassword = this.passwords.generate();
-    const expiresAt = new Date(now.getTime() + AUTH_POLICY.temporaryPasswordTtlMs);
-    const passwordHash = await this.hasher.hash(temporaryPassword);
+    const { temporaryPassword, passwordHash, expiresAt, now } = await issueTemporaryPassword(this.passwords, this.hasher, this.clock);
     await runAdmin(this.uow, request, 'reset_password', { type: 'user', id }, async (scope) => {
       await scope.mutex.lock();
       const target = await loadTarget(scope, id);

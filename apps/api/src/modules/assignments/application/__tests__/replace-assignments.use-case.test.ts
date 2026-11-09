@@ -66,6 +66,18 @@ describe('ReplaceAssignments', () => {
     ]);
   });
 
+  it('stale archived-only assignments are ignored and do not block replacement', async () => {
+    const { uow, scope } = ready();
+    scope.assignments.listByUser.mockResolvedValue([
+      ...stored,
+      { id: 'as-stale', roleId: CASHIER_ROLE.id, roleKey: 'cashier' as const, isSystem: true, permissions: CASHIER_ROLE.permissions, scope: 'locations' as const, locationIds: [] },
+    ]);
+    const result = await new ReplaceAssignments(uow, clock).execute(request, TARGET_ID, managerAt2);
+    expect(result.assignments).toEqual([
+      { id: 'new', roleId: MANAGER_ROLE.id, scope: { type: 'locations', locationIds: [LOC_2] } },
+    ]);
+  });
+
   it('404 for an unknown user, role or (archived) location', async () => {
     const useCase = (fake: ReturnType<typeof ready>) => new ReplaceAssignments(fake.uow, clock).execute(request, TARGET_ID, managerAt2);
     const noUser = ready();

@@ -58,11 +58,13 @@ describe('RevokeDevice', () => {
     expect(scope.audit.record).toHaveBeenCalledTimes(1);
   });
 
-  it('404 unknown device; 403 for a device of someone out of reach', async () => {
+  it('404 for unknown device when privileged; 403 without devices:manage or for someone out of reach', async () => {
     const { uow, scope } = fakeUow();
     const useCase = new RevokeDevice(uow, clock);
     scope.deviceAdmin.findById.mockResolvedValueOnce(null);
     await expect(useCase.execute({ actor: manager(), ip: null }, DEVICE)).rejects.toThrow(ResourceNotFound);
+    scope.deviceAdmin.findById.mockResolvedValueOnce(null);
+    await expect(useCase.execute({ actor: cashier(), ip: null }, DEVICE)).rejects.toThrow(PermissionDenied);
     scope.deviceAdmin.findById.mockResolvedValue(record(TARGET_ID, null));
     await expect(useCase.execute({ actor: cashier(), ip: null }, DEVICE)).rejects.toThrow(PermissionDenied);
     scope.userAdmin.findById.mockResolvedValue({ id: TARGET_ID });

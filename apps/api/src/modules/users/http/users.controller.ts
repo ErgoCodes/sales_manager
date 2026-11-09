@@ -8,7 +8,6 @@ import { ApiErrorResponse } from '../../../common/http/api-error-response.decora
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import { IdParamsDto, PaginationQueryDto } from '../../iam/http/admin.dto';
 import { ClientIp, CurrentActor, RequirePermission } from '../../iam/http/auth.decorators';
-import { rethrowHttp } from '../../iam/http/auth-http-errors';
 import { CreateUser, DisableUser, GetUser, ListUsers, ResetUserPassword, UpdateUser } from '../application/users.use-cases';
 
 class UserDto extends createZodDto(User) {}
@@ -44,14 +43,14 @@ export class UsersController {
   @ApiOperation({ operationId: 'listUsers', summary: 'Users of the tenant (users:manage)' })
   @ZodResponse({ status: 200, description: 'A page of users', type: PaginatedUsersDto })
   list(@CurrentActor() actor: AuthenticatedActor, @Query() query: PaginationQueryDto) {
-    return this.listUsers.execute(actor, query).catch(rethrowHttp);
+    return this.listUsers.execute(actor, query);
   }
 
   @Get(':id')
   @ApiOperation({ operationId: 'getUser', summary: 'A user with their assignments (users:manage)' })
   @ZodResponse({ status: 200, description: 'The user', type: UserDetailDto })
   get(@CurrentActor() actor: AuthenticatedActor, @Param() params: IdParamsDto) {
-    return this.getUser.execute(actor, params.id).catch(rethrowHttp);
+    return this.getUser.execute(actor, params.id);
   }
 
   @Post()
@@ -65,14 +64,14 @@ export class UsersController {
   })
   @ZodResponse({ status: 201, description: 'The new user and its temporary password', type: CreateUserResponseDto })
   create(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Body() body: CreateUserRequestDto) {
-    return this.createUser.execute({ actor, ip }, body).catch(rethrowHttp);
+    return this.createUser.execute({ actor, ip }, body);
   }
 
   @Patch(':id')
   @ApiOperation({ operationId: 'updateUser', summary: 'Change the display name (users:manage)' })
   @ZodResponse({ status: 200, description: 'The updated user', type: UserDto })
   update(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Param() params: IdParamsDto, @Body() body: UpdateUserRequestDto) {
-    return this.updateUser.execute({ actor, ip }, params.id, body).catch(rethrowHttp);
+    return this.updateUser.execute({ actor, ip }, params.id, body);
   }
 
   @Post(':id/disable')
@@ -84,7 +83,7 @@ export class UsersController {
   })
   @ZodResponse({ status: 200, description: 'The disabled user', type: UserDto })
   disable(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Param() params: IdParamsDto) {
-    return this.disableUser.execute({ actor, ip }, params.id).catch(rethrowHttp);
+    return this.disableUser.execute({ actor, ip }, params.id);
   }
 
   @Post(':id/reset-password')
@@ -96,6 +95,6 @@ export class UsersController {
   })
   @ZodResponse({ status: 200, description: 'The temporary password, shown once', type: ResetPasswordResponseDto })
   resetPassword(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Param() params: IdParamsDto) {
-    return this.resetUserPassword.execute({ actor, ip }, params.id).catch(rethrowHttp);
+    return this.resetUserPassword.execute({ actor, ip }, params.id);
   }
 }

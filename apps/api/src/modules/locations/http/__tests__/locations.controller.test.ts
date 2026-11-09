@@ -1,4 +1,3 @@
-import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { owner } from '../../../iam/application/__tests__/admin-fakes';
@@ -25,8 +24,8 @@ describe('LocationsController', () => {
     expect(execute).toHaveBeenLastCalledWith({ actor, ip: null }, ID);
   });
 
-  it('maps domain errors to HTTP', async () => {
+  it('propagates domain errors', async () => {
     execute.mockRejectedValueOnce(new PermissionDenied('locations:manage'));
-    await expect(controller.archive(actor, null, { id: ID })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.archive(actor, null, { id: ID })).rejects.toBeInstanceOf(PermissionDenied);
   });
 });

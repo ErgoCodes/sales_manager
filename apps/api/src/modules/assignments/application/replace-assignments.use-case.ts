@@ -1,7 +1,7 @@
 import type { ReplaceAssignmentsRequest, ReplaceAssignmentsResponse } from '@monaco/contracts';
 
 import { type AdminRequest, runAdmin } from '../../iam/application/admin-support';
-import { toAssignments } from '../../iam/application/authenticate.use-case';
+import { toAssignments, toScope } from '../../iam/application/authenticate.use-case';
 import type { AdminUnitOfWork } from '../../iam/domain/admin-ports';
 import type { Clock } from '../../iam/domain/auth-ports';
 import { ResourceNotFound } from '../../iam/domain/errors';
@@ -11,8 +11,7 @@ import { authorize } from '../../iam/domain/permissions';
 import type { Assignment, Scope } from '../../iam/domain/types';
 import type { SavedAssignment } from '../domain/assignment-ports';
 
-const toScope = (scope: Scope): ReplaceAssignmentsResponse['assignments'][number]['scope'] =>
-  scope.type === 'tenant' ? { type: 'tenant' } : { type: 'locations', locationIds: [...scope.locationIds] };
+export { toScope };
 
 const summary = (assignments: readonly { role: { id: string }; scope: Scope }[]) =>
   assignments.map(({ role, scope }) => ({ roleId: role.id, scope: toScope(scope) }));

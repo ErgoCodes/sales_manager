@@ -12,6 +12,9 @@ import { ZodSerializationException, ZodValidationException } from 'nestjs-zod';
 import type { ZodError } from 'zod';
 
 import { BODY_PARSER_MESSAGES } from './body-parsers';
+import { AuthError } from '../../modules/iam/domain/auth-errors';
+import { IamDomainError } from '../../modules/iam/domain/errors';
+import { toHttpError } from '../../modules/iam/http/auth-http-errors';
 
 const MAX_MESSAGE_LENGTH = 500;
 const MAX_DETAILS = 50;
@@ -101,6 +104,13 @@ export interface MappedError {
  * 5xx always get a generic message; internals go to the log, never the client.
  */
 export function mapException(exception: unknown): MappedError {
+  if (exception instanceof AuthError || exception instanceof IamDomainError) {
+    const httpError = toHttpError(exception);
+    if (httpError instanceof HttpException) {
+      return mapException(httpError);
+    }
+  }
+
   if (exception instanceof ZodValidationException) {
     return {
       status: HttpStatus.BAD_REQUEST,

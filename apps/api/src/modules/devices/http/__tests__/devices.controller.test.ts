@@ -1,4 +1,3 @@
-import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AuditEventsController } from '../../../audit/http/audit-events.controller';
@@ -25,8 +24,8 @@ describe('DevicesController and AuditEventsController', () => {
     expect(execute).toHaveBeenLastCalledWith(actor, { limit: 5 });
   });
 
-  it('map domain errors to HTTP', async () => {
+  it('propagates domain errors', async () => {
     execute.mockRejectedValueOnce(new PermissionDenied('devices:manage'));
-    await expect(new DevicesController(u as ListDevices, u as RevokeDevice).revoke(actor, null, { id: ID })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(new DevicesController(u as ListDevices, u as RevokeDevice).revoke(actor, null, { id: ID })).rejects.toBeInstanceOf(PermissionDenied);
   });
 });

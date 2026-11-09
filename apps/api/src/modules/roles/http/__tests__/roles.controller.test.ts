@@ -1,4 +1,3 @@
-import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { owner } from '../../../iam/application/__tests__/admin-fakes';
@@ -25,8 +24,8 @@ describe('RolesController', () => {
     expect(execute).toHaveBeenLastCalledWith({ actor, ip: null }, ID);
   });
 
-  it('maps domain errors to HTTP', async () => {
+  it('propagates domain errors', async () => {
     execute.mockRejectedValueOnce(new RoleInUse());
-    await expect(controller.remove(actor, null, { id: ID })).rejects.toBeInstanceOf(ConflictException);
+    await expect(controller.remove(actor, null, { id: ID })).rejects.toBeInstanceOf(RoleInUse);
   });
 });

@@ -1,4 +1,3 @@
-import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { owner } from '../../../iam/application/__tests__/admin-fakes';
@@ -29,9 +28,9 @@ describe('UsersController', () => {
     expect(execute).toHaveBeenLastCalledWith({ actor, ip: null }, ID);
   });
 
-  it('maps domain errors to HTTP', async () => {
+  it('propagates domain errors', async () => {
     execute.mockRejectedValueOnce(new ResourceConflict('Could not create the user'));
-    await expect(controller.create(actor, null, { email: 'a@b.c', displayName: 'A' })).rejects.toBeInstanceOf(ConflictException);
+    await expect(controller.create(actor, null, { email: 'a@b.c', displayName: 'A' })).rejects.toBeInstanceOf(ResourceConflict);
   });
 });
 

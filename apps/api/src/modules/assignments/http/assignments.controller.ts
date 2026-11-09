@@ -7,7 +7,6 @@ import { ApiErrorResponse } from '../../../common/http/api-error-response.decora
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import { IdParamsDto } from '../../iam/http/admin.dto';
 import { ClientIp, CurrentActor, RequirePermission } from '../../iam/http/auth.decorators';
-import { rethrowHttp } from '../../iam/http/auth-http-errors';
 import { ReplaceAssignments } from '../application/replace-assignments.use-case';
 
 class ReplaceAssignmentsRequestDto extends createZodDto(ReplaceAssignmentsRequest) {}
@@ -31,6 +30,6 @@ export class AssignmentsController {
   })
   @ZodResponse({ status: 200, description: 'The new assignments', type: ReplaceAssignmentsResponseDto })
   replace(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Param() params: IdParamsDto, @Body() body: ReplaceAssignmentsRequestDto) {
-    return this.replaceAssignments.execute({ actor, ip }, params.id, body).catch(rethrowHttp);
+    return this.replaceAssignments.execute({ actor, ip }, params.id, body);
   }
 }

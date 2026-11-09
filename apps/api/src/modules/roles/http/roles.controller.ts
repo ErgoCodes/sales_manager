@@ -7,7 +7,6 @@ import { ApiErrorResponse } from '../../../common/http/api-error-response.decora
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import { IdParamsDto, PaginationQueryDto } from '../../iam/http/admin.dto';
 import { ClientIp, CurrentActor, RequirePermission } from '../../iam/http/auth.decorators';
-import { rethrowHttp } from '../../iam/http/auth-http-errors';
 import { CreateRole, DeleteRole, ListRoles, UpdateRole } from '../application/roles.use-cases';
 
 class RoleDto extends createZodDto(Role) {}
@@ -32,7 +31,7 @@ export class RolesController {
   @ApiOperation({ operationId: 'listRoles', summary: 'Roles of the tenant (roles:manage)' })
   @ZodResponse({ status: 200, description: 'A page of roles', type: PaginatedRolesDto })
   list(@CurrentActor() actor: AuthenticatedActor, @Query() query: PaginationQueryDto) {
-    return this.listRoles.execute(actor, query).catch(rethrowHttp);
+    return this.listRoles.execute(actor, query);
   }
 
   @Post()
@@ -43,7 +42,7 @@ export class RolesController {
   })
   @ZodResponse({ status: 201, description: 'The new role', type: RoleDto })
   create(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Body() body: CreateRoleRequestDto) {
-    return this.createRole.execute({ actor, ip }, body).catch(rethrowHttp);
+    return this.createRole.execute({ actor, ip }, body);
   }
 
   @Patch(':id')
@@ -54,7 +53,7 @@ export class RolesController {
   })
   @ZodResponse({ status: 200, description: 'The updated role', type: RoleDto })
   update(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Param() params: IdParamsDto, @Body() body: UpdateRoleRequestDto) {
-    return this.updateRole.execute({ actor, ip }, params.id, body).catch(rethrowHttp);
+    return this.updateRole.execute({ actor, ip }, params.id, body);
   }
 
   @Delete(':id')
@@ -62,6 +61,6 @@ export class RolesController {
   @ApiOperation({ operationId: 'deleteRole', summary: 'Delete a custom role that nobody holds (roles:manage)' })
   @ApiNoContentResponse({ description: 'Role deleted' })
   async remove(@CurrentActor() actor: AuthenticatedActor, @ClientIp() ip: string | null, @Param() params: IdParamsDto): Promise<void> {
-    await this.deleteRole.execute({ actor, ip }, params.id).catch(rethrowHttp);
+    await this.deleteRole.execute({ actor, ip }, params.id);
   }
 }
