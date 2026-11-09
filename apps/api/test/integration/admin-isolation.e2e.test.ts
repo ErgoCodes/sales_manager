@@ -119,6 +119,12 @@ describe('location scope', () => {
     await lead.post(`/devices/${deviceL2}/revoke`).expect(403);
     await lead.post(`/devices/${deviceL1}/revoke`).expect(200);
     expect((await admin.query('select revoked_at is null as live from devices where id = $1', [deviceL2])).rows[0].live).toBe(true);
+
+    // Archiving location 2 must not collapse atL2's scope into an empty set that lead (at l1) could vacuously cover.
+    const owner = await loginAs(app, 'owner@a.example');
+    await owner.post(`/locations/${l2}/archive`).expect(200);
+    await lead.get(`/devices?userId=${atL2}`).expect(403);
+    await lead.post(`/devices/${deviceL2}/revoke`).expect(403);
   });
 });
 

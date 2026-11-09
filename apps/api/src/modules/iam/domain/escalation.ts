@@ -59,7 +59,9 @@ function shortfall(
     if (effective.tenantWide.has(permission)) continue;
     if (!hasPermissionAnywhere(effective, permission)) return 'permission_not_held';
     const covered =
-      scope.type === 'locations' && scope.locationIds.every((id) => effective.byLocation.get(id)?.has(permission));
+      scope.type === 'locations' &&
+      scope.locationIds.length > 0 &&
+      scope.locationIds.every((id) => effective.byLocation.get(id)?.has(permission));
     if (!covered) return 'scope_exceeds';
   }
   return null;
@@ -168,6 +170,8 @@ export function canManageDevicesOf(actor: Actor, targetAssignments: readonly Ass
   if (targetAssignments.length === 0 || targetIsOwner) return false;
   return targetAssignments.every(
     ({ scope }) =>
-      scope.type === 'locations' && scope.locationIds.every((id) => effective.byLocation.get(id)?.has('devices:manage')),
+      scope.type === 'locations' &&
+      scope.locationIds.length > 0 &&
+      scope.locationIds.every((id) => effective.byLocation.get(id)?.has('devices:manage')),
   );
 }
