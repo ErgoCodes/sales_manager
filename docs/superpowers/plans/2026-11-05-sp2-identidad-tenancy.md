@@ -68,13 +68,13 @@ T2 (IAM) ┘                  └─> T6 (web BFF) ───┴─> T7 (web admi
 
 ### T4 · API de administración `L` · `Difícil` (depende de T3)
 
-- [ ] Módulos hexagonales `locations`, `users`, `roles`, `assignments`, `devices` y `audit`, con los endpoints de la tabla de API del spec.
-- [ ] Cada caso de uso llama a `authorize(actor, permission, location?)` y aplica `assertNoEscalation` antes de tocar datos.
-- [ ] Mutex por tenant (`SELECT … FROM tenants … FOR UPDATE`) en toda mutación que pueda afectar a un Owner.
-- [ ] Desactivar o resetear a un usuario revoca todos sus dispositivos. La contraseña temporal vence a las 72 h.
-- [ ] Mapeo de errores: 23503 y 23505 pasan a 404 o 409 genéricos; un recurso de otro tenant da 404; sin permiso, 403 genérico; una violación de invariante, 409; un permiso administrativo con alcance de puntos, 422. La creación de usuarios con email duplicado da una respuesta genérica.
-- [ ] Rate limit en `POST /users`.
-- [ ] Tests de integración (el corazón del gate):
+- [x] Módulos hexagonales `locations`, `users`, `roles`, `assignments`, `devices` y `audit`, con los endpoints de la tabla de API del spec.
+- [x] Cada caso de uso llama a `authorize(actor, permission, location?)` y aplica `assertNoEscalation` antes de tocar datos.
+- [x] Mutex por tenant (`SELECT … FROM tenants … FOR UPDATE`) en toda mutación que pueda afectar a un Owner.
+- [x] Desactivar o resetear a un usuario revoca todos sus dispositivos. La contraseña temporal vence a las 72 h.
+- [x] Mapeo de errores: 23503 y 23505 pasan a 404 o 409 genéricos; un recurso de otro tenant da 404; sin permiso, 403 genérico; una violación de invariante, 409; un permiso administrativo con alcance de puntos, 422. La creación de usuarios con email duplicado da una respuesta genérica.
+- [x] Rate limit en `POST /users`.
+- [x] Tests de integración (el corazón del gate):
   - matriz de cross-tenant: el tenant A contra cada endpoint con IDs de B da 404, y B queda intacto;
   - no escalada por cada ruta;
   - último owner por cada ruta, con dos peticiones concurrentes;
