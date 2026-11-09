@@ -4,6 +4,8 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  Inject,
+  Optional,
 } from '@nestjs/common';
 import type { ErrorResponse } from '@monaco/contracts';
 import type { Request, Response } from 'express';
@@ -12,7 +14,6 @@ import { ZodSerializationException, ZodValidationException } from 'nestjs-zod';
 import type { ZodError } from 'zod';
 
 import { BODY_PARSER_MESSAGES } from './body-parsers';
-import { toMappedDomainError } from '../../modules/iam/http/auth-http-errors';
 
 const MAX_MESSAGE_LENGTH = 500;
 const MAX_DETAILS = 50;
@@ -97,13 +98,19 @@ export interface MappedError {
   body: ErrorResponse;
 }
 
+export type ExceptionMapper = (exception: unknown) => MappedError | null;
+
+export const EXCEPTION_MAPPERS = Symbol('EXCEPTION_MAPPERS');
+
 /**
  * Pure mapping from any thrown value to the contract's `ErrorResponse`.
  * 5xx always get a generic message; internals go to the log, never the client.
  */
-export function mapException(exception: unknown): MappedError {
-  const domainMapped = toMappedDomainError(exception);
-  if (domainMapped) return domainMapped;
+export function mapException(exception: unknown, mappers: readonly ExceptionMapper[] = []): MappedError {
+  for (const mapper of mappers) {
+    const mapped = mapper(exception);
+    if (mapped) return mapped;
+  }
 
   if (exception instanceof ZodValidationException) {
     return {
@@ -172,15 +179,23 @@ export function mapException(exception: unknown): MappedError {
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly logger: PinoLogger) {
+  private readonly mappers: readonly ExceptionMapper[];
+
+  constructor(
+    private readonly logger: PinoLogger,
+    @Optional()
+    @Inject(EXCEPTION_MAPPERS)
+    mappers?: ExceptionMapper | readonly ExceptionMapper[],
+  ) {
     this.logger.setContext(AllExceptionsFilter.name);
+    this.mappers = mappers ? (Array.isArray(mappers) ? mappers : [mappers]) : [];
   }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
-    const { status, body } = mapException(exception);
+    const { status, body } = mapException(exception, this.mappers);
 
     if (status >= 500) {
       const err =

@@ -65,25 +65,26 @@ export function toMappedDomainError(error: unknown): { status: number; body: { e
  * resource of another tenant is a plain 404.
  */
 export function toHttpError(error: unknown): unknown {
-  if (error instanceof AuthError) {
-    if (error instanceof InvalidCurrentPassword) {
-      return new BadRequestException({ code: 'INVALID_CURRENT_PASSWORD', message: error.message });
-    }
-    return new UnauthorizedException(error.message);
+  const mapped = toMappedDomainError(error);
+  if (!mapped) return error;
+  if (mapped.status === HttpStatus.UNAUTHORIZED) {
+    return new UnauthorizedException(mapped.body.error.message);
   }
-  if (error instanceof PermissionDenied || error instanceof ForbiddenEscalation) return new ForbiddenException('Forbidden');
-  if (error instanceof ResourceNotFound) return new NotFoundException('Not found');
-  if (error instanceof ResourceConflict) return new ConflictException(error.message);
-  if (error instanceof InvalidCursor) return new BadRequestException({ code: 'INVALID_CURSOR', message: error.message });
-  if (error instanceof OwnerInvariantViolation) {
-    return new ConflictException({ code: 'LAST_OWNER', message: 'The tenant must keep at least one active Owner' });
+  if (mapped.status === HttpStatus.NOT_FOUND) {
+    return new NotFoundException(mapped.body.error.message);
   }
-  if (error instanceof SystemRoleImmutable) return new ConflictException({ code: 'SYSTEM_ROLE_IMMUTABLE', message: error.message });
-  if (error instanceof RoleInUse) return new ConflictException({ code: 'ROLE_IN_USE', message: error.message });
-  if (error instanceof InvalidScope) {
-    return new HttpException({ code: 'INVALID_SCOPE', message: 'Invalid assignment scope' }, HttpStatus.UNPROCESSABLE_ENTITY);
+  if (mapped.status === HttpStatus.FORBIDDEN) {
+    return new ForbiddenException(mapped.body.error.message);
   }
-  return error;
+  if (mapped.status === HttpStatus.CONFLICT) {
+    return mapped.body.error.code === 'CONFLICT'
+      ? new ConflictException(mapped.body.error.message)
+      : new ConflictException(mapped.body.error);
+  }
+  if (mapped.status === HttpStatus.BAD_REQUEST) {
+    return new BadRequestException(mapped.body.error);
+  }
+  return new HttpException(mapped.body.error, mapped.status);
 }
 
 /** `await useCase.execute(...).catch(rethrowHttp)` */

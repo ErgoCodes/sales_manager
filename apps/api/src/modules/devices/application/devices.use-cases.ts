@@ -1,7 +1,6 @@
 import type { Device, ListDevicesQuery, Paginated } from '@monaco/contracts';
 
-import { type AdminRequest, iso, isoOrNull } from '../../iam/application/admin-support';
-import { toAssignments } from '../../iam/application/authenticate.use-case';
+import { type AdminRequest, iso, isoOrNull, toAssignments } from '../../iam/application/admin-support';
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import type { AdminTenantScope, AdminUnitOfWork } from '../../iam/domain/admin-ports';
 import type { Clock } from '../../iam/domain/auth-ports';

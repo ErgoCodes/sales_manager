@@ -1,7 +1,6 @@
 import type { ReplaceAssignmentsRequest, ReplaceAssignmentsResponse } from '@monaco/contracts';
 
-import { type AdminRequest, runAdmin } from '../../iam/application/admin-support';
-import { toAssignments, toScope } from '../../iam/application/authenticate.use-case';
+import { type AdminRequest, runAdmin, toAssignments, toScope } from '../../iam/application/admin-support';
 import type { AdminUnitOfWork } from '../../iam/domain/admin-ports';
 import type { Clock } from '../../iam/domain/auth-ports';
 import { ResourceNotFound } from '../../iam/domain/errors';

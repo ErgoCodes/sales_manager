@@ -8,8 +8,14 @@ import type {
   UserDetail,
 } from '@monaco/contracts';
 
-import { type AdminRequest, iso, runAdmin } from '../../iam/application/admin-support';
-import { isLiveAssignment, toAssignments, toScope } from '../../iam/application/authenticate.use-case';
+import {
+  type AdminRequest,
+  isLiveAssignment,
+  iso,
+  runAdmin,
+  toAssignments,
+  toScope,
+} from '../../iam/application/admin-support';
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import type { AdminTenantScope, AdminUnitOfWork, PageRequest } from '../../iam/domain/admin-ports';
 import { AUTH_POLICY, type SessionRevocationReason } from '../../iam/domain/auth-policy';

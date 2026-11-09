@@ -3,7 +3,7 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 
-import { AllExceptionsFilter } from './common/http/all-exceptions.filter';
+import { AllExceptionsFilter, EXCEPTION_MAPPERS } from './common/http/all-exceptions.filter';
 import { bodyParsers } from './common/http/body-parsers';
 import { clientIpMiddleware } from './common/http/client-ip';
 import { buildLoggerParams } from './common/logging/logger.config';
@@ -15,6 +15,7 @@ import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { DevicesModule } from './modules/devices/devices.module';
 import { HealthModule } from './modules/health/health.module';
+import { toMappedDomainError } from './modules/iam/http/auth-http-errors';
 import { IamModule } from './modules/iam/iam.module';
 import { LocationsModule } from './modules/locations/locations.module';
 import { RolesModule } from './modules/roles/roles.module';
@@ -51,6 +52,7 @@ export class AppModule implements NestModule {
       providers: [
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
+        { provide: EXCEPTION_MAPPERS, useValue: [toMappedDomainError] },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },
       ],
     };

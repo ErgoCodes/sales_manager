@@ -1,6 +1,27 @@
+import type { AssignmentScope } from '@monaco/contracts';
+
 import type { AuthenticatedActor } from '../domain/actor';
 import type { AdminTenantScope, AdminUnitOfWork } from '../domain/admin-ports';
+import type { StoredAssignment } from '../domain/auth-ports';
 import { ForbiddenEscalation } from '../domain/errors';
+import type { Assignment, Scope } from '../domain/types';
+
+export const isLiveAssignment = (a: StoredAssignment): boolean =>
+  a.scope === 'tenant' || a.locationIds.length > 0;
+
+export function toScope(stored: StoredAssignment | Scope): AssignmentScope {
+  if ('type' in stored) {
+    return stored.type === 'tenant' ? { type: 'tenant' } : { type: 'locations', locationIds: [...stored.locationIds] };
+  }
+  return stored.scope === 'tenant' ? { type: 'tenant' } : { type: 'locations', locationIds: [...stored.locationIds] };
+}
+
+export function toAssignments(stored: readonly StoredAssignment[]): Assignment[] {
+  return stored.map((a) => ({
+    role: { id: a.roleId, key: a.roleKey, isSystem: a.isSystem, permissions: a.permissions },
+    scope: toScope(a),
+  }));
+}
 
 /** Who asks, and from where (the signed client IP), for the audit log. */
 export interface AdminRequest {

@@ -1,26 +1,9 @@
-import type { AssignmentScope } from '@monaco/contracts';
-
 import type { AuthenticatedActor } from '../domain/actor';
-import type { AccessTokenService, StoredAssignment, TenantUnitOfWork } from '../domain/auth-ports';
+import type { AccessTokenService, TenantUnitOfWork } from '../domain/auth-ports';
 import { effectivePermissions } from '../domain/permissions';
-import type { Assignment, Scope } from '../domain/types';
+import { toAssignments } from './admin-support';
 
-export const isLiveAssignment = (a: StoredAssignment): boolean =>
-  a.scope === 'tenant' || a.locationIds.length > 0;
-
-export function toScope(stored: StoredAssignment | Scope): AssignmentScope {
-  if ('type' in stored) {
-    return stored.type === 'tenant' ? { type: 'tenant' } : { type: 'locations', locationIds: [...stored.locationIds] };
-  }
-  return stored.scope === 'tenant' ? { type: 'tenant' } : { type: 'locations', locationIds: [...stored.locationIds] };
-}
-
-export function toAssignments(stored: readonly StoredAssignment[]): Assignment[] {
-  return stored.map((a) => ({
-    role: { id: a.roleId, key: a.roleKey, isSystem: a.isSystem, permissions: a.permissions },
-    scope: toScope(a),
-  }));
-}
+export { isLiveAssignment, toAssignments, toScope } from './admin-support';
 
 /**
  * Per-request authentication (AuthGuard): verifies the access token, then, in
