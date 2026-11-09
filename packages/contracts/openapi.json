@@ -234,6 +234,971 @@
           "auth"
         ]
       }
+    },
+    "/locations": {
+      "get": {
+        "operationId": "listLocations",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of locations, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedLocations_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Locations the caller can see (all of them with any tenant-wide permission)",
+        "tags": [
+          "locations"
+        ]
+      },
+      "post": {
+        "operationId": "createLocation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLocationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new location",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a location (locations:manage)",
+        "tags": [
+          "locations"
+        ]
+      }
+    },
+    "/locations/{id}": {
+      "patch": {
+        "operationId": "updateLocation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLocationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated location",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a location or change its code (locations:manage)",
+        "tags": [
+          "locations"
+        ]
+      }
+    },
+    "/locations/{id}/archive": {
+      "post": {
+        "operationId": "archiveLocation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The archived location",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive a location (locations:manage); idempotent",
+        "tags": [
+          "locations"
+        ]
+      }
+    },
+    "/roles": {
+      "get": {
+        "operationId": "listRoles",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of roles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRoles_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Roles of the tenant (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      },
+      "post": {
+        "description": "Only permissions the caller holds tenant-wide; owner-only permissions need an Owner (403 otherwise).",
+        "operationId": "createRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a custom role (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/roles/{id}": {
+      "patch": {
+        "description": "Affects every holder. The Owner role is immutable (409); admin permissions on a role held per location are 422.",
+        "operationId": "updateRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a role or replace its permissions (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Role deleted"
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a custom role that nobody holds (roles:manage)",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "listUsers",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedUsers_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Users of the tenant (users:manage)",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "description": "The server generates the temporary password, shown once, valid 72 h. An email that already exists (in any tenant) gets a generic 409. Rate limited.",
+        "operationId": "createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new user and its temporary password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponse_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a user with a temporary password (users:manage)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetail_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A user with their assignments (users:manage)",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the display name (users:manage)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}/disable": {
+      "post": {
+        "description": "Never oneself; an Owner only by an Owner; 409 if it would leave the tenant without an active Owner.",
+        "operationId": "disableUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The disabled user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Disable a user and revoke all their devices (users:manage)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}/reset-password": {
+      "post": {
+        "description": "Never oneself (use POST /auth/password); the caller must cover everything the user holds.",
+        "operationId": "resetUserPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The temporary password, shown once",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordResponse_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the password with a temporary one and revoke all sessions (users:manage)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}/assignments": {
+      "put": {
+        "description": "Never one's own (403). Owner only by an Owner; every added or removed assignment must be within the caller's permissions and scope (403). Administrative permissions only tenant-wide (422). 409 if no active Owner would remain.",
+        "operationId": "replaceAssignments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceAssignmentsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new assignments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplaceAssignmentsResponse_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a user's role assignments atomically (users:manage + roles:manage)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/devices": {
+      "get": {
+        "description": "A Manager only reaches users entirely inside its locations; only an Owner reaches an Owner.",
+        "operationId": "listDevices",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "Whose devices; defaults to the caller",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of devices, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDevices_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's devices, or another user's (devices:manage)",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/devices/{id}/revoke": {
+      "post": {
+        "operationId": "revokeDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The revoked device",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Device_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke a device and its sessions (own, or devices:manage)",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/audit-events": {
+      "get": {
+        "operationId": "listAuditEvents",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of audit events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAuditEvents_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Security log of the tenant, newest first (audit:view)",
+        "tags": [
+          "audit"
+        ]
+      }
     }
   },
   "info": {
@@ -654,6 +1619,728 @@
           "tenant",
           "deviceId",
           "permissions"
+        ],
+        "additionalProperties": false
+      },
+      "Location_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "archivedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "code",
+          "archivedAt",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "IsoDateTime_Output": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+        "description": "ISO 8601 UTC date-time"
+      },
+      "PaginatedLocations_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Location_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "CreateLocationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Short code, unique per tenant"
+          }
+        },
+        "required": [
+          "name",
+          "code"
+        ]
+      },
+      "UpdateLocationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Short code, unique per tenant"
+          }
+        }
+      },
+      "Role_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "key": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SystemRoleKey_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null for custom roles"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission_Output"
+            }
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "isSystem",
+          "permissions",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "SystemRoleKey_Output": {
+        "type": "string",
+        "enum": [
+          "owner",
+          "manager",
+          "cashier"
+        ]
+      },
+      "PaginatedRoles_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "Permission": {
+        "type": "string",
+        "enum": [
+          "tenant:manage",
+          "locations:manage",
+          "users:manage",
+          "roles:manage",
+          "devices:manage",
+          "audit:view",
+          "catalog:write",
+          "inventory:write",
+          "inventory:transfer",
+          "sales:create",
+          "sales:void",
+          "reports:view",
+          "cash:close"
+        ],
+        "description": "Permission catalog entry"
+      },
+      "CreateRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "permissions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "UpdateRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "permissions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          }
+        }
+      },
+      "User_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "email": {
+            "$ref": "#/components/schemas/Email_Output"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus_Output"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "status",
+          "mustChangePassword",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "UserStatus_Output": {
+        "type": "string",
+        "enum": [
+          "active",
+          "disabled"
+        ]
+      },
+      "PaginatedUsers_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "Assignment_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "roleId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/AssignmentScope_Output"
+          }
+        },
+        "required": [
+          "id",
+          "roleId",
+          "scope"
+        ],
+        "additionalProperties": false
+      },
+      "AssignmentScope_Output": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tenant"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "locations"
+                ]
+              },
+              "locationIds": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Uuid_Output"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "locationIds"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "Tenant-wide, or limited to the listed locations"
+      },
+      "UserDetail_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "email": {
+            "$ref": "#/components/schemas/Email_Output"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus_Output"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Assignment_Output"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "status",
+          "mustChangePassword",
+          "createdAt",
+          "assignments"
+        ],
+        "additionalProperties": false
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "$ref": "#/components/schemas/Email"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "email",
+          "displayName"
+        ]
+      },
+      "CreateUserResponse_Output": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User_Output"
+          },
+          "temporaryPassword": {
+            "type": "string",
+            "minLength": 12,
+            "description": "Shown once; communicate out of band"
+          },
+          "temporaryPasswordExpiresAt": {
+            "description": "72 h after issue",
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "user",
+          "temporaryPassword",
+          "temporaryPasswordExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "ResetPasswordResponse_Output": {
+        "type": "object",
+        "properties": {
+          "temporaryPassword": {
+            "type": "string",
+            "minLength": 12,
+            "description": "Shown once; communicate out of band"
+          },
+          "temporaryPasswordExpiresAt": {
+            "description": "72 h after issue",
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "temporaryPassword",
+          "temporaryPasswordExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "AssignmentInput": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/AssignmentScope"
+          }
+        },
+        "required": [
+          "roleId",
+          "scope"
+        ]
+      },
+      "AssignmentScope": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tenant"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "locations"
+                ]
+              },
+              "locationIds": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "locationIds"
+            ]
+          }
+        ],
+        "description": "Tenant-wide, or limited to the listed locations"
+      },
+      "ReplaceAssignmentsRequest": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentInput"
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "ReplaceAssignmentsResponse_Output": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Assignment_Output"
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ],
+        "additionalProperties": false
+      },
+      "Device_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "label": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/DevicePlatform_Output"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "lastSeenAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "revokedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "current": {
+            "type": "boolean",
+            "description": "True for the device that made the request"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "label",
+          "platform",
+          "createdAt",
+          "lastSeenAt",
+          "revokedAt",
+          "current"
+        ],
+        "additionalProperties": false
+      },
+      "DevicePlatform_Output": {
+        "type": "string",
+        "enum": [
+          "web",
+          "android",
+          "ios"
+        ]
+      },
+      "PaginatedDevices_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "AuditEvent_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "actorUserId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/AuditEventType_Output"
+          },
+          "targetType": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Never contains secrets or hashes"
+          },
+          "ip": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "actorUserId",
+          "type",
+          "targetType",
+          "targetId",
+          "metadata",
+          "ip",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "AuditEventType_Output": {
+        "type": "string",
+        "enum": [
+          "login_succeeded",
+          "login_failed",
+          "refresh_reuse_detected",
+          "password_changed",
+          "user_created",
+          "user_create_conflict",
+          "user_updated",
+          "user_disabled",
+          "user_password_reset",
+          "device_revoked",
+          "session_revoked",
+          "role_created",
+          "role_updated",
+          "role_deleted",
+          "assignments_replaced",
+          "location_created",
+          "location_updated",
+          "location_archived",
+          "escalation_denied"
+        ]
+      },
+      "PaginatedAuditEvents_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
         ],
         "additionalProperties": false
       }

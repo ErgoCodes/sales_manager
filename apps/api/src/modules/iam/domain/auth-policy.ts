@@ -8,7 +8,9 @@ export const AUTH_POLICY = {
   refreshAbsoluteTtlMs: 90 * 24 * 60 * 60 * 1000,
   /** A just-rotated refresh token may still get an access token (never a refresh) for this long. */
   refreshGraceMs: 10 * 1000,
+  /** A temporary password (user creation, reset) stops working after this long. */
+  temporaryPasswordTtlMs: 72 * 60 * 60 * 1000,
 } as const;
 
 /** Why a refresh family (session) was revoked; stored in `refresh_tokens.revoked_reason`. */
-export type SessionRevocationReason = 'logout' | 'reuse_detected' | 'superseded' | 'password_changed' | 'device_revoked';
+export type SessionRevocationReason = 'logout' | 'reuse_detected' | 'superseded' | 'password_changed' | 'device_revoked' | 'user_disabled' | 'password_reset';

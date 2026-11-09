@@ -1,9 +1,9 @@
-import { PERMISSIONS, type Permission, type SystemRoleKey } from '@monaco/contracts';
+import type { SystemRoleKey } from '@monaco/contracts';
 import { sql } from 'drizzle-orm';
 
 import type { TenantTransaction } from '../../../../infrastructure/db/with-tenant';
 import type { ActorState, ActorStateReader, StoredAssignment } from '../../domain/auth-ports';
-import { rows } from '../sql-helpers';
+import { filterCatalogPermissions, rows } from '../sql-helpers';
 
 interface Row {
   status: string;
@@ -19,8 +19,6 @@ interface Row {
     locationIds: string[];
   }[];
 }
-
-const CATALOG = new Set<string>(PERMISSIONS);
 
 /**
  * The per-request check of the AuthGuard, in ONE indexed query: user state,
@@ -67,7 +65,7 @@ export class ActorStateRepository implements ActorStateReader {
           isSystem: a.isSystem,
           scope: a.scope,
           // The CHECK constraint already enforces the catalog; this keeps the type honest.
-          permissions: a.permissions.filter((p): p is Permission => CATALOG.has(p)),
+          permissions: filterCatalogPermissions(a.permissions),
           locationIds: a.locationIds,
         }),
       ),

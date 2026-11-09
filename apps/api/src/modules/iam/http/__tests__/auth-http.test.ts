@@ -10,7 +10,19 @@ import { effectivePermissions } from '../../domain/permissions';
 import { AuthController } from '../auth.controller';
 import { AllowPendingPasswordChange, ClientIp, CurrentActor, Public, RequirePermission } from '../auth.decorators';
 import { AuthGuard } from '../auth.guard';
-import { rethrowHttp, toHttpError } from '../auth-http-errors';
+import { mapException } from '../../../../common/http/all-exceptions.filter';
+import {
+  ForbiddenEscalation,
+  InvalidCursor,
+  InvalidScope,
+  OwnerInvariantViolation,
+  PermissionDenied,
+  ResourceConflict,
+  ResourceNotFound,
+  RoleInUse,
+  SystemRoleImmutable,
+} from '../../domain/errors';
+import { rethrowHttp, toHttpError, toMappedDomainError } from '../auth-http-errors';
 import { MeController } from '../me.controller';
 
 const LOCATION = '0190a000-0000-7000-8000-0000000000aa';
@@ -117,6 +129,30 @@ describe('param decorators', () => {
   });
 });
 
+describe('toMappedDomainError', () => {
+  it.each([
+    ['InvalidCredentials', new InvalidCredentials(), 401, { code: 'UNAUTHORIZED', message: 'Invalid email or password' }],
+    ['InvalidSession', new InvalidSession(), 401, { code: 'UNAUTHORIZED', message: 'Invalid or expired session' }],
+    ['InvalidCurrentPassword', new InvalidCurrentPassword(), 400, { code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect' }],
+    ['ResourceNotFound', new ResourceNotFound('user'), 404, { code: 'NOT_FOUND', message: 'Not found' }],
+    ['PermissionDenied', new PermissionDenied('roles:manage'), 403, { code: 'FORBIDDEN', message: 'Forbidden' }],
+    ['ForbiddenEscalation', new ForbiddenEscalation('owner_only'), 403, { code: 'FORBIDDEN', message: 'Forbidden' }],
+    ['ResourceConflict', new ResourceConflict('Email already in use'), 409, { code: 'CONFLICT', message: 'Email already in use' }],
+    ['InvalidCursor', new InvalidCursor(), 400, { code: 'INVALID_CURSOR', message: 'Invalid cursor' }],
+    ['OwnerInvariantViolation', new OwnerInvariantViolation(), 409, { code: 'LAST_OWNER', message: 'The tenant must keep at least one active Owner' }],
+    ['SystemRoleImmutable (update)', new SystemRoleImmutable('update'), 409, { code: 'SYSTEM_ROLE_IMMUTABLE', message: 'System role cannot be edited' }],
+    ['SystemRoleImmutable (delete)', new SystemRoleImmutable('delete'), 409, { code: 'SYSTEM_ROLE_IMMUTABLE', message: 'System role cannot be deleted' }],
+    ['RoleInUse', new RoleInUse(), 409, { code: 'ROLE_IN_USE', message: 'Role still has assignments' }],
+    ['InvalidScope', new InvalidScope('admin_permission_requires_tenant_scope'), 422, { code: 'INVALID_SCOPE', message: 'Invalid assignment scope' }],
+  ])('maps %s directly to status %d and contract body', (_name, error, status, body) => {
+    expect(toMappedDomainError(error)).toEqual({ status, body: { error: body } });
+  });
+
+  it('returns null for unhandled errors', () => {
+    expect(toMappedDomainError(new Error('boom'))).toBeNull();
+  });
+});
+
 describe('auth HTTP errors', () => {
   it('maps auth errors to generic 401/400 and passes anything else through', () => {
     expect(toHttpError(new InvalidCredentials())).toEqual(new UnauthorizedException('Invalid email or password'));
@@ -126,6 +162,20 @@ describe('auth HTTP errors', () => {
     const other = new Error('boom');
     expect(toHttpError(other)).toBe(other);
     expect(() => rethrowHttp(new InvalidSession())).toThrow(UnauthorizedException);
+  });
+
+  it.each([
+    [new PermissionDenied('users:manage'), 403, { code: 'FORBIDDEN', message: 'Forbidden' }],
+    [new ForbiddenEscalation('owner_only'), 403, { code: 'FORBIDDEN', message: 'Forbidden' }],
+    [new ResourceNotFound('user'), 404, { code: 'NOT_FOUND', message: 'Not found' }],
+    [new ResourceConflict('Could not create the user'), 409, { code: 'CONFLICT', message: 'Could not create the user' }],
+    [new InvalidCursor(), 400, { code: 'INVALID_CURSOR', message: 'Invalid cursor' }],
+    [new OwnerInvariantViolation(), 409, { code: 'LAST_OWNER', message: 'The tenant must keep at least one active Owner' }],
+    [new SystemRoleImmutable('delete'), 409, { code: 'SYSTEM_ROLE_IMMUTABLE', message: 'System role cannot be deleted' }],
+    [new RoleInUse(), 409, { code: 'ROLE_IN_USE', message: 'Role still has assignments' }],
+    [new InvalidScope('admin_permission_requires_tenant_scope'), 422, { code: 'INVALID_SCOPE', message: 'Invalid assignment scope' }],
+  ])('maps %o to its status and a generic ErrorResponse', (error, status, body) => {
+    expect(mapException(toHttpError(error))).toEqual({ status, body: { error: body } });
   });
 });
 
@@ -150,7 +200,7 @@ describe('controllers delegate to the use cases', () => {
     expect(change.execute).toHaveBeenCalledWith(me, { currentPassword: 'old', newPassword: 'n'.repeat(12), ip: null });
 
     login.execute.mockRejectedValueOnce(new InvalidCredentials());
-    await expect(controller.postLogin({ email: 'a@b.co', password: 'x'.repeat(12) }, null)).rejects.toThrow(UnauthorizedException);
+    await expect(controller.postLogin({ email: 'a@b.co', password: 'x'.repeat(12) }, null)).rejects.toThrow(InvalidCredentials);
   });
 
   it('MeController', async () => {
@@ -158,6 +208,6 @@ describe('controllers delegate to the use cases', () => {
     const controller = new MeController(getMe as never);
     await expect(controller.get(actor())).resolves.toEqual({ ok: true });
     getMe.execute.mockRejectedValueOnce(new InvalidSession());
-    await expect(controller.get(actor())).rejects.toThrow(UnauthorizedException);
+    await expect(controller.get(actor())).rejects.toThrow(InvalidSession);
   });
 });

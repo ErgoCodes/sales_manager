@@ -12,6 +12,8 @@ import {
   ChangePasswordRequest,
   CreateLocationRequest,
   CreateRoleRequest,
+  IdParams,
+  ListDevicesQuery,
   CreateUserRequest,
   CreateUserResponse,
   Device,
@@ -306,6 +308,15 @@ describe('devices and audit', () => {
     bad(Device, { ...device, platform: 'tv' });
     ok(PaginatedDevices, { items: [device], nextCursor: null });
   });
+  it('ListDevicesQuery: pagination plus an optional userId', () => {
+    expect(ListDevicesQuery.parse({})).toEqual({ limit: 50 });
+    expect(ListDevicesQuery.parse({ userId: U2, limit: '5' })).toEqual({ userId: U2, limit: 5 });
+    bad(ListDevicesQuery, { userId: 'nope' });
+  });
+  it('IdParams accepts only a UUIDv7', () => {
+    ok(IdParams, { id: U1 });
+    bad(IdParams, { id: '1' });
+  });
   it('AuditEvent / page', () => {
     const event = {
       id: U1,
@@ -334,6 +345,7 @@ describe('OpenAPI ids', () => {
       User, UserDetail, PaginatedUsers, CreateUserRequest, UpdateUserRequest, CreateUserResponse, ResetPasswordResponse,
       Role, PaginatedRoles, CreateRoleRequest, UpdateRoleRequest, AssignmentInput, Assignment,
       ReplaceAssignmentsRequest, ReplaceAssignmentsResponse, Device, PaginatedDevices, AuditEvent, PaginatedAuditEvents,
+      IdParams, ListDevicesQuery,
     };
     const ids = Object.entries(schemas).map(([name, schema]) => [name, z.globalRegistry.get(schema as z.ZodType)?.id]);
     for (const [name, id] of ids) expect(id, name).toBe(name);

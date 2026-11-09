@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   ForbiddenEscalation,
   IamDomainError,
+  InvalidCursor,
   InvalidScope,
   OwnerInvariantViolation,
+  PermissionDenied,
+  ResourceConflict,
+  ResourceNotFound,
   RoleInUse,
   SystemRoleImmutable,
 } from '../errors';
@@ -153,5 +157,17 @@ describe('domain errors', () => {
     ]);
     expect(errors[3].message).toContain('edited');
     expect(errors[4].message).toContain('deleted');
+  });
+});
+
+describe('admin API errors', () => {
+  it.each([
+    [new PermissionDenied('users:manage'), 'permission_denied', 'Forbidden'],
+    [new ResourceNotFound('user'), 'not_found', 'Not found'],
+    [new ResourceConflict('Could not create the user'), 'conflict', 'Could not create the user'],
+    [new InvalidCursor(), 'invalid_cursor', 'Invalid cursor'],
+  ])('%o has a stable code and a generic message', (error, code, message) => {
+    expect(error).toBeInstanceOf(IamDomainError);
+    expect(error).toMatchObject({ code, message, name: error.constructor.name });
   });
 });

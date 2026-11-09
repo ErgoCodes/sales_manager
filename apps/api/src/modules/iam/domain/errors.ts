@@ -73,3 +73,39 @@ export class RoleInUse extends IamDomainError {
     super('Role still has assignments');
   }
 }
+
+/** `authorize`: the actor lacks the permission (at that location). 403 with a generic message. */
+export class PermissionDenied extends IamDomainError {
+  readonly code = 'permission_denied';
+
+  constructor(readonly permission: string) {
+    super('Forbidden');
+  }
+}
+
+/** Missing resource, or one of another tenant (RLS hides it): always 404, never 403. */
+export class ResourceNotFound extends IamDomainError {
+  readonly code = 'not_found';
+
+  constructor(readonly resource: string) {
+    super('Not found');
+  }
+}
+
+/** A generic 409 whose message never says what collided (e.g. an email of another tenant). */
+export class ResourceConflict extends IamDomainError {
+  readonly code = 'conflict';
+
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+/** A pagination cursor the API did not issue. 400. */
+export class InvalidCursor extends IamDomainError {
+  readonly code = 'invalid_cursor';
+
+  constructor() {
+    super('Invalid cursor');
+  }
+}

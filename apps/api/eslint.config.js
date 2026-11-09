@@ -58,4 +58,20 @@ module.exports = defineConfig([
     files: ['src/modules/*/application/**/*.ts'],
     rules: { 'no-restricted-imports': ['error', { patterns: frameworkImports }] },
   },
+  {
+    files: ['src/common/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/modules/**', '**/modules'],
+              message: 'src/common is transversal and must not depend on concrete modules in src/modules/.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

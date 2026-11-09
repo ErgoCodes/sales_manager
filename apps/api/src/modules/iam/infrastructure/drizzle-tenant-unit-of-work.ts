@@ -1,5 +1,5 @@
 import type { Database } from '../../../infrastructure/db/database';
-import { withTenant } from '../../../infrastructure/db/with-tenant';
+import { type TenantTransaction, withTenant } from '../../../infrastructure/db/with-tenant';
 import type { IamTenantScope, TenantUnitOfWork } from '../domain/auth-ports';
 import { ActorStateRepository } from './repositories/actor-state.repository';
 import { AuditRepository } from './repositories/audit.repository';
@@ -18,15 +18,18 @@ export class DrizzleTenantUnitOfWork implements TenantUnitOfWork {
   constructor(private readonly db: Database) {}
 
   run<T>(tenantId: string, work: (scope: IamTenantScope) => Promise<T>): Promise<T> {
-    return withTenant(this.db, tenantId, (tx) =>
-      work({
-        users: new UsersRepository(tx),
-        tenants: new TenantsRepository(tx),
-        devices: new DevicesRepository(tx, tenantId),
-        refreshTokens: new RefreshTokensRepository(tx, tenantId),
-        audit: new AuditRepository(tx, tenantId),
-        actors: new ActorStateRepository(tx),
-      }),
-    );
+    return withTenant(this.db, tenantId, (tx) => work(iamScope(tx, tenantId)));
   }
+}
+
+/** The authentication repositories on one tenant transaction (also the base of the admin scope). */
+export function iamScope(tx: TenantTransaction, tenantId: string): IamTenantScope {
+  return {
+    users: new UsersRepository(tx),
+    tenants: new TenantsRepository(tx),
+    devices: new DevicesRepository(tx, tenantId),
+    refreshTokens: new RefreshTokensRepository(tx, tenantId),
+    audit: new AuditRepository(tx, tenantId),
+    actors: new ActorStateRepository(tx),
+  };
 }

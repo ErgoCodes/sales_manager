@@ -21,6 +21,7 @@ export const AUDIT_EVENT_TYPES = [
   'location_created',
   'location_updated',
   'location_archived',
+  'escalation_denied',
 ] as const;
 
 export const AuditEventType = z.enum(AUDIT_EVENT_TYPES).meta({ id: 'AuditEventType' });

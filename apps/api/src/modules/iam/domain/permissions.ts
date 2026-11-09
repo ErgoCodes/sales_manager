@@ -1,5 +1,6 @@
 import { ADMIN_PERMISSIONS, PERMISSIONS, type Permission } from '@monaco/contracts';
 
+import { PermissionDenied } from './errors';
 import type { Assignment, EffectivePermissions } from './types';
 
 const ADMIN = new Set<Permission>(ADMIN_PERMISSIONS);
@@ -54,6 +55,15 @@ export function can(effective: EffectivePermissions, permission: Permission, loc
   if (effective.tenantWide.has(permission)) return true;
   if (locationId === undefined) return false;
   return effective.byLocation.get(locationId)?.has(permission) ?? false;
+}
+
+/**
+ * The use case's authority check (ADR 0005): throws `PermissionDenied` (403)
+ * unless `can(actor.effective, permission, locationId)` holds. Call it before
+ * touching any data.
+ */
+export function authorize(actor: { readonly effective: EffectivePermissions }, permission: Permission, locationId?: string): void {
+  if (!can(actor.effective, permission, locationId)) throw new PermissionDenied(permission);
 }
 
 /** True if the permission holds tenant-wide or in at least one location. */
