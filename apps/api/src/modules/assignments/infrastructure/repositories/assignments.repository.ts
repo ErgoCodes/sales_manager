@@ -1,4 +1,4 @@
-import { PERMISSIONS, type Permission, type SystemRoleKey } from '@monaco/contracts';
+import type { SystemRoleKey } from '@monaco/contracts';
 import { sql } from 'drizzle-orm';
 
 import type { TenantTransaction } from '../../../../infrastructure/db/with-tenant';
@@ -6,7 +6,7 @@ import { uuidv7 } from '../../../../infrastructure/db/uuidv7';
 import type { OwnerCandidate } from '../../../iam/domain/owner';
 import { SYSTEM_ROLES } from '../../../iam/domain/system-roles';
 import type { Scope } from '../../../iam/domain/types';
-import { rows } from '../../../iam/infrastructure/sql-helpers';
+import { filterCatalogPermissions, rows } from '../../../iam/infrastructure/sql-helpers';
 import type { AssignmentInput, AssignmentRepository, SavedAssignment, StoredAssignmentWithId } from '../../domain/assignment-ports';
 
 interface Row {
@@ -18,8 +18,6 @@ interface Row {
   permissions: string[];
   locationIds: string[];
 }
-
-const CATALOG = new Set<string>(PERMISSIONS);
 
 export class AssignmentsRepository implements AssignmentRepository {
   constructor(
@@ -43,7 +41,7 @@ export class AssignmentsRepository implements AssignmentRepository {
           where a.user_id = ${userId}
           order by a.id`,
     );
-    return found.map((row) => ({ ...row, permissions: row.permissions.filter((p): p is Permission => CATALOG.has(p)) }));
+    return found.map((row) => ({ ...row, permissions: filterCatalogPermissions(row.permissions) }));
   }
 
   async replace(userId: string, next: readonly AssignmentInput[], now: Date): Promise<SavedAssignment[]> {
@@ -85,14 +83,35 @@ export class AssignmentsRepository implements AssignmentRepository {
   }
 
   async countByRole(roleId: string): Promise<number> {
-    const [row] = await rows<{ n: number }>(this.tx, sql`select count(*)::int as n from role_assignments where role_id = ${roleId}`);
+    const [row] = await rows<{ n: number }>(
+      this.tx,
+      sql`select count(*)::int as n
+          from role_assignments a
+          where a.role_id = ${roleId}
+            and (
+              a.scope = 'tenant'
+              or exists (
+                select 1 from role_assignment_locations l
+                join locations loc on loc.id = l.location_id and loc.tenant_id = l.tenant_id
+                where l.assignment_id = a.id and l.tenant_id = a.tenant_id and loc.archived_at is null
+              )
+            )`,
+    );
     return row?.n ?? 0;
   }
 
   async hasLocationScopedByRole(roleId: string): Promise<boolean> {
     const [row] = await rows<{ found: boolean }>(
       this.tx,
-      sql`select exists (select 1 from role_assignments where role_id = ${roleId} and scope = 'locations') as found`,
+      sql`select exists (
+            select 1 from role_assignments a
+            where a.role_id = ${roleId} and a.scope = 'locations'
+              and exists (
+                select 1 from role_assignment_locations l
+                join locations loc on loc.id = l.location_id and loc.tenant_id = l.tenant_id
+                where l.assignment_id = a.id and l.tenant_id = a.tenant_id and loc.archived_at is null
+              )
+          ) as found`,
     );
     return row?.found ?? false;
   }

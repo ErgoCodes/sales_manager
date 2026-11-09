@@ -43,6 +43,14 @@ export type EscalationCheck =
 
 const TENANT: Scope = { type: 'tenant' };
 
+function coversLocations(effective: EffectivePermissions, permission: Permission, scope: Scope): boolean {
+  return (
+    scope.type === 'locations' &&
+    scope.locationIds.length > 0 &&
+    scope.locationIds.every((id) => effective.byLocation.get(id)?.has(permission))
+  );
+}
+
 /**
  * Why `permissions` cannot be handed out at `scope` by someone with `effective`, or null if they can.
  * Rules: owner-only permissions need an Owner; the actor must hold each permission with a scope
@@ -58,11 +66,7 @@ function shortfall(
     if (isOwnerOnlyPermission(permission) && !actorIsOwner) return 'owner_only';
     if (effective.tenantWide.has(permission)) continue;
     if (!hasPermissionAnywhere(effective, permission)) return 'permission_not_held';
-    const covered =
-      scope.type === 'locations' &&
-      scope.locationIds.length > 0 &&
-      scope.locationIds.every((id) => effective.byLocation.get(id)?.has(permission));
-    if (!covered) return 'scope_exceeds';
+    if (!coversLocations(effective, permission, scope)) return 'scope_exceeds';
   }
   return null;
 }
@@ -168,10 +172,5 @@ export function canManageDevicesOf(actor: Actor, targetAssignments: readonly Ass
   const effective = effectivePermissions(actor.assignments);
   if (effective.tenantWide.has('devices:manage')) return true;
   if (targetAssignments.length === 0 || targetIsOwner) return false;
-  return targetAssignments.every(
-    ({ scope }) =>
-      scope.type === 'locations' &&
-      scope.locationIds.length > 0 &&
-      scope.locationIds.every((id) => effective.byLocation.get(id)?.has('devices:manage')),
-  );
+  return targetAssignments.every(({ scope }) => coversLocations(effective, 'devices:manage', scope));
 }

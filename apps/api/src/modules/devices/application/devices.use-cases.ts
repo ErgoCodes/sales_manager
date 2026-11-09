@@ -67,10 +67,10 @@ export class RevokeDevice {
     const canManage = hasPermissionAnywhere(actor.effective, 'devices:manage');
     const record = await this.uow.run(actor.tenantId, async (scope) => {
       const device = await scope.deviceAdmin.findById(id);
+      if (!device) throw new ResourceNotFound('device');
       if (!canManage) {
-        if (device?.userId !== actor.userId) throw new PermissionDenied('devices:manage');
+        if (device.userId !== actor.userId) throw new PermissionDenied('devices:manage');
       } else {
-        if (!device) throw new ResourceNotFound('device');
         await assertCanManageDevicesOf(scope, actor, device.userId);
       }
       const revoked = (await scope.deviceAdmin.revoke(id, now))!;

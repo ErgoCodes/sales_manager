@@ -16,12 +16,10 @@ export function toScope(stored: StoredAssignment | Scope): AssignmentScope {
 }
 
 export function toAssignments(stored: readonly StoredAssignment[]): Assignment[] {
-  return stored
-    .filter(isLiveAssignment)
-    .map((a) => ({
-      role: { id: a.roleId, key: a.roleKey, isSystem: a.isSystem, permissions: a.permissions },
-      scope: toScope(a),
-    }));
+  return stored.map((a) => ({
+    role: { id: a.roleId, key: a.roleKey, isSystem: a.isSystem, permissions: a.permissions },
+    scope: toScope(a),
+  }));
 }
 
 /**
