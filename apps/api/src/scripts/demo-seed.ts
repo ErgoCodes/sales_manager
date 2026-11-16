@@ -6,6 +6,7 @@ import { withTenant } from '../infrastructure/db/with-tenant';
 import type { PasswordHasher } from '../modules/iam/domain/auth-ports';
 import { assignRole, ensureSystemRoles, insertUser, pgError, withOwnerDatabase } from './provisioning';
 import type { Database } from '../infrastructure/db/database';
+import type { TenantTransaction } from '../infrastructure/db/with-tenant';
 
 /** Fixed so re-running the seed finds the same tenant (a tenant is invisible to RLS outside its own context). */
 export const DEMO_TENANT_ID = '01990000-0000-7000-8000-000000000001';
@@ -22,6 +23,25 @@ const DEMO_LOCATIONS = [
   { code: 'P1', name: 'Punto 1' },
   { code: 'P2', name: 'Punto 2' },
 ] as const;
+
+async function createDemoUser(tx: TenantTransaction, key: keyof typeof DEMO_USERS, hasher: PasswordHasher): Promise<string> {
+  const demo = DEMO_USERS[key];
+  const passwordHash = await hasher.hash(demo.password);
+  try {
+    return await insertUser(tx, DEMO_TENANT_ID, {
+      email: demo.email,
+      displayName: demo.displayName,
+      passwordHash,
+      mustChangePassword: false,
+      passwordExpiresAt: null,
+    });
+  } catch (error) {
+    // Emails are unique across tenants; RLS hides the other tenant's row from the lookup above.
+    const { code, constraint } = pgError(error);
+    if (code === '23505' && constraint === 'users_email_unique') throw new Error(`The email ${demo.email} already belongs to another tenant`);
+    throw error;
+  }
+}
 
 /** Idempotent: existing rows (and passwords changed since) are left untouched. */
 export async function seedDemo(db: Database, hasher: PasswordHasher): Promise<void> {
@@ -45,15 +65,7 @@ export async function seedDemo(db: Database, hasher: PasswordHasher): Promise<vo
     for (const key of ['owner', 'manager', 'cashier'] as const) {
       const demo = DEMO_USERS[key];
       const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.email, demo.email));
-      const userId =
-        existing?.id ??
-        (await insertUser(tx, DEMO_TENANT_ID, {
-          email: demo.email,
-          displayName: demo.displayName,
-          passwordHash: await hasher.hash(demo.password),
-          mustChangePassword: false,
-          passwordExpiresAt: null,
-        }));
+      const userId = existing?.id ?? (await createDemoUser(tx, key, hasher));
       await assignRole(tx, DEMO_TENANT_ID, userId, roleIds[key], key === 'owner' ? undefined : [locationIds[0]!]);
     }
   });

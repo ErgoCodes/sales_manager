@@ -126,9 +126,20 @@ describe('db:seed', () => {
     expect((await admin.query(`select password_hash from users where email = $1`, [DEMO_USERS.owner.email])).rows[0].password_hash).toBe('changed');
   });
 
-  it('refuses to run with NODE_ENV=production', async () => {
-    await expect(runSeed({ ...OWNER_URL(), NODE_ENV: 'production' }, capture().write)).rejects.toThrow(/production/);
+  it.each(['production', 'Production', 'staging', ''])('refuses to run with NODE_ENV=%j', async (nodeEnv) => {
+    await expect(runSeed({ ...OWNER_URL(), NODE_ENV: nodeEnv }, capture().write)).rejects.toThrow(/NODE_ENV/);
     expect(await count('tenants')).toBe(0);
+  });
+
+  it.each([undefined, 'development', 'test'])('runs with NODE_ENV=%s', async (nodeEnv) => {
+    await runSeed({ ...OWNER_URL(), NODE_ENV: nodeEnv }, capture().write);
+    expect(await count('tenants')).toBe(1);
+  });
+
+  it('fails clearly when a demo email already belongs to another tenant', async () => {
+    await runTenantCreate(['--name', 'Mine', '--slug', 'mine', '--owner-email', DEMO_USERS.manager.email], OWNER_URL(), capture().write);
+    await expect(runSeed(OWNER_URL(), capture().write)).rejects.toThrow(new RegExp(`${DEMO_USERS.manager.email}.*another tenant`));
+    expect(await count('tenants')).toBe(1);
   });
 
   it('fails clearly when the demo slug belongs to another tenant', async () => {

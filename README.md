@@ -100,7 +100,7 @@ pnpm --filter api db:seed
 
 `tenant:create` creates the tenant, its system roles and an owner with a temporary password (72 h, must be changed at first login). The password is printed once; save it, it cannot be recovered.
 
-`db:seed` is idempotent and refuses to run with `NODE_ENV=production`. It creates the `demo` tenant with two locations (`P1`, `P2`) and three **development-only** users:
+`db:seed` is idempotent and only runs with `NODE_ENV` unset, `development` or `test`; any other value (including `production`) is refused. It creates the `demo` tenant with two locations (`P1`, `P2`) and three **development-only** users:
 
 | User | Role | Scope | Password |
 | --- | --- | --- | --- |
