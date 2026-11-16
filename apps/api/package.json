@@ -20,7 +20,9 @@
     "keys:generate": "pnpm build && node dist/scripts/generate-keys.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "pnpm build && node dist/scripts/seed.bin.js",
+    "tenant:create": "pnpm build && node dist/scripts/tenant-create.bin.js"
   },
   "dependencies": {
     "@monaco/contracts": "workspace:*",
