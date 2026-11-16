@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createAuthenticatedClient } from '@/lib/api/authenticated';
 import { allowedOrigins, parseServerEnv } from '@/lib/env';
 import { isAllowedOrigin } from '@/lib/security/origin';
-import { clearSession, getSession } from '@/lib/session/server';
+import { clearSession, getSession, refreshSessionCookies } from '@/lib/session/server';
 import { cookies } from 'next/headers';
 
 /** POST only: no GET may change state. Cross-site POSTs are refused (see lib/security/origin.ts). */
@@ -11,8 +11,12 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Origen no permitido', { status: 403 });
   }
   try {
-    if ((await getSession()).accessToken) {
-      const api = await createAuthenticatedClient({ canRefresh: false });
+    const { accessToken, refreshToken } = await getSession();
+    // The access cookie expires before the refresh one: after idling, only the refresh cookie is left.
+    // Refresh first so the session family can still be revoked server-side.
+    const token = accessToken ?? (refreshToken ? await refreshSessionCookies() : null);
+    if (token) {
+      const api = await createAuthenticatedClient({ canRefresh: true, accessToken: token });
       await api.POST('/auth/logout', { signal: AbortSignal.timeout(5000), cache: 'no-store' });
     }
   } catch {

@@ -10,6 +10,8 @@ const serverEnvSchema = z
     CLIENT_IP_HMAC_SECRET: z.string().min(32).optional(),
     // Comma-separated origins this app is served from (CSRF allow-list, serverActions.allowedOrigins).
     APP_ORIGINS: z.string().optional(),
+    // Trusted reverse proxies in front of this app; picks the x-forwarded-for hop (see clientIpFromHeaders). Default 0 = trust none.
+    TRUSTED_PROXY_HOPS: z.string().regex(/^\d{1,2}$/).optional(),
     NODE_ENV: z.string().optional(),
   })
   .superRefine((env, ctx) => {
@@ -37,4 +39,9 @@ export function parseServerEnv(source: Record<string, string | undefined> = proc
 /** Origins allowed to submit state-changing requests. Dev defaults to the local app. */
 export function allowedOrigins(env: ServerEnv): string[] {
   return parseOrigins(env.APP_ORIGINS ?? 'http://localhost:3000');
+}
+
+/** Number of trusted proxies in front of the app (0 when unset: no forwarded header is trusted). */
+export function trustedProxyHops(env: ServerEnv): number {
+  return env.TRUSTED_PROXY_HOPS === undefined ? 0 : Number(env.TRUSTED_PROXY_HOPS);
 }

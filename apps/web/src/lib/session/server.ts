@@ -1,5 +1,6 @@
 import 'server-only';
 import { cookies, headers } from 'next/headers';
+import { parseServerEnv, trustedProxyHops } from '@/lib/env';
 import { clientIpFromHeaders } from '@/lib/security/client-ip';
 import { applyTokens, clearSession, readSession } from './cookies';
 import { refreshSession } from './refresh-api';
@@ -10,7 +11,7 @@ export async function getSession() {
 }
 
 export async function getClientIp(): Promise<string | null> {
-  return clientIpFromHeaders(await headers());
+  return clientIpFromHeaders(await headers(), trustedProxyHops(parseServerEnv()));
 }
 
 /**

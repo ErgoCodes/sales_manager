@@ -10,13 +10,17 @@ const call = (path: string, cookies: Record<string, string> = {}, method = 'GET'
   proxy(
     new NextRequest(`https://app.test${path}`, {
       method,
-      headers: { cookie: Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '), 'x-forwarded-for': '203.0.113.7' },
+      headers: { cookie: Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '), 'x-forwarded-for': '6.6.6.6, 203.0.113.7' },
     }),
   );
 const location = (r: Response) => new URL(r.headers.get('location')!).pathname;
 const setCookie = (r: Response) => r.headers.getSetCookie();
 
-beforeEach(() => refreshSession.mockReset());
+beforeEach(() => {
+  refreshSession.mockReset();
+  vi.stubEnv('API_URL', 'http://api.test');
+  vi.stubEnv('TRUSTED_PROXY_HOPS', '1');
+});
 
 describe('proxy', () => {
   it('sets a CSP with a fresh nonce on every response', async () => {

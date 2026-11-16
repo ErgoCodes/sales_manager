@@ -22,17 +22,26 @@ describe('signClientIp', () => {
 describe('clientIpFromHeaders', () => {
   const h = (init: Record<string, string>) => new Headers(init);
 
-  it('takes the first valid x-forwarded-for hop', () => {
-    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '198.51.100.9, 10.0.0.1' }))).toBe('198.51.100.9');
+  it('trusts nothing by default (0 hops): forwarded headers are ignored', () => {
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '198.51.100.9', 'x-real-ip': '198.51.100.10' }))).toBeNull();
   });
-  it('falls back to x-real-ip', () => {
-    expect(clientIpFromHeaders(h({ 'x-real-ip': '198.51.100.10' }))).toBe('198.51.100.10');
+  it('ignores a forged first hop: takes the hop N positions from the right', () => {
+    const headers = h({ 'x-forwarded-for': '6.6.6.6, 198.51.100.9' });
+    expect(clientIpFromHeaders(headers, 1)).toBe('198.51.100.9');
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '6.6.6.6, 198.51.100.9, 10.0.0.1' }), 2)).toBe('198.51.100.9');
+  });
+  it('returns null when the chain is shorter than the trusted hops', () => {
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '198.51.100.9' }), 2)).toBeNull();
+  });
+  it('falls back to x-real-ip only when hops are trusted and there is no x-forwarded-for', () => {
+    expect(clientIpFromHeaders(h({ 'x-real-ip': '198.51.100.10' }), 1)).toBe('198.51.100.10');
+    expect(clientIpFromHeaders(h({ 'x-real-ip': '198.51.100.10' }), 0)).toBeNull();
   });
   it('normalizes IPv4-mapped IPv6', () => {
-    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '::ffff:198.51.100.11' }))).toBe('198.51.100.11');
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '::ffff:198.51.100.11' }), 1)).toBe('198.51.100.11');
   });
   it('returns null for missing or invalid values', () => {
-    expect(clientIpFromHeaders(h({}))).toBeNull();
-    expect(clientIpFromHeaders(h({ 'x-forwarded-for': 'not-an-ip' }))).toBeNull();
+    expect(clientIpFromHeaders(h({}), 1)).toBeNull();
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': 'not-an-ip' }), 1)).toBeNull();
   });
 });

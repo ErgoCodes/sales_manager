@@ -12,6 +12,8 @@ vi.mock('../refresh-api', () => ({ refreshSession: (...a: unknown[]) => refresh(
 import { getClientIp, getSession, refreshSessionCookies } from '../server';
 
 beforeEach(() => {
+  vi.stubEnv('API_URL', 'http://api.test');
+  vi.stubEnv('TRUSTED_PROXY_HOPS', '1');
   store.clear();
   setSpy.mockReset();
   refresh.mockReset();

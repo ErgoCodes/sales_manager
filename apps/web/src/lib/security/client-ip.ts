@@ -37,16 +37,25 @@ function normalize(ip: string): string | null {
 }
 
 /**
- * The browser's IP as seen by this server: first `x-forwarded-for` hop, then
- * `x-real-ip`. The deployment edge must overwrite these headers (it must not
- * pass through a client-supplied value); the API then trusts only the signed
- * header, never `X-Forwarded-For`. Returns null when nothing valid is present,
- * in which case the header is omitted and the API falls back to the socket peer.
+ * The browser's IP as seen by this server, given how many trusted proxies sit in front of it.
+ * `x-forwarded-for` is a list each proxy appends to, so only the entries added by OUR proxies
+ * can be trusted: the client controls everything to the left. We take the hop `trustedHops`
+ * positions from the right (1 = the address our nearest proxy saw). The first hop is never
+ * trusted by position, because a client can forge it behind an edge that appends.
+ *
+ * `trustedHops = 0` (the default) trusts no forwarded header at all: the result is null, the
+ * signed header is omitted and the API falls back to the socket peer (the BFF itself).
+ * Safe, but rate limits then key on the BFF's address; set TRUSTED_PROXY_HOPS to fix that.
+ * `x-real-ip` is used only when hops are trusted and there is no `x-forwarded-for`.
  */
-export function clientIpFromHeaders(headers: Headers): string | null {
-  const forwarded = headers.get('x-forwarded-for')?.split(',')[0];
-  const candidate = forwarded !== undefined ? normalize(forwarded) : null;
-  if (candidate) return candidate;
+export function clientIpFromHeaders(headers: Headers, trustedHops = 0): string | null {
+  if (!Number.isInteger(trustedHops) || trustedHops < 1) return null;
+  const forwarded = headers.get('x-forwarded-for');
+  if (forwarded !== null) {
+    const chain = forwarded.split(',');
+    const entry = chain.length >= trustedHops ? chain[chain.length - trustedHops] : undefined;
+    return entry === undefined ? null : normalize(entry);
+  }
   const real = headers.get('x-real-ip');
   return real ? normalize(real) : null;
 }

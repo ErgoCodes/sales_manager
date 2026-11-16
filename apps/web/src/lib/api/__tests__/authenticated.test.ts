@@ -5,7 +5,10 @@ vi.mock('next/headers', () => ({
   cookies: async () => ({ get: (n: string) => (n === '__Host-access' ? { value: 'tok' } : undefined), set: vi.fn() }),
   headers: async () => new Headers({ 'x-real-ip': '198.51.100.4' }),
 }));
-vi.mock('@/lib/env', () => ({ parseServerEnv: () => ({ API_URL: 'http://api.test', CLIENT_IP_HMAC_SECRET: 'x'.repeat(32) }) }));
+vi.mock('@/lib/env', () => ({
+  parseServerEnv: () => ({ API_URL: 'http://api.test', CLIENT_IP_HMAC_SECRET: 'x'.repeat(32) }),
+  trustedProxyHops: () => 1,
+}));
 
 import { createAnonymousClient, createAuthenticatedClient } from '../authenticated';
 

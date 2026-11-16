@@ -8,9 +8,10 @@ import type { paths } from './schema';
 /**
  * API client for the signed-in user: bearer from the session cookie plus the signed client-IP header.
  * - `canRefresh: false` (Server Components, which cannot write cookies): a 401 is returned as is.
+ * - `accessToken` overrides the cookie (used right after a refresh in the same request).
  * - `canRefresh: true` (Server Actions, Route Handlers): a 401 refreshes once (single-flight) and retries once.
  */
-export async function createAuthenticatedClient({ canRefresh }: { canRefresh: boolean }) {
+export async function createAuthenticatedClient({ canRefresh, accessToken }: { canRefresh: boolean; accessToken?: string }) {
   const env = parseServerEnv();
   const session = await getSession();
   return createClient<paths>({
@@ -18,7 +19,7 @@ export async function createAuthenticatedClient({ canRefresh }: { canRefresh: bo
     fetch: createBffFetch({
       secret: env.CLIENT_IP_HMAC_SECRET,
       ip: await getClientIp(),
-      accessToken: session.accessToken,
+      accessToken: accessToken ?? session.accessToken,
       refresh: canRefresh ? refreshSessionCookies : undefined,
     }),
   });

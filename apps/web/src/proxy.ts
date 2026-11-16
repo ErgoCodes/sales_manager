@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { ACCESS_COOKIE, applyTokens, clearSession, readSession, type TokenSet } from '@/lib/session/cookies';
 import { buildCsp } from '@/lib/security/csp';
 import { clientIpFromHeaders } from '@/lib/security/client-ip';
+import { parseServerEnv, trustedProxyHops } from '@/lib/env';
 import { refreshSession } from '@/lib/session/refresh-api';
 
 /** Reachable without a session. `/logout` must work even when the session is already gone. */
@@ -40,7 +41,7 @@ export async function proxy(request: NextRequest) {
     mustChange = session.mustChangePassword;
     if (!session.accessToken) {
       if (!session.refreshToken) return redirectTo('/login');
-      const result = await refreshSession(session.refreshToken, clientIpFromHeaders(request.headers));
+      const result = await refreshSession(session.refreshToken, clientIpFromHeaders(request.headers, trustedProxyHops(parseServerEnv())));
       if (result.kind === 'rejected') return redirectTo('/login', true);
       if (result.kind === 'unavailable') {
         return new NextResponse('El servicio no está disponible. Inténtalo de nuevo en unos minutos.', {
