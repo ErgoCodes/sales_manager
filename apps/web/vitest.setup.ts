@@ -18,3 +18,6 @@ globalThis.ResizeObserver ??= class {
   unobserve() {}
   disconnect() {}
 };
+
+// react-remove-scroll (dialog scroll lock) also resolves its own nested React; the lock is irrelevant in jsdom.
+vi.mock('react-remove-scroll', () => ({ RemoveScroll: ({ children }: { children: unknown }) => children }));
