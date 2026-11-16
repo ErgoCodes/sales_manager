@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import createClient from 'openapi-fetch';
 import type { paths } from '../api/schema';
 import { fetchHealth } from '../api/health';
-import { parseServerEnv } from '../env';
+import { allowedOrigins, parseServerEnv } from '../env';
 
 describe('parseServerEnv', () => {
   it('accepts a valid API_URL', () => {
@@ -61,5 +61,18 @@ describe('fetchHealth', () => {
     }) as unknown as typeof fetch;
     await fetchHealth(clientWith(fetchImpl));
     expect(spy).toHaveBeenCalledWith('health: request failed: TypeError: fetch failed');
+  });
+});
+
+describe('parseServerEnv (SP2 session settings)', () => {
+  const prod = { API_URL: 'http://api.test', NODE_ENV: 'production' };
+  it('requires the HMAC secret and the origins in production', () => {
+    expect(() => parseServerEnv(prod)).toThrow(/CLIENT_IP_HMAC_SECRET/);
+    expect(() => parseServerEnv({ ...prod, CLIENT_IP_HMAC_SECRET: 'x'.repeat(32) })).toThrow(/APP_ORIGINS/);
+    expect(parseServerEnv({ ...prod, CLIENT_IP_HMAC_SECRET: 'x'.repeat(32), APP_ORIGINS: 'https://app.test' }).APP_ORIGINS).toBe('https://app.test');
+  });
+  it('rejects a short secret and defaults the origins to localhost outside production', () => {
+    expect(() => parseServerEnv({ API_URL: 'http://api.test', CLIENT_IP_HMAC_SECRET: 'short' })).toThrow(/CLIENT_IP_HMAC_SECRET/);
+    expect(allowedOrigins(parseServerEnv({ API_URL: 'http://api.test' }))).toEqual(['http://localhost:3000']);
   });
 });
