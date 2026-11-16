@@ -35,7 +35,7 @@ describe('AssignmentsEditor (static markup)', () => {
 
   it('puts a built payload in the hidden field and blocks save when a row is invalid', () => {
     const valid = renderToStaticMarkup(<AssignmentsEditor userId={U} roles={roles} locations={locations} initial={[{ id: 'a', roleId: R_CASHIER, scope: { type: 'tenant' } }]} />);
-    expect(valid).toContain(JSON.stringify([{ roleId: R_CASHIER, scope: { type: 'tenant' } }]).replaceAll('"', '&quot;'));
+    expect(valid).toContain(JSON.stringify({ assignments: [{ roleId: R_CASHIER, scope: { type: 'tenant' } }] }).replaceAll('"', '&quot;'));
     const invalid = renderToStaticMarkup(
       <AssignmentsEditor userId={U} roles={roles} locations={locations} initial={[{ id: 'a', roleId: R_MANAGER, scope: { type: 'locations', locationIds: [L1] } }]} />,
     );
@@ -63,9 +63,9 @@ describe('AssignmentsEditor (interaction)', () => {
       <AssignmentsEditor userId={U} roles={roles} locations={locations} initial={[{ id: 'a', roleId: R_CASHIER, scope: { type: 'locations', locationIds: [L1] } }]} />,
     );
     const payload = () => JSON.parse((container.querySelector('input[name="payload"]') as HTMLInputElement).value);
-    expect(payload()).toEqual([{ roleId: R_CASHIER, scope: { type: 'locations', locationIds: [L1] } }]);
+    expect(payload()).toEqual({ assignments: [{ roleId: R_CASHIER, scope: { type: 'locations', locationIds: [L1] } }] });
     act(() => void fireEvent.click(screen.getByRole('checkbox', { name: 'Norte' })));
-    expect(payload()).toEqual([{ roleId: R_CASHIER, scope: { type: 'locations', locationIds: [L1, L2] } }]);
+    expect(payload()).toEqual({ assignments: [{ roleId: R_CASHIER, scope: { type: 'locations', locationIds: [L1, L2] } }] });
     act(() => void fireEvent.click(screen.getByRole('checkbox', { name: 'Centro' })));
     act(() => void fireEvent.click(screen.getByRole('checkbox', { name: 'Norte' })));
     expect(screen.getByRole('alert')).toHaveTextContent('al menos un punto de venta');

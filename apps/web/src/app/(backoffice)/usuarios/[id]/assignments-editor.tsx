@@ -40,7 +40,7 @@ export function AssignmentsEditor({ userId, roles, locations, initial }: { userI
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="id" value={userId} />
-      <input type="hidden" name="payload" value={JSON.stringify(built.ok ? built.assignments : [])} />
+      <input type="hidden" name="payload" value={JSON.stringify({ assignments: built.ok ? built.assignments : [] })} />
       {rows.length === 0 ? <p className="text-sm opacity-70">Este usuario no tiene asignaciones: no podrá hacer nada hasta que le asignes un rol.</p> : null}
       {rows.map((row, index) => (
         <fieldset key={row.key} aria-label={`Asignación ${index + 1}`} className="space-y-3 rounded-md border p-3">
