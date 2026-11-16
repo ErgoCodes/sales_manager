@@ -60,7 +60,6 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                       <>
                         <FormDialog trigger="Restablecer contraseña" title={`Restablecer la contraseña de ${user.displayName}`} description="Se generará una contraseña temporal y se cerrarán todas sus sesiones." submitLabel="Restablecer" action={resetPasswordAction}>
                           <input type="hidden" name="id" value={user.id} />
-                          <input type="hidden" name="email" value={user.email} />
                         </FormDialog>
                         <FormDialog trigger="Desactivar" destructive title={`Desactivar a ${user.displayName}`} description="Perderá el acceso y se cerrarán todas sus sesiones." submitLabel="Desactivar" action={disableUserAction}>
                           <input type="hidden" name="id" value={user.id} />
