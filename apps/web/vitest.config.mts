@@ -18,7 +18,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.{ts,tsx}', 'src/lib/api/schema.d.ts', 'src/app/layout.tsx', 'src/app/page.tsx', 'src/components/ui/**'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/lib/api/schema.d.ts', 'src/app/layout.tsx', 'src/app/(backoffice)/page.tsx', 'src/components/ui/**'],
       // Initial floor for the skeleton; raise as SP2 adds features.
       thresholds: { statements: 80, branches: 70, functions: 80, lines: 80 },
     },

@@ -1,6 +1,5 @@
 import { connection } from 'next/server';
 import { Suspense } from 'react';
-import { LogoutButton } from '@/components/logout-button';
 import { HealthStatus } from '@/components/health-status';
 import { fetchHealth } from '@/lib/api/health';
 
@@ -16,10 +15,7 @@ async function Health() {
 export default function HomePage() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Estado del sistema</h1>
-        <LogoutButton />
-      </div>
+      <h1 className="text-2xl font-semibold">Estado del sistema</h1>
       <Suspense fallback={<p className="text-sm opacity-70">Consultando la API…</p>}>
         <Health />
       </Suspense>
