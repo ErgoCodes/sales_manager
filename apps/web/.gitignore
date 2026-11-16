@@ -3,3 +3,8 @@ next-env.d.ts
 *.tsbuildinfo
 .env
 .env*.local
+
+# Playwright (e2e/.runtime holds throwaway secrets written by e2e/prepare.mjs)
+e2e/.runtime/
+playwright-report/
+test-results/

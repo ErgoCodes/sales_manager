@@ -9,7 +9,7 @@ const config = [
   ...base,
   ...nextCoreWebVitals,
   ...nextTypescript,
-  { ignores: ['.next/**', 'next-env.d.ts', 'src/lib/api/schema.d.ts'] },
+  { ignores: ['.next/**', 'next-env.d.ts', 'src/lib/api/schema.d.ts', 'playwright-report/**', 'test-results/**'] },
 ];
 
 export default config;

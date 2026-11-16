@@ -95,3 +95,54 @@ jobs:
           API_URL: http://localhost:4000
       - name: Build API Docker image
         run: docker build -f apps/api/Dockerfile --build-arg NODE_IMAGE=node:24-alpine -t monaco-api:ci .
+
+  e2e:
+    name: E2E (Playwright, real API + Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      # Superuser of the service container above. prepare.mjs only drops/creates the dedicated
+      # monaco_e2e database, applies infra/postgres/init.sql, migrates and seeds it.
+      E2E_PG_ADMIN_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      # Always run: it skips the download on a cache hit but still installs the OS libraries Chromium needs.
+      - name: Install Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: Run E2E suite (prepares database, seed, secrets and web build first)
+        run: pnpm --filter web test:e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
