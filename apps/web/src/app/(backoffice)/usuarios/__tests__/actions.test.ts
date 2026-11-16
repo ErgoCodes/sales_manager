@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const post = vi.fn();
+const get = vi.fn();
 const revalidatePath = vi.fn();
 vi.mock('next/cache', () => ({ revalidatePath: (p: string) => revalidatePath(p) }));
 vi.mock('next/navigation', () => ({
@@ -8,7 +9,7 @@ vi.mock('next/navigation', () => ({
     throw new Error(`REDIRECT:${to}`);
   },
 }));
-vi.mock('@/lib/api/authenticated', () => ({ createAuthenticatedClient: async () => ({ POST: post }) }));
+vi.mock('@/lib/api/authenticated', () => ({ createAuthenticatedClient: async () => ({ POST: post, GET: get }) }));
 
 import { createUserAction, disableUserAction, resetPasswordAction } from '../actions';
 
@@ -23,6 +24,7 @@ const created = { user: { id: ID }, temporaryPassword: 'tmp-Secret-123456', temp
 
 beforeEach(() => {
   post.mockReset();
+  get.mockReset();
   revalidatePath.mockReset();
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
@@ -48,11 +50,27 @@ describe('createUserAction', () => {
 });
 
 describe('resetPasswordAction', () => {
-  it('returns the new temporary password once', async () => {
+  it('returns the new temporary password once, labelled with the email the API reports', async () => {
     post.mockResolvedValue({ data: { temporaryPassword: 'tmp-Other-123456', temporaryPasswordExpiresAt: created.temporaryPasswordExpiresAt }, response: new Response(null, { status: 200 }) });
-    const state = await resetPasswordAction({}, form({ id: ID, email: 'ana@example.com' }));
-    expect(state.temporaryPassword?.value).toBe('tmp-Other-123456');
+    get.mockResolvedValue({ data: { id: ID, email: 'ana@example.com' }, response: new Response(null, { status: 200 }) });
+    const state = await resetPasswordAction({}, form({ id: ID }));
+    expect(state.temporaryPassword).toEqual({ value: 'tmp-Other-123456', expiresAt: created.temporaryPasswordExpiresAt, email: 'ana@example.com' });
     expect(post).toHaveBeenCalledWith('/users/{id}/reset-password', expect.objectContaining({ params: { path: { id: ID } } }));
+    expect(get).toHaveBeenCalledWith('/users/{id}', expect.objectContaining({ params: { path: { id: ID } } }));
+  });
+
+  it('ignores a tampered email form field', async () => {
+    post.mockResolvedValue({ data: { temporaryPassword: 'tmp-Other-123456', temporaryPasswordExpiresAt: created.temporaryPasswordExpiresAt }, response: new Response(null, { status: 200 }) });
+    get.mockResolvedValue({ data: { id: ID, email: 'ana@example.com' }, response: new Response(null, { status: 200 }) });
+    const state = await resetPasswordAction({}, form({ id: ID, email: 'ceo@evil.example' }));
+    expect(state.temporaryPassword?.email).toBe('ana@example.com');
+  });
+
+  it('still shows the password (without a label) when the user lookup fails', async () => {
+    post.mockResolvedValue({ data: { temporaryPassword: 'tmp-Other-123456', temporaryPasswordExpiresAt: created.temporaryPasswordExpiresAt }, response: new Response(null, { status: 200 }) });
+    get.mockResolvedValue({ error: {}, response: new Response(null, { status: 500 }) });
+    const state = await resetPasswordAction({}, form({ id: ID, email: 'ceo@evil.example' }));
+    expect(state.temporaryPassword).toEqual({ value: 'tmp-Other-123456', expiresAt: created.temporaryPasswordExpiresAt });
   });
 
   it('shows the last-owner 409', async () => {
