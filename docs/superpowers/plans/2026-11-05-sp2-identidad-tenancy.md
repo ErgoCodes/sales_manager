@@ -128,7 +128,7 @@ T2 (IAM) ┘                  └─> T6 (web BFF) ───┴─> T7 (web admi
 - [x] Playwright e2e en `apps/web/e2e` (Chromium ya instalado; en CI con Postgres de servicio o Testcontainers):
   - login del owner, alta de un punto y de un usuario, asignación;
   - login del nuevo usuario, cambio de contraseña obligatorio;
-  - el cashier recibe 403 en otro punto;
+  - el cashier solo ve su punto y recibe 403 en acciones administrativas;
   - logout;
   - un refresh reusado cierra la sesión.
 - [x] Job `e2e` en CI (añadido en `.github/workflows/ci.yml`; sin verificar hasta el primer push, porque no se puede ejecutar GitHub Actions en local).

@@ -135,7 +135,7 @@ pnpm --filter web test:e2e
 
 `test:e2e` primero prepara el entorno (`apps/web/e2e/prepare.mjs`: base de datos, `init.sql`, migraciones, seed demo, secretos efímeros y build de la web; deja todo en `apps/web/e2e/.runtime/`, ignorado por git) y después lanza Playwright, que levanta la API (`:4180`) y la web (`:3180`; cambian con `E2E_API_PORT` y `E2E_WEB_PORT`). Las cookies `__Host-` y `Secure` funcionan sin HTTPS porque Chromium trata `http://localhost` como contexto seguro: no se desactiva ninguna protección. Las credenciales demo salen del propio módulo del seed. Al terminar, `docker rm -f monaco-e2e-pg`.
 
-Flujos cubiertos: alta de punto y usuario con asignación (owner); login del usuario nuevo con cambio de contraseña obligatorio; 403 del cashier en otro punto; logout con revocación inmediata; refresh reusado que cierra la sesión.
+Flujos cubiertos: alta de punto y usuario con asignación (owner); login del usuario nuevo con cambio de contraseña obligatorio; el cashier solo ve su punto y recibe 403 en acciones administrativas (la negativa por alcance de puntos con permiso la cubre el test de integración `admin-isolation`); logout con revocación inmediata; refresh reusado que cierra la sesión.
 
 ## Cómo se trabajó (para seguir igual)
 

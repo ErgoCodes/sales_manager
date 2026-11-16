@@ -127,11 +127,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build workspace packages
         run: pnpm build
+      - name: Read Playwright version
+        id: playwright
+        working-directory: apps/web
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       # Always run: it skips the download on a cache hit but still installs the OS libraries Chromium needs.
       - name: Install Chromium
         run: pnpm --filter web exec playwright install --with-deps chromium

@@ -1,8 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { apiFetch, demo, login } from './support/session';
 
-// Flow 3: the demo cashier is assigned to P1 only. The API answers 403 for anything at P2 or outside the role.
-test('the cashier of one location gets 403 on another location and on admin actions', async ({ page, context }) => {
+// Flow 3: the demo cashier is assigned to P1 only. Two separate facts are shown here:
+//  - location scope: GET /locations returns only P1 (the cashier never sees P2);
+//  - missing permission: the cashier role has no `locations:manage`, so mutations on any location answer 403.
+// The 403 below therefore proves the missing permission, not location scope. The refusal of an action on
+// another location for a role that does hold the permission is covered by the API integration test
+// `location scope` in apps/api/test/integration/admin-isolation.e2e.test.ts.
+test('the cashier only sees its own location and gets 403 on location admin actions', async ({ page, context }) => {
   await login(page, demo.cashier);
   await expect(page).toHaveURL(/\/$/);
 
@@ -16,7 +21,7 @@ test('the cashier of one location gets 403 on another location and on admin acti
   const visible = (await (await apiFetch(context, 'GET', '/locations')).json()) as { items: { id: string; code: string }[] };
   expect(visible.items.map((l) => l.code)).toEqual(['P1']);
 
-  // The owner sees both; its ids are what the cashier must not be able to act on.
+  // The owner sees both; P2's id is a real target for the cashier's (forbidden) mutations.
   const owner = await context.browser()!.newContext();
   const ownerPage = await owner.newPage();
   await login(ownerPage, demo.owner);

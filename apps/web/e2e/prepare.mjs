@@ -19,8 +19,14 @@ const require = createRequire(import.meta.url);
 
 const adminUrl = new URL(process.env.E2E_PG_ADMIN_URL ?? 'postgres://postgres:postgres@127.0.0.1:55432/postgres');
 const dbName = process.env.E2E_DB_NAME ?? 'monaco_e2e';
-if (!/^[a-z0-9_]+$/.test(dbName) || dbName === 'monaco' || dbName === 'postgres') {
-  throw new Error(`Refusing E2E_DB_NAME "${dbName}": use a dedicated database (lowercase letters, digits, "_"), never "monaco" or "postgres".`);
+// This script DROPs the database and (re)applies init.sql, which alters the cluster-wide monaco_* roles.
+// So it only accepts a dedicated "*_e2e" database on a loopback server, unless a remote one is opted in.
+if (!/^[a-z0-9_]*_e2e$/.test(dbName)) {
+  throw new Error(`Refusing E2E_DB_NAME "${dbName}": it must be a dedicated database whose name ends in "_e2e" (lowercase letters, digits, "_").`);
+}
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+if (!LOOPBACK.has(adminUrl.hostname) && process.env.E2E_ALLOW_REMOTE_PG !== '1') {
+  throw new Error(`Refusing E2E_PG_ADMIN_URL host "${adminUrl.hostname}": the e2e database is dropped and recreated, so only localhost, 127.0.0.1 or ::1 are accepted. Set E2E_ALLOW_REMOTE_PG=1 to opt in to a disposable remote server.`);
 }
 const apiPort = process.env.E2E_API_PORT ?? '4180';
 const webPort = process.env.E2E_WEB_PORT ?? '3180';
