@@ -13,10 +13,13 @@ export interface FormDialogProps {
   title: string;
   description?: string;
   submitLabel: string;
-  action: Action;
+  /** Required unless `readOnly`. */
+  action?: Action;
   /** Form fields (hidden ids included). Absent for plain confirmations. */
   children?: ReactNode;
   destructive?: boolean;
+  /** Informational dialog: no submit button, the cancel button reads "Cerrar". */
+  readOnly?: boolean;
   triggerVariant?: 'default' | 'outline' | 'ghost';
 }
 
@@ -40,9 +43,9 @@ export function FormDialog({ trigger, triggerVariant = 'outline', destructive, .
   );
 }
 
-function FormDialogBody({ title, description, submitLabel, action, children, destructive, close }: Omit<FormDialogProps, 'trigger' | 'triggerVariant'> & { close: () => void }) {
+function FormDialogBody({ title, description, submitLabel, action, children, destructive, readOnly, close }: Omit<FormDialogProps, 'trigger' | 'triggerVariant'> & { close: () => void }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(async (prev, formData) => {
-    const next = await action(prev, formData);
+    const next = action ? await action(prev, formData) : { done: true };
     if (next.done && !next.temporaryPassword) close();
     return next;
   }, {});
@@ -72,11 +75,13 @@ function FormDialogBody({ title, description, submitLabel, action, children, des
           ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancelar
+              {readOnly ? 'Cerrar' : 'Cancelar'}
             </Button>
-            <Button type="submit" disabled={pending} variant={destructive ? 'destructive' : 'default'}>
-              {pending ? 'Procesando…' : submitLabel}
-            </Button>
+            {readOnly ? null : (
+              <Button type="submit" disabled={pending} variant={destructive ? 'destructive' : 'default'}>
+                {pending ? 'Procesando…' : submitLabel}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       )}
