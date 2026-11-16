@@ -1,14 +1,9 @@
 import type { AuthenticatedActor } from '../domain/actor';
-import type { AccessTokenService, StoredAssignment, TenantUnitOfWork } from '../domain/auth-ports';
+import type { AccessTokenService, TenantUnitOfWork } from '../domain/auth-ports';
 import { effectivePermissions } from '../domain/permissions';
-import type { Assignment } from '../domain/types';
+import { toAssignments } from './admin-support';
 
-export function toAssignments(stored: readonly StoredAssignment[]): Assignment[] {
-  return stored.map((a) => ({
-    role: { id: a.roleId, key: a.roleKey, isSystem: a.isSystem, permissions: a.permissions },
-    scope: a.scope === 'tenant' ? { type: 'tenant' } : { type: 'locations', locationIds: a.locationIds },
-  }));
-}
+export { isLiveAssignment, toAssignments, toScope } from './admin-support';
 
 /**
  * Per-request authentication (AuthGuard): verifies the access token, then, in

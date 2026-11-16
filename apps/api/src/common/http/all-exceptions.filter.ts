@@ -4,6 +4,8 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  Inject,
+  Optional,
 } from '@nestjs/common';
 import type { ErrorResponse } from '@monaco/contracts';
 import type { Request, Response } from 'express';
@@ -71,16 +73,45 @@ function explicitCode(response: string | object): string | undefined {
 /** Nest's unmatched-route 404 is `Cannot <METHOD> <url>`, url including the query. */
 const ROUTE_NOT_FOUND = /^Cannot ([A-Z]+) (.*)$/s;
 
+/** SQLSTATE of a Postgres error, also when Drizzle wraps it ("Failed query", error in `cause`). */
+function pgCode(error: unknown): string | undefined {
+  const candidates = [error, (error as { cause?: unknown } | null)?.cause];
+  for (const candidate of candidates) {
+    const code = typeof candidate === 'object' && candidate !== null ? (candidate as { code?: unknown }).code : undefined;
+    if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return code;
+  }
+  return undefined;
+}
+
+/**
+ * Constraint violations that clients can trigger (ADR 0003, SP2 spec). Generic
+ * on purpose: a composite FK failing on another tenant's id is a plain 404 (it
+ * must not confirm the id exists), and a 409 never names the constraint.
+ */
+const CONSTRAINT_ERRORS: Record<string, MappedError> = {
+  '23503': { status: HttpStatus.NOT_FOUND, body: { error: { code: 'NOT_FOUND', message: 'Not found' } } },
+  '23505': { status: HttpStatus.CONFLICT, body: { error: { code: 'CONFLICT', message: 'Conflict' } } },
+};
+
 export interface MappedError {
   status: number;
   body: ErrorResponse;
 }
 
+export type ExceptionMapper = (exception: unknown) => MappedError | null;
+
+export const EXCEPTION_MAPPERS = Symbol('EXCEPTION_MAPPERS');
+
 /**
  * Pure mapping from any thrown value to the contract's `ErrorResponse`.
  * 5xx always get a generic message; internals go to the log, never the client.
  */
-export function mapException(exception: unknown): MappedError {
+export function mapException(exception: unknown, mappers: readonly ExceptionMapper[] = []): MappedError {
+  for (const mapper of mappers) {
+    const mapped = mapper(exception);
+    if (mapped) return mapped;
+  }
+
   if (exception instanceof ZodValidationException) {
     return {
       status: HttpStatus.BAD_REQUEST,
@@ -131,6 +162,9 @@ export function mapException(exception: unknown): MappedError {
     };
   }
 
+  const constraint = CONSTRAINT_ERRORS[pgCode(exception) ?? ''];
+  if (constraint) return constraint;
+
   return {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     body: { error: { code: 'INTERNAL_ERROR', message: INTERNAL_MESSAGE } },
@@ -145,15 +179,23 @@ export function mapException(exception: unknown): MappedError {
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly logger: PinoLogger) {
+  private readonly mappers: readonly ExceptionMapper[];
+
+  constructor(
+    private readonly logger: PinoLogger,
+    @Optional()
+    @Inject(EXCEPTION_MAPPERS)
+    mappers?: ExceptionMapper | readonly ExceptionMapper[],
+  ) {
     this.logger.setContext(AllExceptionsFilter.name);
+    this.mappers = mappers ? (Array.isArray(mappers) ? mappers : [mappers]) : [];
   }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
-    const { status, body } = mapException(exception);
+    const { status, body } = mapException(exception, this.mappers);
 
     if (status >= 500) {
       const err =

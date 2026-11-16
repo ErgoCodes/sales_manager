@@ -83,10 +83,30 @@ cp apps/web/.env.example apps/web/.env.local # 2. web env (development values)
 pnpm --filter api keys:generate              # 2b. dev JWT key + IP secret: paste into apps/api/.env
 pnpm db:up                                   # 3. start Postgres 17 in Docker
 pnpm db:migrate                              # 4. apply migrations
+pnpm --filter api db:seed                    # 4b. optional: demo tenant with 3 development users
 pnpm dev                                     # 5. API on http://localhost:4000, web on http://localhost:3000
 ```
 
 Stop the database with `pnpm db:down`. The API health check is `GET http://localhost:4000/health`.
+
+### Tenants and demo data
+
+Both commands connect as the schema owner (`DATABASE_MIGRATION_URL`), like `db:migrate`.
+
+```bash
+pnpm --filter api tenant:create --name "Acme" --slug acme --owner-email boss@acme.example
+pnpm --filter api db:seed
+```
+
+`tenant:create` creates the tenant, its system roles and an owner with a temporary password (72 h, must be changed at first login). The password is printed once; save it, it cannot be recovered.
+
+`db:seed` is idempotent and only runs with `NODE_ENV` unset, `development` or `test`; any other value (including `production`) is refused. It creates the `demo` tenant with two locations (`P1`, `P2`) and three **development-only** users:
+
+| User | Role | Scope | Password |
+| --- | --- | --- | --- |
+| `owner@demo.example` | owner | whole tenant | `demo-owner-pass` |
+| `manager@demo.example` | manager | location P1 | `demo-manager-pass` |
+| `cashier@demo.example` | cashier | location P1 | `demo-cashier-pass` |
 
 ## Repository layout
 

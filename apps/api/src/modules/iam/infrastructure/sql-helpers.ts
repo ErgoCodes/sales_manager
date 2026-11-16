@@ -1,6 +1,13 @@
+import { PERMISSIONS, type Permission } from '@monaco/contracts';
 import type { SQL } from 'drizzle-orm';
 
 import type { TenantTransaction } from '../../../infrastructure/db/with-tenant';
+
+const CATALOG = new Set<string>(PERMISSIONS);
+
+/** Filters raw database strings to validated permissions in the contracts catalog. */
+export const filterCatalogPermissions = (permissions: readonly string[]): Permission[] =>
+  permissions.filter((p): p is Permission => CATALOG.has(p));
 
 /** Rows of a raw query run on a tenant-scoped transaction. */
 export async function rows<T>(tx: TenantTransaction, query: SQL): Promise<T[]> {

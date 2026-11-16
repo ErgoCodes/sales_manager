@@ -12,7 +12,7 @@ import { ZodSerializationException, ZodValidationException } from 'nestjs-zod';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { AllExceptionsFilter, mapException, stripQuery } from '../all-exceptions.filter';
+import { AllExceptionsFilter, type ExceptionMapper, mapException, stripQuery } from '../all-exceptions.filter';
 
 function zodErrorFor(schema: z.ZodType, input: unknown): z.ZodError {
   const result = schema.safeParse(input);
@@ -115,8 +115,47 @@ describe('mapException', () => {
   });
 });
 
+describe('mapException: Postgres constraint errors', () => {
+  // Drizzle wraps the driver error ("Failed query: ..."); the Postgres error is the cause.
+  const wrapped = (code: string) => Object.assign(new Error('Failed query: insert ...'), { cause: Object.assign(new Error('violates'), { code }) });
+
+  it('turns a foreign-key violation (23503) into a generic 404: it must not reveal ids of other tenants', () => {
+    expect(mapException(wrapped('23503'))).toEqual({ status: 404, body: { error: { code: 'NOT_FOUND', message: 'Not found' } } });
+  });
+
+  it('turns a unique violation (23505) into a generic 409, without naming the constraint', () => {
+    expect(mapException(wrapped('23505'))).toEqual({ status: 409, body: { error: { code: 'CONFLICT', message: 'Conflict' } } });
+    expect(mapException(Object.assign(new Error('raw'), { code: '23505' })).status).toBe(409);
+  });
+
+  it('keeps any other database error a 500', () => {
+    expect(mapException(wrapped('42501')).status).toBe(500);
+    expect(mapException(Object.assign(new Error('x'), { cause: 'text' })).status).toBe(500);
+  });
+});
+
+describe('mapException: custom exception mappers', () => {
+  it('delegates to custom exception mappers and respects their status and body', () => {
+    class CustomDomainError extends Error {}
+    const mapper: ExceptionMapper = (err) =>
+      err instanceof CustomDomainError
+        ? { status: 400, body: { error: { code: 'CUSTOM_ERROR', message: 'Custom failure' } } }
+        : null;
+
+    const result = mapException(new CustomDomainError('ignored'), [mapper]);
+    expect(result).toEqual({ status: 400, body: { error: { code: 'CUSTOM_ERROR', message: 'Custom failure' } } });
+    expect(ErrorResponse.parse(result.body)).toEqual(result.body);
+  });
+
+  it('falls back to default mapping when custom mapper returns null', () => {
+    const mapper: ExceptionMapper = () => null;
+    const result = mapException(new NotFoundException('Not found'), [mapper]);
+    expect(result.status).toBe(404);
+  });
+});
+
 describe('AllExceptionsFilter', () => {
-  function setup(headersSent = false) {
+  function setup(headersSent = false, mappers: readonly ExceptionMapper[] = []) {
     const logger = { setContext: vi.fn(), error: vi.fn() };
     const json = vi.fn();
     const response = { headersSent, status: vi.fn(() => ({ json })) };
@@ -124,7 +163,7 @@ describe('AllExceptionsFilter', () => {
     const host = {
       switchToHttp: () => ({ getRequest: () => request, getResponse: () => response }),
     } as unknown as ArgumentsHost;
-    const filter = new AllExceptionsFilter(logger as unknown as PinoLogger);
+    const filter = new AllExceptionsFilter(logger as unknown as PinoLogger, mappers);
     return { filter, host, logger, response, json };
   }
 
@@ -152,6 +191,19 @@ describe('AllExceptionsFilter', () => {
     filter.catch(new NotFoundException(), host);
     expect(logger.error).not.toHaveBeenCalled();
     expect(response.status).toHaveBeenCalledWith(404);
+  });
+
+  it('does not log mapped custom errors and responds with mapped status and body', () => {
+    class CustomDomainError extends Error {}
+    const mapper: ExceptionMapper = (err) =>
+      err instanceof CustomDomainError
+        ? { status: 401, body: { error: { code: 'UNAUTHORIZED', message: 'Custom unauthorized' } } }
+        : null;
+    const { filter, host, logger, response, json } = setup(false, [mapper]);
+    filter.catch(new CustomDomainError(), host);
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(response.status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith({ error: { code: 'UNAUTHORIZED', message: 'Custom unauthorized' } });
   });
 
   it('does not write twice when headers were already sent', () => {

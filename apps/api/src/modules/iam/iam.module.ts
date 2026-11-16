@@ -28,6 +28,7 @@ import { AuthGuard } from './http/auth.guard';
 import { MeController } from './http/me.controller';
 import {
   ACCESS_TOKEN_SERVICE,
+  ADMIN_UNIT_OF_WORK,
   CLOCK,
   PASSWORD_HASHER,
   PRE_AUTH_LOOKUP,
@@ -36,6 +37,7 @@ import {
   TENANT_UNIT_OF_WORK,
 } from './iam.tokens';
 import { Argon2PasswordHasher } from './infrastructure/argon2-password-hasher';
+import { DrizzleAdminUnitOfWork } from './infrastructure/drizzle-admin-unit-of-work';
 import { DrizzleTenantUnitOfWork } from './infrastructure/drizzle-tenant-unit-of-work';
 import { JoseAccessTokenService } from './infrastructure/jose-access-token.service';
 import { PgPreAuthLookup } from './infrastructure/pg-pre-auth-lookup';
@@ -45,7 +47,9 @@ import { systemClock } from './infrastructure/system-clock';
 
 /**
  * Identity and access (SP2). Composition root: ports -> adapters, use cases
- * built with useFactory (ADR 0001), and the global AuthGuard.
+ * built with useFactory (ADR 0001), and the global AuthGuard. It also provides
+ * the shared ports of the administration modules (admin unit of work, clock,
+ * password hasher) and re-exports the rate limiter for POST /users.
  */
 @Module({
   imports: [RateLimitModule],
@@ -64,6 +68,7 @@ import { systemClock } from './infrastructure/system-clock';
     { provide: REFRESH_TOKEN_CODEC, useFactory: () => new Sha256RefreshTokenCodec() },
     { provide: PRE_AUTH_LOOKUP, inject: [DATABASE], useFactory: (db: Database) => new PgPreAuthLookup(db) },
     { provide: TENANT_UNIT_OF_WORK, inject: [DATABASE], useFactory: (db: Database) => new DrizzleTenantUnitOfWork(db) },
+    { provide: ADMIN_UNIT_OF_WORK, inject: [DATABASE], useFactory: (db: Database) => new DrizzleAdminUnitOfWork(db) },
     {
       provide: SECURITY_LOG,
       inject: [PinoLogger],
@@ -115,6 +120,6 @@ import { systemClock } from './infrastructure/system-clock';
       useFactory: (reflector: Reflector, authenticate: Authenticate) => new AuthGuard(reflector, authenticate),
     },
   ],
-  exports: [Authenticate, TENANT_UNIT_OF_WORK],
+  exports: [Authenticate, TENANT_UNIT_OF_WORK, ADMIN_UNIT_OF_WORK, CLOCK, PASSWORD_HASHER, RateLimitModule],
 })
 export class IamModule {}

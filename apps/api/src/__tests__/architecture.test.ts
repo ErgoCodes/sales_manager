@@ -86,4 +86,16 @@ describe('hexagonal import boundaries', () => {
     ].join('\n');
     expect(await restrictedImports(applicationFile, code)).toEqual([]);
   });
+
+  it('src/common cannot import from concrete feature modules (ADR 0001)', async () => {
+    const commonFile = 'src/common/http/probe.ts';
+    const forbidden = [
+      "import { toMappedDomainError } from '../../modules/iam/http/auth-http-errors';",
+      "import { IamModule } from '../../modules/iam/iam.module';",
+      "import { UsersController } from '../../modules/users/http/users.controller';",
+    ];
+    for (const code of forbidden) {
+      expect(await restrictedImports(commonFile, `${code}\nexport {};\n`), code).not.toEqual([]);
+    }
+  });
 });

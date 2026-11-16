@@ -71,12 +71,23 @@ El dominio lanza errores con `code` estable y sin HTTP; el filtro de la API (T4)
 
 Orden en el caso de uso: `authorize` (403) → existencia/tenant (404) → `assertNoEscalation` (422/403/409) → mutex del tenant → mutación → `assertOwnerInvariant` (409).
 
+**Ajuste de T4 (implementación):** en las mutaciones que toman el mutex (asignaciones, desactivar, resetear, editar y borrar roles), el mutex se toma **al principio** de la transacción, justo después de `authorize`, y la existencia y `assertNoEscalation` se evalúan con el estado leído ya bajo el lock. Las respuestas son las mismas, pero así la escalada se valida contra las asignaciones vigentes y no contra una lectura previa que otra petición concurrente pudo cambiar. El invariante se comprueba releyendo los Owners de la base después de mutar (`AssignmentRepository.ownerCandidates`).
+
 ### 7. Contratos y calidad
 
 - Los esquemas de `auth`, `me`, `locations`, `users`, `roles`, `assignments`, `devices` y `audit-events` siguen la convención del [ADR 0002](0002-contratos-zod-openapi.md) (`.meta({ id })`, `Paginated(item, id)`).
 - Contraseñas: 12 a 256 caracteres. El tope evita que un cuerpo enorme convierta a argon2 en un vector de DoS; no se imponen reglas de composición.
 - La contraseña temporal la **genera el servidor** y se devuelve una sola vez (`CreateUserResponse`, `ResetPasswordResponse`); no se acepta una elegida por el admin.
 - `domain/` es TypeScript puro (la regla de lint de fronteras de ADR 0001 ya cubre `src/modules/*/domain/**` y un test de arquitectura lo comprueba para `iam`). Tiene umbral de cobertura del **100%** por carpeta en `vitest.config.mts`, y `packages/contracts` exige 100% de ramas.
+
+### 8. La API de administración (SP2·T4)
+
+- Módulos `locations`, `users`, `roles`, `assignments`, `devices` y `audit` (ADR 0001). Sus repositorios solo los construye `DrizzleAdminUnitOfWork` (`iam/infrastructure`) sobre una `TenantTransaction`, igual que en T3.
+- Un `ForbiddenEscalation` revierte la transacción; su `reason` se guarda como `audit_event` `escalation_denied` (con la operación) en una transacción propia (`runAdmin`) y el cliente solo ve un 403 genérico.
+- `DELETE /roles/:id` exige, además de `assertRoleDeletable`, poder crear ese rol (`create_role` sobre sus permisos): borrar quita permisos igual que editar.
+- `PUT /users/:id/assignments` exige `users:manage` **y** `roles:manage`; un rol o punto desconocido (o de otro tenant) da 404 y un punto archivado también. Los puntos archivados no cuentan en las asignaciones actuales (no otorgan nada).
+- Un reset no puede dejar al tenant sin Owner (no cambia estado ni asignaciones); igual toma el mutex y valida el invariante, y el test de concurrencia comprueba que dos resets cruzados entre Owners terminan con ambos activos.
+- Mapeo HTTP: `PermissionDenied`/`ForbiddenEscalation` → 403 `FORBIDDEN`; `ResourceNotFound` y el 23503 de una FK compuesta → 404 `NOT_FOUND`; el 23505 → 409 `CONFLICT`; `OwnerInvariantViolation` → 409 `LAST_OWNER`; `SystemRoleImmutable` → 409 `SYSTEM_ROLE_IMMUTABLE`; `RoleInUse` → 409 `ROLE_IN_USE`; `InvalidScope` → 422 `INVALID_SCOPE`. Un email existente en `POST /users` (de cualquier tenant) da 409 `Could not create the user` y un `user_create_conflict`.
 
 ## Alternativas descartadas
 

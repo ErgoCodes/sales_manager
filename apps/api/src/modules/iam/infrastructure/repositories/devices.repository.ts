@@ -34,11 +34,11 @@ export class DevicesRepository implements DeviceRepository {
     await this.tx.execute(sql`update devices set last_seen_at = ${now} where id = ${deviceId}`);
   }
 
-  async revokeAllExcept(userId: string, keepDeviceId: string, now: Date): Promise<string[]> {
+  async revokeAllExcept(userId: string, keepDeviceId: string | null, now: Date): Promise<string[]> {
     const revoked = await rows<{ id: string }>(
       this.tx,
       sql`update devices set revoked_at = ${now}
-          where user_id = ${userId} and id <> ${keepDeviceId} and revoked_at is null
+          where user_id = ${userId} and (${keepDeviceId}::uuid is null or id <> ${keepDeviceId}::uuid) and revoked_at is null
           returning id`,
     );
     return revoked.map((row) => row.id);

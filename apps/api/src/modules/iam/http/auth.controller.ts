@@ -11,7 +11,6 @@ import { RefreshSession } from '../application/refresh-session.use-case';
 import type { AuthenticatedActor } from '../domain/actor';
 import { AllowPendingPasswordChange, ClientIp, CurrentActor, Public } from './auth.decorators';
 import { AuthTokensDto, ChangePasswordRequestDto, LoginRequestDto, RefreshRequestDto, RefreshResponseDto } from './auth.dto';
-import { rethrowHttp } from './auth-http-errors';
 
 @ApiTags('auth')
 @ApiErrorResponse()
@@ -36,7 +35,7 @@ export class AuthController {
   })
   @ZodResponse({ status: 200, description: 'Access and refresh tokens', type: AuthTokensDto })
   postLogin(@Body() body: LoginRequestDto, @ClientIp() ip: string | null) {
-    return this.login.execute({ ...body, ip }).catch(rethrowHttp);
+    return this.login.execute({ ...body, ip });
   }
 
   @Post('refresh')
@@ -52,7 +51,7 @@ export class AuthController {
   })
   @ZodResponse({ status: 200, description: 'New tokens', type: RefreshResponseDto })
   postRefresh(@Body() body: RefreshRequestDto, @ClientIp() ip: string | null) {
-    return this.refreshSession.execute({ refreshToken: body.refreshToken, ip }).catch(rethrowHttp);
+    return this.refreshSession.execute({ refreshToken: body.refreshToken, ip });
   }
 
   @Post('logout')
@@ -78,6 +77,6 @@ export class AuthController {
   })
   @ZodResponse({ status: 200, description: 'New tokens for the current device', type: AuthTokensDto })
   postPassword(@CurrentActor() actor: AuthenticatedActor, @Body() body: ChangePasswordRequestDto, @ClientIp() ip: string | null) {
-    return this.changePassword.execute(actor, { ...body, ip }).catch(rethrowHttp);
+    return this.changePassword.execute(actor, { ...body, ip });
   }
 }

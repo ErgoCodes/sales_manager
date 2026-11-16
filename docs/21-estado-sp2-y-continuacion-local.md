@@ -13,8 +13,8 @@
 | Plan de SP2 | Hecho | Viaja con el PR de T1 | `docs/superpowers/plans/2026-11-05-sp2-identidad-tenancy.md` |
 | T1 · Esquema IAM en Postgres | Mergeado en `main` | `…-sp2-t1` · [#30](https://github.com/ErgoCodes/sales_manager/pull/30) | Mergeado |
 | T2 · Dominio IAM + contratos | Mergeado en `main` | `…-sp2-t2` · [#31](https://github.com/ErgoCodes/sales_manager/pull/31) | Mergeado |
-| T3 · Autenticación en la API | Completo, fixes de seguridad aplicados | `…-sp2-t3` | Re-verificado: 89/89 tests de integración pasando |
-| T4 · API de administración | Sin empezar | — | Depende de T3 |
+| T3 · Autenticación en la API | Mergeado en `main` | `…-sp2-t3` · [#34](https://github.com/ErgoCodes/sales_manager/pull/34) | Mergeado |
+| T4 · API de administración | Completo, fixes de seguridad aplicados | `…-sp2-t4` | Verificado: 44 suites unitarias y 14 suites de integración (132 tests) pasando |
 | T5 · CLI `tenant:create` + seed demo | Sin empezar | — | Depende de T4 |
 | T6 · Sesión web (BFF), CSRF, CSP | Sin empezar | — | Depende de T3; puede ir en paralelo con T4 |
 | T7 · Back-office web | Sin empezar | — | Depende de T4 y T6 |
@@ -25,12 +25,14 @@ El estado vivo de cada tarea está en Notion: proyecto «Mercado Mónaco — Pla
 ## Pendiente inmediato (en este orden)
 
 1. ~~**Revisar y mergear #30 y luego #31.**~~ Mergeados en `main`.
-2. ~~**Cerrar T3.**~~ Fixes aplicados y verificados:
+2. ~~**Cerrar T3.**~~ Mergeado en `main` (#34) tras aplicar y verificar fixes de seguridad:
    - **[RESUELTO] Carrera en revocación de familia de refresh:** Serialización con bloqueo de fila de dispositivo (`FOR NO KEY UPDATE`) en rotaciones y revocaciones (`ba272a8`), más test concurrente de integración.
    - **[RESUELTO] Contraseña temporal vencida:** Rechazo explícito si `mustChangePassword && passwordExpiresAt <= now` (`09e6ce6`).
    - **[RESUELTO] Rate limit e IPv6:** Clave agrupada por `/64` e índice en `rate_limits.window_expires_at` (`282db3d`).
    - 89/89 tests de integración y 356 tests unitarios pasando.
-3. **Seguir con T4** (y T6 en paralelo), según el plan de SP2.
+3. ~~**Implementar y cerrar T4.**~~ Módulos administrativos (`locations`, `users`, `roles`, `assignments`, `devices`, `audit-events`), `DrizzleAdminUnitOfWork`, mapeo de errores de dominio/Postgres, rate limit en `POST /users`, tests de integración de aislamiento cross-tenant, no escalada, alcance por puntos y último Owner concurrente, más fix de seguridad:
+   - **[RESUELTO] Verdad vacua en alcance con ubicaciones archivadas:** `shortfall` y `canManageDevicesOf` exigen `scope.locationIds.length > 0` para que una asignación cuyas ubicaciones fueron todas archivadas solo pueda ser cubierta por alcance `tenant`.
+4. **Seguir con T5 y T6**, según el plan de SP2.
 
 ## Lo que hay que saber de T1–T3
 

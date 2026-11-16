@@ -1,7 +1,9 @@
 import { ADMIN_PERMISSIONS, PERMISSIONS } from '@monaco/contracts';
 import { describe, expect, it } from 'vitest';
 
+import { PermissionDenied } from '../errors';
 import {
+  authorize,
   can,
   effectivePermissions,
   hasPermissionAnywhere,
@@ -132,5 +134,28 @@ describe('toGrants', () => {
   });
   it('is empty without permissions', () => {
     expect(toGrants(effectivePermissions([]))).toEqual([]);
+  });
+});
+
+describe('authorize', () => {
+  const effective = effectivePermissions([atLocations(MANAGER_ROLE, LOC_A)]);
+
+  it('passes when can() holds, at the given location', () => {
+    expect(() => authorize({ effective }, 'sales:void', LOC_A)).not.toThrow();
+  });
+
+  it.each([
+    ['other location', LOC_B],
+    ['no location for a location permission', undefined],
+  ] as const)('throws PermissionDenied (403) otherwise: %s', (_label, location) => {
+    const error = (() => {
+      try {
+        authorize({ effective }, 'sales:void', location);
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(error).toBeInstanceOf(PermissionDenied);
+    expect(error).toMatchObject({ code: 'permission_denied', permission: 'sales:void', message: 'Forbidden' });
   });
 });
