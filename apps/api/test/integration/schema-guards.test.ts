@@ -75,7 +75,11 @@ describe('real schema guards (ADR 0003)', () => {
     expect(rows.map((row) => row.relname)).toEqual([
       'audit_events',
       'devices',
+      'inventory_documents',
+      'inventory_movements',
+      'location_products',
       'locations',
+      'products',
       'rate_limits',
       'refresh_tokens',
       'role_assignment_locations',
@@ -106,7 +110,12 @@ describe('real schema guards (ADR 0003)', () => {
     expect(Object.fromEntries(rows.map((row) => [row.relname, row.privileges]))).toEqual({
       audit_events: ['INSERT', 'SELECT'],
       devices: noDelete,
+      // Append-only ledger (ADR 0006): no UPDATE, no DELETE.
+      inventory_documents: ['INSERT', 'SELECT'],
+      inventory_movements: ['INSERT', 'SELECT'],
+      location_products: noDelete,
       locations: noDelete,
+      products: noDelete,
       refresh_tokens: noDelete,
       role_assignment_locations: crud,
       role_assignments: crud,

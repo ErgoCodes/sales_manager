@@ -3,7 +3,8 @@ import { join, relative, resolve } from 'node:path';
 
 import { is } from 'drizzle-orm';
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
-import { PERMISSIONS } from '@monaco/contracts';
+import { EXIT_REASONS, INVENTORY_DOCUMENT_KINDS, PERMISSIONS } from '@monaco/contracts';
+import { CATEGORIES, INVENTORY_MOVEMENT_KINDS, UNITS_OF_MEASURE } from '@monaco/domain';
 import { describe, expect, it } from 'vitest';
 
 import * as schema from '../schema';
@@ -56,5 +57,19 @@ describe('tenancy guards', () => {
     const check: string = snapshot.tables['public.role_permissions'].checkConstraints.role_permissions_permission_check.value;
     const values = [...check.matchAll(/'([^']+)'/g)].map((match) => match[1]);
     expect(values.sort()).toEqual([...PERMISSIONS].sort());
+  });
+
+  it('the latest migration snapshot has the catalog and inventory CHECKs of the current shared catalogs (no pending db:generate)', () => {
+    const journal = JSON.parse(readFileSync(join(apiRoot, 'drizzle/meta/_journal.json'), 'utf8')) as { entries: { idx: number }[] };
+    const last = String(journal.entries.at(-1)!.idx).padStart(4, '0');
+    const { tables } = JSON.parse(readFileSync(join(apiRoot, `drizzle/meta/${last}_snapshot.json`), 'utf8'));
+    const listed = (table: string, name: string): string[] =>
+      [...(tables[`public.${table}`].checkConstraints[name].value as string).matchAll(/'([^']+)'/g)].map((match) => match[1]!).sort();
+    const sorted = (values: readonly string[]) => [...values].sort();
+    expect(listed('products', 'products_unit_of_measure_check')).toEqual(sorted(UNITS_OF_MEASURE.map((unit) => unit.value)));
+    expect(listed('products', 'products_category_check')).toEqual(sorted(CATEGORIES));
+    expect(listed('inventory_movements', 'inventory_movements_kind_check')).toEqual(sorted(INVENTORY_MOVEMENT_KINDS));
+    expect(listed('inventory_documents', 'inventory_documents_kind_check')).toEqual(sorted(INVENTORY_DOCUMENT_KINDS));
+    expect(listed('inventory_documents', 'inventory_documents_reason_check')).toEqual(sorted(EXIT_REASONS));
   });
 });

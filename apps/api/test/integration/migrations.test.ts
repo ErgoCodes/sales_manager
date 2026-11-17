@@ -14,6 +14,8 @@ const migrationsFolder = resolve(apiRoot, 'drizzle');
 const initSql = readFileSync(resolve(apiRoot, '../../infra/postgres/init.sql'), 'utf8');
 const DATABASE = 'monaco_upgrade';
 const SP1_MIGRATIONS = 2;
+// 0000-0009: everything up to the end of SP3·T2 (before the catalog/inventory tables).
+const T2_MIGRATIONS = 10;
 
 const urlFor = (base: string) => {
   const url = new URL(base);
@@ -92,8 +94,8 @@ describe('migrations on a database that already has the SP1 schema', () => {
               (select array_agg(proowner::regrole::text) from pg_proc
                  where proname like 'auth\\_lookup\\_%' or proname = 'rate_limit_hit') as owners`,
     );
-    // 10 IAM tables + rate_limits (SP2·T3); 2 auth lookups + rate_limit_hit.
-    expect(rows).toEqual([{ probe: null, forced: 11, owners: ['monaco_auth', 'monaco_auth', 'monaco_auth'] }]);
+    // 10 IAM tables + rate_limits (SP2·T3) + 4 catalog/inventory tables (SP3·T3); 2 auth lookups + rate_limit_hit.
+    expect(rows).toEqual([{ probe: null, forced: 15, owners: ['monaco_auth', 'monaco_auth', 'monaco_auth'] }]);
     // monaco_auth only needed CREATE on public while the migration ran.
     expect((await target.query(`select has_schema_privilege('monaco_auth', 'public', 'CREATE') as can`)).rows).toEqual([{ can: false }]);
   });
@@ -103,5 +105,56 @@ describe('migrations on a database that already has the SP1 schema', () => {
     const before = await count();
     await migrateAsOwner(migrationsFolder);
     expect(await count()).toBe(before);
+  });
+});
+
+describe('migrations on a database that already has the SP3·T2 schema', () => {
+  const T2_DATABASE = 'monaco_upgrade_t2';
+  const t2Url = (base: string) => urlFor(base).replace(`/${DATABASE}`, `/${T2_DATABASE}`);
+  let t2Folder: string;
+  let t2: Pool;
+  beforeAll(async () => {
+    await admin.query(`drop database if exists ${T2_DATABASE}`);
+    await admin.query(`create database ${T2_DATABASE}`);
+    t2 = new Pool({ connectionString: t2Url(urls().admin), max: 1 });
+    t2Folder = partialFolder(T2_MIGRATIONS);
+  });
+  afterAll(async () => {
+    await t2.end();
+    await admin.query(`drop database if exists ${T2_DATABASE} with (force)`);
+    rmSync(t2Folder, { recursive: true, force: true });
+  });
+  const migrateT2 = async (folder: string) => {
+    const pool = new Pool({ connectionString: t2Url(urls().owner), max: 1 });
+    try {
+      await migrate(drizzle({ client: pool }), { migrationsFolder: folder });
+    } finally {
+      await pool.end();
+    }
+  };
+
+  it('adds the four tables, forced and with the ledger privileges, keeping existing data', async () => {
+    await t2.query(initSql);
+    await migrateT2(t2Folder);
+    expect((await t2.query(`select to_regclass('public.products') as products`)).rows).toEqual([{ products: null }]);
+    const tenant = '33333333-3333-4333-8333-333333333333';
+    await t2.query(`insert into tenants (id, name, slug) values ($1, 'T', 't')`, [tenant]);
+    await t2.query(`insert into locations (id, tenant_id, name, code) values (gen_random_uuid(), $1, 'L', 'l')`, [tenant]);
+
+    await migrateT2(migrationsFolder);
+    const { rows } = await t2.query(
+      `select c.relname, c.relrowsecurity and c.relforcerowsecurity as forced,
+              has_table_privilege('monaco_app', c.oid, 'UPDATE') as upd, has_table_privilege('monaco_app', c.oid, 'DELETE') as del
+       from pg_class c
+       where c.relnamespace = 'public'::regnamespace and c.relname in ('products', 'location_products', 'inventory_documents', 'inventory_movements')
+       order by c.relname`,
+    );
+    expect(rows).toEqual([
+      { relname: 'inventory_documents', forced: true, upd: false, del: false },
+      { relname: 'inventory_movements', forced: true, upd: false, del: false },
+      { relname: 'location_products', forced: true, upd: true, del: false },
+      { relname: 'products', forced: true, upd: true, del: false },
+    ]);
+    expect((await t2.query('select count(*)::int as n from locations')).rows[0].n).toBe(1);
   });
 });
