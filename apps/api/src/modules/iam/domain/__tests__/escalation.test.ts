@@ -254,6 +254,11 @@ describe('replace_assignments', () => {
       const outside = atLocations(MANAGER_ROLE, LOC_C);
       forbidden(lead, replace('u', [outside], []), 'scope_exceeds');
     });
+    it('removing an assignment whose locations were all archived requires tenant-wide coverage', () => {
+      const archivedOnly = atLocations(CASHIER_ROLE);
+      forbidden(lead, replace('u', [archivedOnly], []), 'scope_exceeds');
+      allowed(owner, replace('u', [archivedOnly], []));
+    });
     it('location order does not matter', () => {
       allowed(actor('nobody'), replace('u', [atLocations(CASHIER_ROLE, LOC_A, LOC_B)], [atLocations(CASHIER_ROLE, LOC_B, LOC_A)]));
     });
@@ -301,6 +306,7 @@ describe('disable_user and reset_password', () => {
     it('the actor must cover everything the target holds (no takeover of a stronger account)', () => {
       allowed(lead, check('u', atLocations(CASHIER_ROLE, LOC_A)));
       forbidden(lead, check('u', atLocations(MANAGER_ROLE, LOC_C)), 'scope_exceeds');
+      forbidden(lead, check('u', atLocations(CASHIER_ROLE)), 'scope_exceeds');
       forbidden(lead, check('u', atLocations(CASHIER_ROLE, LOC_A), tenantWide(MANAGER_ROLE)), 'scope_exceeds');
       forbidden(admin, check('u', atLocations(MANAGER_ROLE, LOC_A)), 'permission_not_held');
     });
@@ -354,6 +360,7 @@ describe('canManageDevicesOf', () => {
   it('rejects users that reach beyond the Manager’s locations', () => {
     expect(canManageDevicesOf(managerAB, [atLocations(CASHIER_ROLE, LOC_A, LOC_C)])).toBe(false);
     expect(canManageDevicesOf(managerAB, [atLocations(CASHIER_ROLE, LOC_A), atLocations(CASHIER_ROLE, LOC_C)])).toBe(false);
+    expect(canManageDevicesOf(managerAB, [atLocations(CASHIER_ROLE)])).toBe(false);
     expect(canManageDevicesOf(managerAB, [tenantWide(CASHIER_ROLE)])).toBe(false);
   });
 

@@ -75,8 +75,8 @@ export interface DeviceRepository {
   findActive(deviceId: string, userId: string): Promise<{ id: string } | null>;
   create(input: { userId: string; label: string; platform: DevicePlatform; now: Date }): Promise<string>;
   touch(deviceId: string, now: Date): Promise<void>;
-  /** Revokes every active device of the user but `keepDeviceId`; returns the revoked ids. */
-  revokeAllExcept(userId: string, keepDeviceId: string, now: Date): Promise<string[]>;
+  /** Revokes every active device of the user but `keepDeviceId` (null: all of them); returns the revoked ids. */
+  revokeAllExcept(userId: string, keepDeviceId: string | null, now: Date): Promise<string[]>;
 }
 
 export interface RefreshTokenRecord {

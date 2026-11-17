@@ -118,6 +118,253 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Locations the caller can see (all of them with any tenant-wide permission) */
+        get: operations["listLocations"];
+        put?: never;
+        /** Create a location (locations:manage) */
+        post: operations["createLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/locations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename a location or change its code (locations:manage) */
+        patch: operations["updateLocation"];
+        trace?: never;
+    };
+    "/locations/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a location (locations:manage); idempotent */
+        post: operations["archiveLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roles of the tenant (roles:manage) */
+        get: operations["listRoles"];
+        put?: never;
+        /**
+         * Create a custom role (roles:manage)
+         * @description Only permissions the caller holds tenant-wide; owner-only permissions need an Owner (403 otherwise).
+         */
+        post: operations["createRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a custom role that nobody holds (roles:manage) */
+        delete: operations["deleteRole"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a role or replace its permissions (roles:manage)
+         * @description Affects every holder. The Owner role is immutable (409); admin permissions on a role held per location are 422.
+         */
+        patch: operations["updateRole"];
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users of the tenant (users:manage) */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Create a user with a temporary password (users:manage)
+         * @description The server generates the temporary password, shown once, valid 72 h. An email that already exists (in any tenant) gets a generic 409. Rate limited.
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A user with their assignments (users:manage) */
+        get: operations["getUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change the display name (users:manage) */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/users/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable a user and revoke all their devices (users:manage)
+         * @description Never oneself; an Owner only by an Owner; 409 if it would leave the tenant without an active Owner.
+         */
+        post: operations["disableUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the password with a temporary one and revoke all sessions (users:manage)
+         * @description Never oneself (use POST /auth/password); the caller must cover everything the user holds.
+         */
+        post: operations["resetUserPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace a user's role assignments atomically (users:manage + roles:manage)
+         * @description Never one's own (403). Owner only by an Owner; every added or removed assignment must be within the caller's permissions and scope (403). Administrative permissions only tenant-wide (422). 409 if no active Owner would remain.
+         */
+        put: operations["replaceAssignments"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's devices, or another user's (devices:manage)
+         * @description A Manager only reaches users entirely inside its locations; only an Owner reaches an Owner.
+         */
+        get: operations["listDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a device and its sessions (own, or devices:manage) */
+        post: operations["revokeDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Security log of the tenant, newest first (audit:view) */
+        get: operations["listAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -230,6 +477,177 @@ export interface components {
             deviceId: components["schemas"]["Uuid_Output"];
             /** @description For hiding UI only; the API is the authority */
             permissions: components["schemas"]["PermissionGrant_Output"][];
+        };
+        Location_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            name: string;
+            code: string;
+            archivedAt: components["schemas"]["IsoDateTime_Output"] | null;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /**
+         * Format: date-time
+         * @description ISO 8601 UTC date-time
+         */
+        IsoDateTime_Output: string;
+        PaginatedLocations_Output: {
+            items: components["schemas"]["Location_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        CreateLocationRequest: {
+            name: string;
+            /** @description Short code, unique per tenant */
+            code: string;
+        };
+        UpdateLocationRequest: {
+            name?: string;
+            /** @description Short code, unique per tenant */
+            code?: string;
+        };
+        Role_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            /** @description Null for custom roles */
+            key: components["schemas"]["SystemRoleKey_Output"] | null;
+            name: string;
+            isSystem: boolean;
+            permissions: components["schemas"]["Permission_Output"][];
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /** @enum {string} */
+        SystemRoleKey_Output: "owner" | "manager" | "cashier";
+        PaginatedRoles_Output: {
+            items: components["schemas"]["Role_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        /**
+         * @description Permission catalog entry
+         * @enum {string}
+         */
+        Permission: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:write" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
+        CreateRoleRequest: {
+            name: string;
+            permissions: components["schemas"]["Permission"][];
+        };
+        UpdateRoleRequest: {
+            name?: string;
+            permissions?: components["schemas"]["Permission"][];
+        };
+        User_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            email: components["schemas"]["Email_Output"];
+            displayName: string;
+            status: components["schemas"]["UserStatus_Output"];
+            mustChangePassword: boolean;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /** @enum {string} */
+        UserStatus_Output: "active" | "disabled";
+        PaginatedUsers_Output: {
+            items: components["schemas"]["User_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        Assignment_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            roleId: components["schemas"]["Uuid_Output"];
+            scope: components["schemas"]["AssignmentScope_Output"];
+        };
+        /** @description Tenant-wide, or limited to the listed locations */
+        AssignmentScope_Output: {
+            /** @enum {string} */
+            type: "tenant";
+        } | {
+            /** @enum {string} */
+            type: "locations";
+            locationIds: components["schemas"]["Uuid_Output"][];
+        };
+        UserDetail_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            email: components["schemas"]["Email_Output"];
+            displayName: string;
+            status: components["schemas"]["UserStatus_Output"];
+            mustChangePassword: boolean;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+            assignments: components["schemas"]["Assignment_Output"][];
+        };
+        CreateUserRequest: {
+            email: components["schemas"]["Email"];
+            displayName: string;
+        };
+        CreateUserResponse_Output: {
+            user: components["schemas"]["User_Output"];
+            /** @description Shown once; communicate out of band */
+            temporaryPassword: string;
+            /** @description 72 h after issue */
+            temporaryPasswordExpiresAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        UpdateUserRequest: {
+            displayName: string;
+        };
+        ResetPasswordResponse_Output: {
+            /** @description Shown once; communicate out of band */
+            temporaryPassword: string;
+            /** @description 72 h after issue */
+            temporaryPasswordExpiresAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        AssignmentInput: {
+            roleId: components["schemas"]["Uuid"];
+            scope: components["schemas"]["AssignmentScope"];
+        };
+        /** @description Tenant-wide, or limited to the listed locations */
+        AssignmentScope: {
+            /** @enum {string} */
+            type: "tenant";
+        } | {
+            /** @enum {string} */
+            type: "locations";
+            locationIds: components["schemas"]["Uuid"][];
+        };
+        ReplaceAssignmentsRequest: {
+            assignments: components["schemas"]["AssignmentInput"][];
+        };
+        ReplaceAssignmentsResponse_Output: {
+            assignments: components["schemas"]["Assignment_Output"][];
+        };
+        Device_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            userId: components["schemas"]["Uuid_Output"];
+            label: string;
+            platform: components["schemas"]["DevicePlatform_Output"];
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+            lastSeenAt: components["schemas"]["IsoDateTime_Output"] | null;
+            revokedAt: components["schemas"]["IsoDateTime_Output"] | null;
+            /** @description True for the device that made the request */
+            current: boolean;
+        };
+        /** @enum {string} */
+        DevicePlatform_Output: "web" | "android" | "ios";
+        PaginatedDevices_Output: {
+            items: components["schemas"]["Device_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        AuditEvent_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            actorUserId: components["schemas"]["Uuid_Output"] | null;
+            type: components["schemas"]["AuditEventType_Output"];
+            targetType: string | null;
+            targetId: components["schemas"]["Uuid_Output"] | null;
+            /** @description Never contains secrets or hashes */
+            metadata: {
+                [key: string]: unknown;
+            };
+            ip: string | null;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /** @enum {string} */
+        AuditEventType_Output: "login_succeeded" | "login_failed" | "refresh_reuse_detected" | "password_changed" | "user_created" | "user_create_conflict" | "user_updated" | "user_disabled" | "user_password_reset" | "device_revoked" | "session_revoked" | "role_created" | "role_updated" | "role_deleted" | "assignments_replaced" | "location_created" | "location_updated" | "location_archived" | "escalation_denied";
+        PaginatedAuditEvents_Output: {
+            items: components["schemas"]["AuditEvent_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
         };
     };
     responses: never;
@@ -411,6 +829,596 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listLocations: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of locations, oldest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedLocations_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLocationRequest"];
+            };
+        };
+        responses: {
+            /** @description The new location */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Location_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLocationRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated location */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Location_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    archiveLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The archived location */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Location_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of roles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRoles_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description The new role */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Role deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated role */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUsers_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description The new user and its temporary password */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateUserResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDetail_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    disableUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The disabled user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resetUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The temporary password, shown once */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetPasswordResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    replaceAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceAssignmentsRequest"];
+            };
+        };
+        responses: {
+            /** @description The new assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplaceAssignmentsResponse_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listDevices: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+                /** @description Whose devices; defaults to the caller */
+                userId?: components["schemas"]["Uuid"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of devices, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDevices_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revokeDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The revoked device */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listAuditEvents: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of audit events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAuditEvents_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */

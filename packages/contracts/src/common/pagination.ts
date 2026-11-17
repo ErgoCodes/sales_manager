@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { Uuid } from './uuid';
+
 /** Query params for cursor pagination. */
 export const PaginationQuery = z
   .object({
@@ -14,6 +16,10 @@ export const PaginationQuery = z
   })
   .meta({ id: 'PaginationQuery' });
 export type PaginationQuery = z.infer<typeof PaginationQuery>;
+
+/** Path parameter of every `/:id` route. */
+export const IdParams = z.object({ id: Uuid }).meta({ id: 'IdParams' });
+export type IdParams = z.infer<typeof IdParams>;
 
 /**
  * Builds a cursor-paginated response schema. `id` is required so that every
