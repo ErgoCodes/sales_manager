@@ -22,6 +22,9 @@ importers:
       '@monaco/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@monaco/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@nestjs/common':
         specifier: ^11.2.8
         version: 11.2.8(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2)

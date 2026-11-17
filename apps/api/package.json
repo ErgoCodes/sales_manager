@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@monaco/contracts": "workspace:*",
+    "@monaco/domain": "workspace:*",
     "@nestjs/common": "^11.2.8",
     "@nestjs/core": "^11.2.8",
     "@nestjs/platform-express": "^11.2.8",
