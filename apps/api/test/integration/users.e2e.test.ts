@@ -179,8 +179,8 @@ describe('no escalation on user routes', () => {
   let manager: string;
   let cashier: string;
   beforeEach(async () => {
-    // users:manage plus the Cashier permissions, tenant-wide (granted by an Owner).
-    const role = await seeder.role(a.id, 'UsersAdmin', ['users:manage', 'sales:create', 'reports:view', 'cash:close']);
+    // users:manage plus every Cashier system-role permission (incl. the SP3 view ones), tenant-wide.
+    const role = await seeder.role(a.id, 'UsersAdmin', ['users:manage', 'sales:create', 'reports:view', 'cash:close', 'catalog:view', 'inventory:view']);
     usersAdmin = await seeder.user(a.id, 'useradmin@a.example', [[role, 'tenant']]);
     manager = await seeder.user(a.id, 'manager@a.example', [[a.roles.manager, [a.locations[0]]]]);
     cashier = await seeder.user(a.id, 'cashier@a.example', [[a.roles.cashier, [a.locations[0]]]]);

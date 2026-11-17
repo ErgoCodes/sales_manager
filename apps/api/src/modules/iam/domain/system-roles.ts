@@ -18,7 +18,9 @@ export const SYSTEM_ROLES: Readonly<Record<SystemRoleKey, SystemRoleSpec>> = {
     name: 'Manager',
     defaultScope: 'locations',
     permissions: [
+      'catalog:view',
       'catalog:write',
+      'inventory:view',
       'inventory:write',
       'inventory:transfer',
       'sales:create',
@@ -33,7 +35,7 @@ export const SYSTEM_ROLES: Readonly<Record<SystemRoleKey, SystemRoleSpec>> = {
     key: 'cashier',
     name: 'Cashier',
     defaultScope: 'locations',
-    permissions: ['sales:create', 'reports:view', 'cash:close'],
+    permissions: ['catalog:view', 'inventory:view', 'sales:create', 'reports:view', 'cash:close'],
   },
 };
 

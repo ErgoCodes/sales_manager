@@ -1,0 +1,2 @@
+ALTER TABLE "role_permissions" DROP CONSTRAINT "role_permissions_permission_check";--> statement-breakpoint
+ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_permission_check" CHECK (permission in ('tenant:manage', 'locations:manage', 'users:manage', 'roles:manage', 'devices:manage', 'audit:view', 'catalog:view', 'catalog:write', 'inventory:view', 'inventory:write', 'inventory:transfer', 'sales:create', 'sales:void', 'reports:view', 'cash:close'));

@@ -22,6 +22,15 @@ export const AUDIT_EVENT_TYPES = [
   'location_updated',
   'location_archived',
   'escalation_denied',
+  'product_created',
+  'product_updated',
+  'product_archived',
+  'location_price_set',
+  'inventory_entry_recorded',
+  'inventory_exit_recorded',
+  'inventory_adjustment_recorded',
+  'inventory_transfer_recorded',
+  'inventory_document_reversed',
 ] as const;
 
 export const AuditEventType = z.enum(AUDIT_EVENT_TYPES).meta({ id: 'AuditEventType' });

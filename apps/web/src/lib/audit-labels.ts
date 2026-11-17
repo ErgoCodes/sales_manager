@@ -20,6 +20,15 @@ export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
   location_updated: 'Punto de venta modificado',
   location_archived: 'Punto de venta archivado',
   escalation_denied: 'Escalada de privilegios denegada',
+  product_created: 'Producto creado',
+  product_updated: 'Producto modificado',
+  product_archived: 'Producto archivado',
+  location_price_set: 'Precio por punto fijado',
+  inventory_entry_recorded: 'Entrada de inventario registrada',
+  inventory_exit_recorded: 'Salida de inventario registrada',
+  inventory_adjustment_recorded: 'Ajuste de inventario registrado',
+  inventory_transfer_recorded: 'Transferencia de inventario registrada',
+  inventory_document_reversed: 'Documento de inventario revertido',
 };
 
 const formatter = new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });

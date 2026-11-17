@@ -452,7 +452,7 @@ export interface components {
          * @description Permission catalog entry
          * @enum {string}
          */
-        Permission_Output: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:write" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
+        Permission_Output: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:view" | "catalog:write" | "inventory:view" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
         /** @description Tenant-wide, or limited to the listed locations */
         AssignmentScopeResponse_Output: {
             /** @enum {string} */
@@ -525,7 +525,7 @@ export interface components {
          * @description Permission catalog entry
          * @enum {string}
          */
-        Permission: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:write" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
+        Permission: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:view" | "catalog:write" | "inventory:view" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
         CreateRoleRequest: {
             name: string;
             permissions: components["schemas"]["Permission"][];
@@ -643,7 +643,7 @@ export interface components {
             createdAt: components["schemas"]["IsoDateTime_Output"];
         };
         /** @enum {string} */
-        AuditEventType_Output: "login_succeeded" | "login_failed" | "refresh_reuse_detected" | "password_changed" | "user_created" | "user_create_conflict" | "user_updated" | "user_disabled" | "user_password_reset" | "device_revoked" | "session_revoked" | "role_created" | "role_updated" | "role_deleted" | "assignments_replaced" | "location_created" | "location_updated" | "location_archived" | "escalation_denied";
+        AuditEventType_Output: "login_succeeded" | "login_failed" | "refresh_reuse_detected" | "password_changed" | "user_created" | "user_create_conflict" | "user_updated" | "user_disabled" | "user_password_reset" | "device_revoked" | "session_revoked" | "role_created" | "role_updated" | "role_deleted" | "assignments_replaced" | "location_created" | "location_updated" | "location_archived" | "escalation_denied" | "product_created" | "product_updated" | "product_archived" | "location_price_set" | "inventory_entry_recorded" | "inventory_exit_recorded" | "inventory_adjustment_recorded" | "inventory_transfer_recorded" | "inventory_document_reversed";
         PaginatedAuditEvents_Output: {
             items: components["schemas"]["AuditEvent_Output"][];
             /** @description Null when there are no more pages */

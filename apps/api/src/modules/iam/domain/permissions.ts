@@ -98,3 +98,35 @@ export function toGrants(effective: EffectivePermissions): EffectiveGrant[] {
   }
   return grants;
 }
+
+/**
+ * Read implication (SP3, D9): a write permission also counts as the matching view
+ * permission, so a custom role that only has `write` can read what it writes without
+ * migrating its permissions. Applied only through `canRead`/`authorizeRead`/`hasReadAnywhere`;
+ * `can()`, `effectivePermissions()` and `toGrants()` are untouched, so every existing
+ * decision stays as it was.
+ */
+const READ_IMPLICATIONS = {
+  'catalog:view': ['catalog:write'],
+  'inventory:view': ['inventory:write', 'inventory:transfer'],
+} as const satisfies Record<string, readonly Permission[]>;
+export type ReadPermission = keyof typeof READ_IMPLICATIONS;
+
+/** `can()` for a view permission, also true through the write permissions that imply it. */
+export function canRead(effective: EffectivePermissions, permission: ReadPermission, locationId?: string): boolean {
+  if (can(effective, permission, locationId)) return true;
+  return READ_IMPLICATIONS[permission].some((implied) => can(effective, implied, locationId));
+}
+
+/** `authorize()` for a view permission, with the read implication. */
+export function authorizeRead(actor: { readonly effective: EffectivePermissions }, permission: ReadPermission, locationId?: string): void {
+  if (!canRead(actor.effective, permission, locationId)) throw new PermissionDenied(permission);
+}
+
+/** `hasPermissionAnywhere()` for a view permission, with the read implication. */
+export function hasReadAnywhere(effective: EffectivePermissions, permission: ReadPermission): boolean {
+  return (
+    hasPermissionAnywhere(effective, permission) ||
+    READ_IMPLICATIONS[permission].some((implied) => hasPermissionAnywhere(effective, implied))
+  );
+}

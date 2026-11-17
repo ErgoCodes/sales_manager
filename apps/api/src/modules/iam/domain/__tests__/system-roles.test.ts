@@ -17,6 +17,8 @@ describe('system roles', () => {
   it('Manager matches the spec table', () => {
     expect([...SYSTEM_ROLES.manager.permissions].sort()).toEqual(
       [
+        'catalog:view',
+        'inventory:view',
         'catalog:write',
         'inventory:write',
         'inventory:transfer',
@@ -30,7 +32,9 @@ describe('system roles', () => {
   });
 
   it('Cashier matches the spec table', () => {
-    expect([...SYSTEM_ROLES.cashier.permissions].sort()).toEqual(['cash:close', 'reports:view', 'sales:create']);
+    expect([...SYSTEM_ROLES.cashier.permissions].sort()).toEqual(
+      ['cash:close', 'catalog:view', 'inventory:view', 'reports:view', 'sales:create'],
+    );
   });
 
   it('only Owner carries administrative permissions (so only Owner is tenant-only)', () => {
