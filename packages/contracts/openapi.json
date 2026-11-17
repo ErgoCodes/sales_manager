@@ -447,6 +447,373 @@
         ]
       }
     },
+    "/products": {
+      "get": {
+        "operationId": "listProducts",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedProducts_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Products by name (catalog:view); with ?locationId the effective prices of that location. Costs only for writers",
+        "tags": [
+          "catalog"
+        ]
+      },
+      "post": {
+        "operationId": "createProduct",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a product (catalog:write, tenant-wide)",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "operationId": "getProduct",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductWithLocationPrice_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A product (catalog:view); ?locationId for the effective price",
+        "tags": [
+          "catalog"
+        ]
+      },
+      "patch": {
+        "operationId": "updateProduct",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a product (catalog:write, tenant-wide); the currency cannot change once it has movements",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/products/{id}/archive": {
+      "post": {
+        "operationId": "archiveProduct",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The archived product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive a product (catalog:write, tenant-wide); idempotent",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/locations/{locationId}/products/{productId}/price": {
+      "put": {
+        "operationId": "setLocationPrice",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLocationPriceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The product with the effective prices of the location",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductWithLocationPrice_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a product's price overrides at a location (catalog:write at that location); null removes an override",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
     "/roles": {
       "get": {
         "operationId": "listRoles",
@@ -1717,6 +2084,456 @@
             "description": "Short code, unique per tenant"
           }
         }
+      },
+      "ProductWithLocationPrice_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unitOfMeasure": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ]
+          },
+          "costPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null when hidden (no catalog:write) or unset"
+          },
+          "cashPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "transferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "lowStockThreshold": {
+            "type": "number",
+            "nullable": true
+          },
+          "expirationDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "archivedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "effectiveCashPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Location override, else base price"
+          },
+          "effectiveTransferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "cashPriceOverride": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "transferPriceOverride": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "unitOfMeasure",
+          "category",
+          "currency",
+          "costPrice",
+          "cashPrice",
+          "transferPrice",
+          "lowStockThreshold",
+          "expirationDate",
+          "archivedAt",
+          "createdAt",
+          "updatedAt",
+          "effectiveCashPrice",
+          "effectiveTransferPrice",
+          "cashPriceOverride",
+          "transferPriceOverride"
+        ],
+        "additionalProperties": false
+      },
+      "Money_Output": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Non-negative amount in minor units (cents)"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ],
+            "description": "Supported currency (MLC is not ISO 4217)",
+            "example": "CUP"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "additionalProperties": false
+      },
+      "PaginatedProducts_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductWithLocationPrice_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "Money": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Non-negative amount in minor units (cents)"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ],
+            "description": "Supported currency (MLC is not ISO 4217)",
+            "example": "CUP"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ]
+      },
+      "CreateProductRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "unitOfMeasure": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ]
+          },
+          "costPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true
+          },
+          "cashPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true
+          },
+          "transferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true
+          },
+          "lowStockThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "nullable": true
+          },
+          "expirationDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "unitOfMeasure",
+          "currency"
+        ],
+        "additionalProperties": false
+      },
+      "Product_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unitOfMeasure": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ]
+          },
+          "costPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null when hidden (no catalog:write) or unset"
+          },
+          "cashPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "transferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "lowStockThreshold": {
+            "type": "number",
+            "nullable": true
+          },
+          "expirationDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "archivedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "unitOfMeasure",
+          "category",
+          "currency",
+          "costPrice",
+          "cashPrice",
+          "transferPrice",
+          "lowStockThreshold",
+          "expirationDate",
+          "archivedAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateProductRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "unitOfMeasure": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ]
+          },
+          "costPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true
+          },
+          "cashPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true
+          },
+          "transferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true
+          },
+          "lowStockThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "nullable": true
+          },
+          "expirationDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetLocationPriceRequest": {
+        "type": "object",
+        "properties": {
+          "cashPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true,
+            "description": "Null removes the override"
+          },
+          "transferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ],
+            "nullable": true,
+            "description": "Null removes the override"
+          }
+        },
+        "required": [
+          "cashPrice",
+          "transferPrice"
+        ],
+        "additionalProperties": false
       },
       "Role_Output": {
         "type": "object",
