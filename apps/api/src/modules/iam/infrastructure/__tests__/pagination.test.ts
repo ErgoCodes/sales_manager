@@ -22,6 +22,12 @@ describe('cursors', () => {
     expect(() => decodeCursor(cursor, ['uuid'])).toThrow(InvalidCursor);
   });
 
+  it('round-trips free text (a product name) and rejects it when it is not a string or too long', () => {
+    expect(decodeCursor(encodeCursor(["Agua 'mineral' %", ID]), ['text', 'uuid'])).toEqual(["Agua 'mineral' %", ID]);
+    expect(() => decodeCursor(Buffer.from('[1,"' + ID + '"]').toString('base64url'), ['text', 'uuid'])).toThrow(InvalidCursor);
+    expect(() => decodeCursor(encodeCursor(['x'.repeat(201), ID]), ['text', 'uuid'])).toThrow(InvalidCursor);
+  });
+
   it('rejects a timestamp that is not ISO', () => {
     expect(() => decodeCursor(encodeCursor(['yesterday', ID]), ['timestamp', 'uuid'])).toThrow(InvalidCursor);
   });

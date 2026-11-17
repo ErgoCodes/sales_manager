@@ -96,6 +96,10 @@ export const ListProductsQuery = z
   .meta({ id: 'ListProductsQuery' });
 export type ListProductsQuery = z.infer<typeof ListProductsQuery>;
 
+/** Path parameters of `PUT /locations/:locationId/products/:productId/price`. */
+export const LocationProductParams = z.object({ locationId: Uuid, productId: Uuid }).meta({ id: 'LocationProductParams' });
+export type LocationProductParams = z.infer<typeof LocationProductParams>;
+
 export const ProductLocationQuery = z.object({ locationId: Uuid.optional() }).meta({ id: 'ProductLocationQuery' });
 export type ProductLocationQuery = z.infer<typeof ProductLocationQuery>;
 
