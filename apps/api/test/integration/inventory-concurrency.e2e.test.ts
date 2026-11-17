@@ -47,6 +47,9 @@ beforeEach(async () => {
 
 const L1 = () => a.locations[0];
 const statuses = (responses: { status: number }[]) => responses.map((r) => r.status).sort((x, y) => x - y);
+/** Status plus error code: a failure shows which error came back, not just 409. */
+const outcomes = (responses: { status: number; body: { error?: { code?: string } } }[]) =>
+  responses.map((r) => (r.status < 400 ? String(r.status) : `${r.status} ${r.body.error?.code}`)).sort();
 
 describe('concurrent writes keep the stock non-negative', () => {
   it('N exits that together exceed the stock: exactly the ones that fit succeed', async () => {
@@ -103,7 +106,7 @@ describe('concurrent submissions of the same id', () => {
   it('two identical requests create one document: one 201, one 200 with the same body', async () => {
     const body = entryBody(L1(), productA, 10, 100);
     const [first, second] = await Promise.all([owner.post('/inventory/entries', body), owner.post('/inventory/entries', body)]);
-    expect(statuses([first, second])).toEqual([200, 201]);
+    expect(outcomes([first, second])).toEqual(['200', '201']);
     expect(InventoryDocument.parse(first.body)).toEqual(InventoryDocument.parse(second.body));
     expect(await countRows(admin, 'inventory_documents', a.id)).toBe(1);
     expect(await countRows(admin, 'inventory_movements', a.id)).toBe(1);
@@ -113,8 +116,18 @@ describe('concurrent submissions of the same id', () => {
   it('many identical requests in parallel still create a single document', async () => {
     const body = entryBody(L1(), productA, 3, 100);
     const responses = await Promise.all(Array.from({ length: 6 }, () => owner.post('/inventory/entries', body)));
-    expect(statuses(responses)).toEqual([200, 200, 200, 200, 200, 201]);
+    expect(outcomes(responses)).toEqual(['200', '200', '200', '200', '200', '201']);
     expect(await stockOf(admin, a.id, L1(), productA)).toBe(3);
+  });
+
+  it('stress: 40 rounds of 3 identical submissions never surface a conflict', async () => {
+    // Regression: `on conflict (id)` let the loser trip the (id, tenant_id) unique index (23505 -> 409).
+    for (let round = 0; round < 40; round++) {
+      const body = entryBody(L1(), productA, 1, 10);
+      const responses = await Promise.all([1, 2, 3].map(() => owner.post('/inventory/entries', body)));
+      expect(outcomes(responses)).toEqual(['200', '200', '201']);
+    }
+    expect(await stockOf(admin, a.id, L1(), productA)).toBe(40);
   });
 
   it('the same id with different content in parallel: one wins, the other is IDEMPOTENCY_CONFLICT', async () => {

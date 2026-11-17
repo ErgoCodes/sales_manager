@@ -15,7 +15,8 @@ describe('InventoryLedgerRepository', () => {
     const header = { id: ID, kind: 'exit' as const, locationId: LOC, reason: 'shrinkage' as const, occurredAt: NOW, notes: null, payloadHash: 'h', createdBy: 'u' };
     expect(await repo.insertDocumentHeader(header)).toBe(true);
     expect(await repo.insertDocumentHeader(header)).toBe(false);
-    expect(queries[0]!.sql).toMatch(/on conflict \(id\) do nothing/);
+    // No conflict target: every unique index (PK and (id, tenant_id)) must arbitrate a race.
+    expect(queries[0]!.sql).toMatch(/on conflict do nothing/);
     expect(queries[0]!.params).toEqual([ID, TENANT, 'exit', LOC, 'shrinkage', NOW, null, 'h', 'u']);
   });
 

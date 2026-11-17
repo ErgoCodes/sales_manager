@@ -67,13 +67,17 @@ export class InventoryLedgerRepository implements InventoryLedger {
   async insertDocumentHeader(header: NewDocumentHeader): Promise<boolean> {
     // The id is the PK across tenants: another tenant's row (invisible to RLS) also
     // makes this a no-op, and the caller then finds nothing to compare with -> conflict.
+    // No conflict target on purpose: `on conflict (id)` only arbitrates the PK, so two
+    // concurrent inserts of the same id raced onto the second unique index, (id, tenant_id),
+    // and the loser got a 23505 instead of a skip (seen as a 409 in ~1 of 60 retries).
+    // Without a target every unique index arbitrates.
     const inserted = await rows<{ id: string }>(
       this.tx,
       sql`insert into inventory_documents
             (id, tenant_id, kind, location_id, target_location_id, reason, reverses_document_id, occurred_at, notes, payload_hash, created_by)
           values (${header.id}, ${this.tenantId}, ${header.kind}, ${header.locationId}, null, ${header.reason}, null,
                   ${header.occurredAt}, ${header.notes}, ${header.payloadHash}, ${header.createdBy})
-          on conflict (id) do nothing
+          on conflict do nothing
           returning id`,
     );
     return inserted.length === 1;
