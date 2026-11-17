@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { IsoDateTime, Money, Paginated, Uuid } from '../common';
+import { CURRENCIES, IsoDateTime, Money, Paginated, Uuid } from '../common';
 
-const Currency = z.enum(['CUP', 'USD', 'MLC']);
+const Currency = z.enum(CURRENCIES);
 const name = z.string().trim().min(1).max(200);
 // Allowed values come from @monaco/domain (UNITS_OF_MEASURE / CATEGORIES); the API validates them (T4).
 const unitOfMeasure = z.string().trim().min(1).max(32);

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { CURRENCIES } from './money';
+
 /** numeric(14,3): 11 integer digits and 3 decimals. */
 const MAX_QUANTITY = 99_999_999_999.999;
 
@@ -33,7 +35,7 @@ export type SignedQuantity = z.infer<typeof SignedQuantity>;
 export const AverageCost = z
   .object({
     amount: z.number().refine(Number.isFinite).nonnegative().meta({ description: 'Minor units, up to 6 decimals' }),
-    currency: z.enum(['CUP', 'USD', 'MLC']),
+    currency: z.enum(CURRENCIES),
   })
   .meta({ id: 'AverageCost' });
 export type AverageCost = z.infer<typeof AverageCost>;
