@@ -1,0 +1,190 @@
+import { sql } from 'drizzle-orm';
+
+import type { TenantTransaction } from '../../../../infrastructure/db/with-tenant';
+import { uuidv7 } from '../../../../infrastructure/db/uuidv7';
+import { rows, toDate } from '../../../iam/infrastructure/sql-helpers';
+import type {
+  InventoryLedger,
+  LocationState,
+  LockedPair,
+  NewDocumentHeader,
+  NewMovement,
+  PairKey,
+  ProductState,
+  StoredDocument,
+  StoredMovement,
+} from '../../domain/inventory-ports';
+import { pairKey } from '../../domain/inventory-ports';
+
+type Dated = Date | string;
+
+interface DocumentRow {
+  id: string;
+  kind: StoredDocument['kind'];
+  locationId: string;
+  targetLocationId: string | null;
+  reason: StoredDocument['reason'];
+  reversesDocumentId: string | null;
+  occurredAt: Dated;
+  notes: string | null;
+  payloadHash: string;
+  createdBy: string;
+  createdAt: Dated;
+}
+
+interface MovementRow {
+  id: string;
+  documentId: string;
+  locationId: string;
+  productId: string;
+  kind: StoredMovement['kind'];
+  quantityDelta: string;
+  unitCost: string;
+  currency: StoredMovement['currency'];
+  reversesMovementId: string | null;
+  createdAt: Dated;
+}
+
+const uuids = (ids: readonly string[]) => sql`${sql.param([...ids])}::uuid[]`;
+
+/** The (location, product) pairs as two parallel arrays, in the order given, for `unnest`. */
+const pairArrays = (pairs: readonly PairKey[]) => ({
+  locations: uuids(pairs.map((pair) => pair.locationId)),
+  products: uuids(pairs.map((pair) => pair.productId)),
+});
+
+/**
+ * The ledger of the current tenant on one `withTenant` transaction (ADR 0006).
+ * Append-only: monaco_app only has INSERT and SELECT on the two ledger tables.
+ * Stock is never stored; it is `SUM(quantity_delta)`.
+ */
+export class InventoryLedgerRepository implements InventoryLedger {
+  constructor(
+    private readonly tx: TenantTransaction,
+    private readonly tenantId: string,
+  ) {}
+
+  async insertDocumentHeader(header: NewDocumentHeader): Promise<boolean> {
+    // The id is the PK across tenants: another tenant's row (invisible to RLS) also
+    // makes this a no-op, and the caller then finds nothing to compare with -> conflict.
+    const inserted = await rows<{ id: string }>(
+      this.tx,
+      sql`insert into inventory_documents
+            (id, tenant_id, kind, location_id, target_location_id, reason, reverses_document_id, occurred_at, notes, payload_hash, created_by)
+          values (${header.id}, ${this.tenantId}, ${header.kind}, ${header.locationId}, null, ${header.reason}, null,
+                  ${header.occurredAt}, ${header.notes}, ${header.payloadHash}, ${header.createdBy})
+          on conflict (id) do nothing
+          returning id`,
+    );
+    return inserted.length === 1;
+  }
+
+  async findDocument(id: string): Promise<StoredDocument | null> {
+    const [document] = await rows<DocumentRow>(
+      this.tx,
+      sql`select id, kind, location_id as "locationId", target_location_id as "targetLocationId", reason,
+                 reverses_document_id as "reversesDocumentId", occurred_at as "occurredAt", notes,
+                 payload_hash as "payloadHash", created_by as "createdBy", created_at as "createdAt"
+          from inventory_documents where id = ${id}`,
+    );
+    if (!document) return null;
+    const movements = await rows<MovementRow>(
+      this.tx,
+      sql`select m.id, m.document_id as "documentId", m.location_id as "locationId", m.product_id as "productId", m.kind,
+                 m.quantity_delta::text as "quantityDelta", m.unit_cost::text as "unitCost", p.currency,
+                 m.reverses_movement_id as "reversesMovementId", m.created_at as "createdAt"
+          from inventory_movements m
+          join products p on p.id = m.product_id and p.tenant_id = m.tenant_id
+          where m.tenant_id = ${this.tenantId} and m.document_id = ${id}
+          order by m.created_at, m.id`,
+    );
+    return {
+      ...document,
+      occurredAt: toDate(document.occurredAt),
+      createdAt: toDate(document.createdAt),
+      movements: movements.map((movement) => ({
+        ...movement,
+        quantityDelta: Number(movement.quantityDelta),
+        unitCost: Number(movement.unitCost),
+        createdAt: toDate(movement.createdAt),
+      })),
+    };
+  }
+
+  async lockLocations(ids: readonly string[]): Promise<LocationState[]> {
+    const found = await rows<{ id: string; archivedAt: Dated | null }>(
+      this.tx,
+      sql`select id, archived_at as "archivedAt" from locations where id = any(${uuids(ids)}) order by id for share`,
+    );
+    return found.map((location) => ({ id: location.id, archivedAt: toDate(location.archivedAt) }));
+  }
+
+  async lockProducts(ids: readonly string[]): Promise<ProductState[]> {
+    const found = await rows<{ id: string; currency: ProductState['currency']; archivedAt: Dated | null }>(
+      this.tx,
+      sql`select id, currency, archived_at as "archivedAt" from products where id = any(${uuids(ids)}) order by id for share`,
+    );
+    return found.map((product) => ({ ...product, archivedAt: toDate(product.archivedAt) }));
+  }
+
+  async ensureLocationProducts(pairs: readonly PairKey[]): Promise<void> {
+    const { locations, products } = pairArrays(pairs);
+    // `with ordinality` + `order by` keeps the insertion in the caller's (sorted) order.
+    await this.tx.execute(
+      sql`insert into location_products (tenant_id, location_id, product_id)
+          select ${this.tenantId}::uuid, t.location_id, t.product_id
+          from unnest(${locations}, ${products}) with ordinality as t(location_id, product_id, n)
+          order by t.n
+          on conflict do nothing`,
+    );
+  }
+
+  async lockLocationProducts(pairs: readonly PairKey[]): Promise<LockedPair[]> {
+    const { locations, products } = pairArrays(pairs);
+    const locked = await rows<{ locationId: string; productId: string; averageCost: string }>(
+      this.tx,
+      sql`select lp.location_id as "locationId", lp.product_id as "productId", lp.average_cost::text as "averageCost"
+          from location_products lp
+          where lp.tenant_id = ${this.tenantId}
+            and (lp.location_id, lp.product_id) in (select t.location_id, t.product_id from unnest(${locations}, ${products}) as t(location_id, product_id))
+          order by lp.location_id, lp.product_id
+          for update of lp`,
+    );
+    return locked.map((pair) => ({ locationId: pair.locationId, productId: pair.productId, averageCost: Number(pair.averageCost) }));
+  }
+
+  async sumStock(pairs: readonly PairKey[]): Promise<ReadonlyMap<string, number>> {
+    const { locations, products } = pairArrays(pairs);
+    const sums = await rows<{ locationId: string; productId: string; stock: string }>(
+      this.tx,
+      sql`select m.location_id as "locationId", m.product_id as "productId", sum(m.quantity_delta)::text as stock
+          from inventory_movements m
+          where m.tenant_id = ${this.tenantId}
+            and (m.location_id, m.product_id) in (select t.location_id, t.product_id from unnest(${locations}, ${products}) as t(location_id, product_id))
+          group by m.location_id, m.product_id`,
+    );
+    return new Map(sums.map((sum) => [pairKey(sum), Number(sum.stock)]));
+  }
+
+  async insertMovements(documentId: string, movements: readonly NewMovement[]): Promise<void> {
+    if (movements.length === 0) return;
+    // clock_timestamp(), not now(): it is read after the pair locks, so the order of
+    // created_at inside a pair follows the lock (commit) order, which a replay of the ledger needs.
+    const values = movements.map(
+      (movement) =>
+        sql`(${uuidv7()}, ${this.tenantId}, ${documentId}, ${movement.locationId}, ${movement.productId}, ${movement.kind},
+             ${movement.quantityDelta}, ${movement.unitCost}, clock_timestamp())`,
+    );
+    await this.tx.execute(
+      sql`insert into inventory_movements (id, tenant_id, document_id, location_id, product_id, kind, quantity_delta, unit_cost, created_at)
+          values ${sql.join(values, sql`, `)}`,
+    );
+  }
+
+  async setAverageCost(pair: PairKey, averageCost: number): Promise<void> {
+    await this.tx.execute(
+      sql`update location_products set average_cost = ${averageCost.toFixed(6)}, updated_at = now()
+          where tenant_id = ${this.tenantId} and location_id = ${pair.locationId} and product_id = ${pair.productId}`,
+    );
+  }
+}
