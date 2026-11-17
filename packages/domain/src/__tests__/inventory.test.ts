@@ -3,6 +3,7 @@ import {
   INVENTORY_MOVEMENT_KINDS,
   InsufficientStockError,
   InvalidQuantityError,
+  UnknownMovementKindError,
   LEGACY_MOVEMENT_KIND,
   addQuantities,
   assertStockNotNegative,
@@ -56,6 +57,22 @@ describe('movementDelta', () => {
     expect(INVENTORY_MOVEMENT_KINDS).toEqual([
       'entry', 'shrinkage', 'owner_withdrawal', 'adjustment', 'transfer_out', 'transfer_in', 'reversal',
     ]);
+  });
+});
+
+describe('movementDelta hardening', () => {
+  it('rejects unknown kinds', () => {
+    expect(() => movementDelta('bogus' as InventoryMovementKind, 5)).toThrow(UnknownMovementKindError);
+  });
+});
+
+describe('toThousandths bounds', () => {
+  it('accepts the numeric(14,3) limit and rejects beyond it', () => {
+    expect(toThousandths(99_999_999_999.999)).toBe(99_999_999_999_999);
+    expect(toThousandths(-99_999_999_999.999)).toBe(-99_999_999_999_999);
+    expect(() => toThousandths(100_000_000_000)).toThrow(InvalidQuantityError);
+    expect(() => toThousandths(-100_000_000_000)).toThrow(InvalidQuantityError);
+    expect(() => movementDelta('entry', 1e300)).toThrow(InvalidQuantityError);
   });
 });
 
@@ -184,6 +201,27 @@ describe('minor units', () => {
     expect(fromMinorUnits(1999)).toBe(19.99);
   });
 
+  it('keeps full precision for large amounts and rejects unsafe ones', () => {
+    expect(toMinorUnits(12345678901.23)).toBe(1234567890123);
+    expect(toMinorUnits(90071992547409.9)).toBe(9007199254740990);
+    expect(() => toMinorUnits(90071992547410)).toThrow(InvalidQuantityError);
+    expect(() => toMinorUnits(1e300)).toThrow(InvalidQuantityError);
+    expect(() => toMinorUnits(-1e300)).toThrow(InvalidQuantityError);
+  });
+
+  it('rounds half away from zero symmetrically', () => {
+    expect(toMinorUnits(2.505)).toBe(251);
+    expect(toMinorUnits(-2.505)).toBe(-251);
+    expect(toMinorUnits(-0.005)).toBe(-1);
+    expect(toMinorUnits(0.004)).toBe(0);
+    expect(Object.is(toMinorUnits(-0.004), 0)).toBe(true);
+    expect(toMinorUnits(1e-7)).toBe(0);
+    expect(toMinorUnits(0)).toBe(0);
+    expect(toMinorUnits(1.5, 0)).toBe(2);
+    expect(toMinorUnits(-1.5, 0)).toBe(-2);
+    expect(toMinorUnits(1.2e-3, 0)).toBe(0);
+  });
+
   it('supports other exponents and rejects non-finite', () => {
     expect(toMinorUnits(5, 0)).toBe(5);
     expect(fromMinorUnits(1234, 3)).toBe(1.234);
@@ -276,6 +314,9 @@ describe('ledger properties', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(InsufficientStockError);
         rejected++;
+        let running = toThousandths(start);
+        const prefixes = deltas.map((d) => (running += toThousandths(d)));
+        expect(Math.min(...prefixes)).toBeLessThan(0);
       }
     }
     expect(accepted).toBeGreaterThan(0);

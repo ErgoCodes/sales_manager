@@ -27,6 +27,13 @@ export class InvalidQuantityError extends Error {
   }
 }
 
+export class UnknownMovementKindError extends Error {
+  constructor(kind: string) {
+    super(`Unknown movement kind: ${kind}`);
+    this.name = 'UnknownMovementKindError';
+  }
+}
+
 export class InsufficientStockError extends Error {
   /** Stock (major units) available right before the movement that failed. */
   readonly available: number;
@@ -41,10 +48,13 @@ export class InsufficientStockError extends Error {
 }
 
 const QUANTITY_SCALE = 1000;
+/** Largest magnitude of a numeric(14,3) quantity. */
+const MAX_QUANTITY = 99_999_999_999.999;
 
 /** Converts a quantity with at most 3 decimals to integer thousandths. */
 export function toThousandths(quantity: number): number {
   if (!Number.isFinite(quantity)) throw new InvalidQuantityError('Quantity must be a finite number');
+  if (Math.abs(quantity) > MAX_QUANTITY) throw new InvalidQuantityError('Quantity out of range');
   const scaled = quantity * QUANTITY_SCALE;
   const rounded = Math.round(scaled);
   if (Math.abs(scaled - rounded) > 1e-6) throw new InvalidQuantityError('Quantity allows at most 3 decimals');
@@ -64,13 +74,13 @@ const NEGATIVE_KINDS: ReadonlySet<InventoryMovementKind> = new Set(['shrinkage',
 
 /** Signed stock delta of a movement. `adjustment` and `reversal` carry their own non-zero sign. */
 export function movementDelta(kind: InventoryMovementKind, quantity: number): number {
+  const signed = kind === 'adjustment' || kind === 'reversal';
+  if (!signed && !POSITIVE_KINDS.has(kind) && !NEGATIVE_KINDS.has(kind)) throw new UnknownMovementKindError(String(kind));
   const thousandths = toThousandths(quantity);
   if (thousandths === 0) throw new InvalidQuantityError('Quantity must not be zero');
-  if (POSITIVE_KINDS.has(kind) || NEGATIVE_KINDS.has(kind)) {
-    if (thousandths < 0) throw new InvalidQuantityError(`Quantity for ${kind} must be positive`);
-    return fromThousandths(NEGATIVE_KINDS.has(kind) ? -thousandths : thousandths);
-  }
-  return fromThousandths(thousandths);
+  if (signed) return fromThousandths(thousandths);
+  if (thousandths < 0) throw new InvalidQuantityError(`Quantity for ${kind} must be positive`);
+  return fromThousandths(NEGATIVE_KINDS.has(kind) ? -thousandths : thousandths);
 }
 
 /**
@@ -140,10 +150,37 @@ function assertExponent(exponent: number): void {
   if (!Number.isInteger(exponent) || exponent < 0) throw new InvalidQuantityError('Invalid currency exponent');
 }
 
+/**
+ * Converts a major-unit amount to integer minor units, exactly (decimal shift of
+ * the shortest round-trip representation, no float multiplication). Rounding mode:
+ * half away from zero, symmetric for negatives. Throws when the result is not a safe integer.
+ */
 export function toMinorUnits(amount: number, exponent = 2): number {
   assertExponent(exponent);
   if (!Number.isFinite(amount)) throw new InvalidQuantityError('Amount must be a finite number');
-  return Math.round(Number((amount * 10 ** exponent).toPrecision(12))) + 0;
+  const match = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.exec(Math.abs(amount).toString());
+  /* v8 ignore next */
+  if (!match) throw new InvalidQuantityError('Unsupported amount');
+  const [, whole, fraction = '', exp = '0'] = match;
+  const digits = whole + fraction;
+  const point = whole.length + Number(exp) + exponent;
+  if (point > 20) throw new InvalidQuantityError('Amount out of range');
+  let integerPart: string;
+  let roundUp: boolean;
+  if (point >= digits.length) {
+    integerPart = digits + '0'.repeat(point - digits.length);
+    roundUp = false;
+  } else if (point < 0) {
+    integerPart = '0';
+    roundUp = false;
+  } else {
+    integerPart = digits.slice(0, point) || '0';
+    roundUp = digits.charAt(point) >= '5';
+  }
+  const magnitude = BigInt(integerPart) + (roundUp ? 1n : 0n);
+  if (magnitude > BigInt(Number.MAX_SAFE_INTEGER)) throw new InvalidQuantityError('Amount out of range');
+  const result = Number(magnitude);
+  return amount < 0 && result !== 0 ? -result : result;
 }
 
 export function fromMinorUnits(minor: number, exponent = 2): number {
