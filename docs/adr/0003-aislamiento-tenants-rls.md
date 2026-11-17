@@ -40,6 +40,16 @@ La plataforma es multi-negocio: varios tenants comparten la misma API y la misma
    - **Riesgos aceptados:** ante una inyección SQL en la API, `monaco_app` podría pedir el hash de contraseña de un email que ya conoce, o el estado de un refresh token del que ya tiene el hash (es decir, el token). Las funciones no permiten listar ni buscar por patrón. Cualquier cambio en ellas pasa por los tests dedicados de `iam-schema.test.ts` (dueño, `EXECUTE`, columnas, coincidencia exacta, una fila, `search_path`).
 9. **Privilegios de `monaco_app` por tabla** (en la misma migración, sobre los permisos por defecto): `audit_events` solo `INSERT` y `SELECT` (append-only); `tenants` solo `SELECT` y, desde la migración 0006 (SP2·T3), `UPDATE` únicamente sobre la columna `name`: es lo mínimo que Postgres exige para `SELECT ... FOR UPDATE` (el mutex de T4) y la única columna que `tenant:manage` podrá cambiar; `id`, `slug` y `created_at` quedan de solo lectura (los tenants los crea la CLI como owner); `locations`, `users`, `devices` y `refresh_tokens` sin `DELETE` (se archivan, desactivan o revocan); `roles`, `role_permissions`, `role_assignments` y `role_assignment_locations` con DML completo. `schema-guards.test.ts` fija esta matriz.
 10. **Ids UUIDv7 generados en la aplicación** (`src/infrastructure/db/uuidv7.ts`, `primaryId()` en el esquema Drizzle). Postgres 17 no tiene `uuidv7()` nativo (llega en 18) y una función PL/pgSQL como default sería más lenta y luego divergiría de la nativa; por eso las columnas `id` no tienen default y los inserts en SQL crudo (seeds, tests) deben pasar el id. Al migrar a Postgres 18 se puede agregar `DEFAULT uuidv7()`.
+11. **Catálogo e inventario (SP3 · T3, migraciones `0010` y `0011`).** Cuatro tablas nuevas, todas con `tenant_id`, política de aislamiento, `FORCE` y FK compuestas (incluida la de cada movimiento hacia `location_products (tenant_id, location_id, product_id)`). Los `CHECK` de unidades, categorías, monedas, tipos de documento, motivos y tipos de movimiento se generan desde `@monaco/domain` y `@monaco/contracts`, como el de permisos, y un test falla si el catálogo cambia sin migración. Privilegios de `monaco_app` (se hace `REVOKE ALL` antes del `GRANT`, porque los privilegios por defecto otorgan los cuatro):
+
+   | Tabla | `monaco_app` | Por qué |
+   |---|---|---|
+   | `products` | `SELECT`, `INSERT`, `UPDATE` | Se archiva, no se borra |
+   | `location_products` | `SELECT`, `INSERT`, `UPDATE` | Fila de precio, costo promedio y *mutex* del par; permanente |
+   | `inventory_documents` | `SELECT`, `INSERT` | Libro append-only (ADR 0006) |
+   | `inventory_movements` | `SELECT`, `INSERT` | Libro append-only (ADR 0006) |
+
+   El índice cubriente de la suma de stock (`INCLUDE (quantity_delta)`) está en la migración custom porque drizzle-kit no modela `INCLUDE`.
 
 ## Alternativas descartadas
 
