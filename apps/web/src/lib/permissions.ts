@@ -25,7 +25,9 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'roles:manage': 'Administrar roles',
   'devices:manage': 'Administrar dispositivos de otros usuarios',
   'audit:view': 'Ver la auditoría',
+  'catalog:view': 'Ver el catálogo',
   'catalog:write': 'Editar el catálogo',
+  'inventory:view': 'Ver el inventario',
   'inventory:write': 'Editar el inventario',
   'inventory:transfer': 'Transferir inventario',
   'sales:create': 'Registrar ventas',
@@ -36,7 +38,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 
 export const PERMISSION_GROUPS: readonly { title: string; permissions: readonly Permission[] }[] = [
   { title: 'Administración', permissions: ['tenant:manage', 'locations:manage', 'users:manage', 'roles:manage', 'devices:manage', 'audit:view'] },
-  { title: 'Catálogo e inventario', permissions: ['catalog:write', 'inventory:write', 'inventory:transfer'] },
+  { title: 'Catálogo e inventario', permissions: ['catalog:view', 'catalog:write', 'inventory:view', 'inventory:write', 'inventory:transfer'] },
   { title: 'Ventas y caja', permissions: ['sales:create', 'sales:void', 'cash:close'] },
   { title: 'Reportes', permissions: ['reports:view'] },
 ];

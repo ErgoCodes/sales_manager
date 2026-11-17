@@ -39,3 +39,12 @@ describe('permission catalog presentation', () => {
     expect([...grouped].sort()).toEqual([...PERMISSIONS].sort());
   });
 });
+
+describe('SP3 read permissions', () => {
+  it('labels and groups catalog:view and inventory:view with the catalog and inventory group', () => {
+    expect(PERMISSION_LABELS['catalog:view']).toBe('Ver el catálogo');
+    expect(PERMISSION_LABELS['inventory:view']).toBe('Ver el inventario');
+    const group = PERMISSION_GROUPS.find((g) => g.title === 'Catálogo e inventario');
+    expect(group?.permissions).toEqual(expect.arrayContaining(['catalog:view', 'inventory:view']));
+  });
+});

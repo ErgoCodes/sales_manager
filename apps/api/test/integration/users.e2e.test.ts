@@ -179,8 +179,8 @@ describe('no escalation on user routes', () => {
   let manager: string;
   let cashier: string;
   beforeEach(async () => {
-    // users:manage plus the Cashier permissions, tenant-wide (granted by an Owner).
-    const role = await seeder.role(a.id, 'UsersAdmin', ['users:manage', 'sales:create', 'reports:view', 'cash:close']);
+    // users:manage plus every Cashier system-role permission (incl. the SP3 view ones), tenant-wide.
+    const role = await seeder.role(a.id, 'UsersAdmin', ['users:manage', 'sales:create', 'reports:view', 'cash:close', 'catalog:view', 'inventory:view']);
     usersAdmin = await seeder.user(a.id, 'useradmin@a.example', [[role, 'tenant']]);
     manager = await seeder.user(a.id, 'manager@a.example', [[a.roles.manager, [a.locations[0]]]]);
     cashier = await seeder.user(a.id, 'cashier@a.example', [[a.roles.cashier, [a.locations[0]]]]);
@@ -199,6 +199,17 @@ describe('no escalation on user routes', () => {
     expect((await userRow(manager))!.status).toBe('active');
     const reasons = (await auditRows(admin, a.id)).filter((r) => r.type === 'escalation_denied').map((r) => r.metadata.reason);
     expect(reasons).toEqual(['owner_only', 'owner_only', 'owner_only', 'permission_not_held', 'permission_not_held', 'self_modification']);
+  });
+
+  it('an existing custom admin with the old Cashier set (no SP3 view permissions) can no longer manage a Cashier', async () => {
+    const legacy = await seeder.role(a.id, 'LegacyUsersAdmin', ['users:manage', 'sales:create', 'reports:view', 'cash:close']);
+    await seeder.user(a.id, 'legacyadmin@a.example', [[legacy, 'tenant']]);
+    const la = await loginAs(app, 'legacyadmin@a.example');
+    await la.post(`/users/${cashier}/reset-password`).expect(403);
+    await la.post(`/users/${cashier}/disable`).expect(403);
+    expect((await userRow(cashier))!.status).toBe('active');
+    const reasons = (await auditRows(admin, a.id)).filter((r) => r.type === 'escalation_denied').map((r) => r.metadata.reason);
+    expect(reasons).toEqual(['permission_not_held', 'permission_not_held']);
   });
 
   it('a cashier gets 403 on every user route', async () => {

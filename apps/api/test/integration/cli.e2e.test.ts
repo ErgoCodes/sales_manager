@@ -49,8 +49,8 @@ describe('tenant:create', () => {
     expect((await admin.query('select name, slug from tenants')).rows).toEqual([{ name: 'Acme Store', slug: 'acme' }]);
     const roles = await admin.query('select key, is_system, (select count(*)::int from role_permissions p where p.role_id = r.id) as permissions from roles r order by key');
     expect(roles.rows).toEqual([
-      { key: 'cashier', is_system: true, permissions: 3 },
-      { key: 'manager', is_system: true, permissions: 8 },
+      { key: 'cashier', is_system: true, permissions: 5 },
+      { key: 'manager', is_system: true, permissions: 10 },
       { key: 'owner', is_system: true, permissions: PERMISSIONS.length },
     ]);
 
@@ -117,6 +117,18 @@ describe('db:seed', () => {
       { email: DEMO_USERS.manager.email, key: 'manager', scope: 'locations', code: 'P1' },
       { email: DEMO_USERS.owner.email, key: 'owner', scope: 'tenant', code: null },
     ]);
+  });
+
+  it('seeds the Cashier with the SP3 read permissions (what GET /me shows for them)', async () => {
+    await runSeed(OWNER_URL(), capture().write);
+    const { rows } = await admin.query<{ permission: string }>(
+      `select rp.permission from role_assignments a join users u on u.id = a.user_id
+         join role_permissions rp on rp.role_id = a.role_id where u.email = $1`,
+      [DEMO_USERS.cashier.email],
+    );
+    expect(rows.map((r) => r.permission).sort()).toEqual(
+      ['cash:close', 'catalog:view', 'inventory:view', 'reports:view', 'sales:create'],
+    );
   });
 
   it('does not reset a password changed after the first seed', async () => {

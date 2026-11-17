@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { PermissionDenied } from '../errors';
 import {
   authorize,
+  authorizeRead,
   can,
+  canRead,
+  hasReadAnywhere,
   effectivePermissions,
   hasPermissionAnywhere,
   isAdminPermission,
@@ -65,7 +68,7 @@ describe('effectivePermissions', () => {
       atLocations(customRole('x', 'catalog:write'), LOC_A, LOC_B),
       tenantWide(customRole('y', 'reports:view')),
     ]);
-    expect(e.byLocation.get(LOC_A)).toEqual(new Set(['sales:create', 'reports:view', 'cash:close', 'catalog:write']));
+    expect(e.byLocation.get(LOC_A)).toEqual(new Set(['sales:create', 'reports:view', 'cash:close', 'catalog:view', 'inventory:view', 'catalog:write']));
     expect(e.byLocation.get(LOC_B)).toEqual(new Set(['catalog:write']));
     expect(e.tenantWide).toEqual(new Set(['reports:view']));
   });
@@ -127,6 +130,8 @@ describe('toGrants', () => {
       atLocations(customRole('m', 'sales:create'), LOC_C),
     ]);
     expect(toGrants(e)).toEqual([
+      { permission: 'catalog:view', scope: { type: 'locations', locationIds: [LOC_A, LOC_B] } },
+      { permission: 'inventory:view', scope: { type: 'locations', locationIds: [LOC_A, LOC_B] } },
       { permission: 'sales:create', scope: { type: 'locations', locationIds: [LOC_A, LOC_B, LOC_C] } },
       { permission: 'reports:view', scope: { type: 'tenant' } },
       { permission: 'cash:close', scope: { type: 'locations', locationIds: [LOC_A, LOC_B] } },
@@ -159,3 +164,63 @@ describe('authorize', () => {
     expect(error).toMatchObject({ code: 'permission_denied', permission: 'sales:void', message: 'Forbidden' });
   });
 });
+
+describe('read implication (D9)', () => {
+  const writer = (
+    ...p: Parameters<typeof customRole> extends [string, ...infer R] ? R : never
+  ) => effectivePermissions([atLocations(customRole('w', ...p), LOC_A)]);
+
+  it.each([
+    ['catalog:view', 'catalog:write'],
+    ['inventory:view', 'inventory:write'],
+    ['inventory:view', 'inventory:transfer'],
+  ] as const)('%s is implied by %s in that location only', (view, write) => {
+    const e = writer(write);
+    expect(canRead(e, view, LOC_A)).toBe(true);
+    expect(canRead(e, view, LOC_B)).toBe(false);
+    expect(canRead(e, view)).toBe(false);
+    expect(hasReadAnywhere(e, view)).toBe(true);
+    expect(() => authorizeRead({ effective: e }, view, LOC_A)).not.toThrow();
+    expect(() => authorizeRead({ effective: e }, view, LOC_B)).toThrow(
+      PermissionDenied,
+    );
+  });
+
+  it('does not cross domains: catalog:write does not imply inventory:view', () => {
+    const e = writer('catalog:write');
+    expect(canRead(e, 'inventory:view', LOC_A)).toBe(false);
+    expect(hasReadAnywhere(e, 'inventory:view')).toBe(false);
+  });
+
+  it('a tenant-wide write implies a read anywhere', () => {
+    const e = effectivePermissions([
+      tenantWide(customRole('t', 'inventory:write')),
+    ]);
+    expect(canRead(e, 'inventory:view', LOC_C)).toBe(true);
+    expect(canRead(e, 'inventory:view')).toBe(true);
+  });
+
+  it('the explicit view permission still works on its own', () => {
+    const e = writer('catalog:view');
+    expect(canRead(e, 'catalog:view', LOC_A)).toBe(true);
+    expect(canRead(e, 'catalog:view', LOC_B)).toBe(false);
+  });
+
+  it('never changes can(): a write does not make can(view) true', () => {
+    const e = writer('inventory:write', 'catalog:write');
+    expect(can(e, 'inventory:view', LOC_A)).toBe(false);
+    expect(can(e, 'catalog:view', LOC_A)).toBe(false);
+    expect(hasPermissionAnywhere(e, 'inventory:view')).toBe(false);
+    expect(toGrants(e).map((g) => g.permission)).toEqual([
+      'catalog:write',
+      'inventory:write',
+    ]);
+  });
+
+  it('write permissions are unaffected by view permissions (no reverse implication)', () => {
+    const e = writer('catalog:view', 'inventory:view');
+    expect(can(e, 'catalog:write', LOC_A)).toBe(false);
+    expect(can(e, 'inventory:write', LOC_A)).toBe(false);
+  });
+});
+
