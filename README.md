@@ -108,6 +108,12 @@ pnpm --filter api db:seed
 | `manager@demo.example` | manager | location P1 | `demo-manager-pass` |
 | `cashier@demo.example` | cashier | location P1 | `demo-cashier-pass` |
 
+To try the back-office, run `pnpm dev`, open http://localhost:3000/login and sign in with any of these users. The owner can manage locations, users, roles and assignments; the cashier sees none of the admin actions.
+
+### End-to-end tests
+
+`pnpm --filter web test:e2e` runs the Playwright suite against the real API and a production build of the web app, on its own database (`monaco_e2e`, recreated on every run; your `monaco` database is never touched). It needs a Postgres superuser URL in `E2E_PG_ADMIN_URL` (default `postgres://postgres:postgres@127.0.0.1:55432/postgres`) and Chromium (`pnpm --filter web exec playwright install chromium`). See [docs/21](docs/21-estado-sp2-y-continuacion-local.md) for the details.
+
 ## Repository layout
 
 A pnpm monorepo:

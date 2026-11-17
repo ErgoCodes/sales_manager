@@ -85,54 +85,54 @@ T2 (IAM) ┘                  └─> T6 (web BFF) ───┴─> T7 (web admi
 
 ### T5 · CLI de tenants y seed demo `S` · `Fácil` (depende de T4)
 
-- [ ] `pnpm --filter api tenant:create --name … --slug … --owner-email …` usa la conexión de owner. Crea el tenant, los roles de sistema y al owner con una contraseña temporal que se imprime una sola vez.
-- [ ] `pnpm --filter api db:seed` es idempotente. Crea el tenant demo con 2 puntos y owner, manager (punto 1) y cashier (punto 1), con contraseñas solo para dev documentadas. **No se puede correr con `NODE_ENV=production`.**
-- [ ] Tests de integración de los dos comandos.
+- [x] `pnpm --filter api tenant:create --name … --slug … --owner-email …` usa la conexión de owner. Crea el tenant, los roles de sistema y al owner con una contraseña temporal que se imprime una sola vez.
+- [x] `pnpm --filter api db:seed` es idempotente. Crea el tenant demo con 2 puntos y owner, manager (punto 1) y cashier (punto 1), con contraseñas solo para dev documentadas. **No se puede correr con `NODE_ENV=production`.**
+- [x] Tests de integración de los dos comandos.
 
 **Hecho cuando:** `pnpm db:up && pnpm db:migrate && pnpm --filter api db:seed` deja un login funcional para los tres usuarios demo.
 
 ### T6 · Sesión web (BFF) y seguridad `L` · `Difícil` (depende de T3; en paralelo con T4)
 
-- [ ] `apps/web/src/lib/session` (`server-only`):
+- [x] `apps/web/src/lib/session` (`server-only`):
   - cookies `__Host-` (access `Lax`, refresh `Strict`, `__Host-device_id`);
   - lectura en Server Components;
   - refresh solo en `proxy.ts`, Route Handlers o Server Actions, con single-flight por sesión;
   - anti-fijación en el login;
   - logout que borra las cookies aunque la API falle.
-- [ ] Cliente API autenticado: agrega el bearer y el header de IP firmado, y maneja los 401 refrescando una vez.
-- [ ] `proxy.ts`: redirige a `/login` sin sesión, y a `/cambiar-contrasena` si `must_change_password` está activo.
-- [ ] Páginas `/login` y `/cambiar-contrasena`, con Server Actions y errores genéricos en español.
-- [ ] CSRF: `serverActions.allowedOrigins` explícito y verificación de `Origin`/`Sec-Fetch-Site` en todo Route Handler que modifica algo. Ningún GET cambia estado.
-- [ ] CSP con nonce (la difirió SP1), según la guía de CSP de Next 16.
-- [ ] Tests unitarios del módulo de sesión (single-flight, rotación, borrado de cookies) y del chequeo de `Origin`.
+- [x] Cliente API autenticado: agrega el bearer y el header de IP firmado, y maneja los 401 refrescando una vez.
+- [x] `proxy.ts`: redirige a `/login` sin sesión, y a `/cambiar-contrasena` si `must_change_password` está activo.
+- [x] Páginas `/login` y `/cambiar-contrasena`, con Server Actions y errores genéricos en español.
+- [x] CSRF: `serverActions.allowedOrigins` explícito y verificación de `Origin`/`Sec-Fetch-Site` en todo Route Handler que modifica algo. Ningún GET cambia estado.
+- [x] CSP con nonce (la difirió SP1), según la guía de CSP de Next 16.
+- [x] Tests unitarios del módulo de sesión (single-flight, rotación, borrado de cookies) y del chequeo de `Origin`.
 
 **Hecho cuando:** login, refresh transparente y logout funcionan contra la API real, y la CSP está activa sin romper la app (verificado con `next build && next start`).
 
 ### T7 · Back-office web `L` · `Media` (depende de T4 y T6)
 
-- [ ] Componentes shadcn necesarios: tabla, formularios, diálogo, select, checkbox y badge.
-- [ ] Pantallas:
+- [x] Componentes shadcn necesarios: tabla, formularios, diálogo, select, checkbox y badge.
+- [x] Pantallas:
   - puntos de venta (crear, editar, archivar);
   - usuarios (alta con contraseña temporal mostrada una sola vez, desactivar, reset);
   - roles (matriz de permisos agrupada, y los de sistema en solo lectura donde corresponda);
   - asignaciones (rol + alcance, con selector de puntos);
   - dispositivos (los propios y los ajenos, con revocar);
   - auditoría (paginada).
-- [ ] Navegación y acciones ocultas según `GET /me`. Los 403, 404, 409 y 422 de la API se muestran como mensajes claros en español.
-- [ ] Tests de componentes de los formularios críticos (asignaciones y roles).
+- [x] Navegación y acciones ocultas según `GET /me`. Los 403, 404, 409 y 422 de la API se muestran como mensajes claros en español.
+- [x] Tests de componentes de los formularios críticos (asignaciones y roles).
 
 **Hecho cuando:** un owner del seed hace desde la web todo el flujo del gate (crear punto, usuario, rol custom y asignación) y un cashier no ve las acciones administrativas.
 
 ### T8 · E2E y cierre de documentación `M` · `Media` (depende de T5 y T7)
 
-- [ ] Playwright e2e en `apps/web/e2e` (Chromium ya instalado; en CI con Postgres de servicio o Testcontainers):
+- [x] Playwright e2e en `apps/web/e2e` (Chromium ya instalado; en CI con Postgres de servicio o Testcontainers):
   - login del owner, alta de un punto y de un usuario, asignación;
   - login del nuevo usuario, cambio de contraseña obligatorio;
-  - el cashier recibe 403 en otro punto;
+  - el cashier solo ve su punto y recibe 403 en acciones administrativas;
   - logout;
   - un refresh reusado cierra la sesión.
-- [ ] Job `e2e` en CI.
-- [ ] Actualizar `docs/20` (estado de SP2), `README` (login demo) y `CLAUDE.md` (módulo IAM, cómo agregar un permiso y cómo agregar una tabla de tenant).
+- [x] Job `e2e` en CI (añadido en `.github/workflows/ci.yml`; sin verificar hasta el primer push, porque no se puede ejecutar GitHub Actions en local).
+- [x] Actualizar `docs/20` (estado de SP2), `README` (login demo) y `CLAUDE.md` (módulo IAM, cómo agregar un permiso y cómo agregar una tabla de tenant).
 - [ ] Marcar SP2 en Notion (lo hace el orquestador).
 
 **Hecho cuando:** el job `e2e` pasa en CI y se cumple cada punto del gate de salida del spec.

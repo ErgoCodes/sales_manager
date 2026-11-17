@@ -6,7 +6,7 @@
 
 - **SP1 (Fundaciones): completo y en `main`** (PRs #21–#28). CI en verde en `main`, incluidos `docker build` y los tests de integración.
 - **Spec de SP2: en `main`** (PR #29), con la revisión de seguridad incorporada.
-- **SP2 en curso.** Cada tarea vive en su propia rama `claude/wonderful-rubin-0wnoi9-sp2-tN`, con PR contra `main`.
+- **SP2 en curso (T1–T8 implementadas; T7 y T8 con PR pendiente).** Cada tarea vive en su propia rama `claude/wonderful-rubin-0wnoi9-sp2-tN`, con PR contra `main`.
 
 | Tarea | Estado | Rama / PR | Notas |
 |---|---|---|---|
@@ -14,11 +14,11 @@
 | T1 · Esquema IAM en Postgres | Mergeado en `main` | `…-sp2-t1` · [#30](https://github.com/ErgoCodes/sales_manager/pull/30) | Mergeado |
 | T2 · Dominio IAM + contratos | Mergeado en `main` | `…-sp2-t2` · [#31](https://github.com/ErgoCodes/sales_manager/pull/31) | Mergeado |
 | T3 · Autenticación en la API | Mergeado en `main` | `…-sp2-t3` · [#34](https://github.com/ErgoCodes/sales_manager/pull/34) | Mergeado |
-| T4 · API de administración | Completo, fixes de seguridad aplicados | `…-sp2-t4` | Verificado: 44 suites unitarias y 14 suites de integración (132 tests) pasando |
-| T5 · CLI `tenant:create` + seed demo | Sin empezar | — | Depende de T4 |
-| T6 · Sesión web (BFF), CSRF, CSP | Sin empezar | — | Depende de T3; puede ir en paralelo con T4 |
-| T7 · Back-office web | Sin empezar | — | Depende de T4 y T6 |
-| T8 · E2E Playwright + cierre de docs | Sin empezar | — | Depende de T5 y T7 |
+| T4 · API de administración | Completo, fixes de seguridad aplicados | `…-sp2-t4` · [#35](https://github.com/ErgoCodes/sales_manager/pull/35) | Verificado: 44 suites unitarias y 14 suites de integración (132 tests) pasando |
+| T5 · CLI `tenant:create` + seed demo | Completo | `…-sp2-t5` · [#36](https://github.com/ErgoCodes/sales_manager/pull/36) | `db:seed` crea el tenant `demo` (2 puntos, owner, manager y cashier) |
+| T6 · Sesión web (BFF), CSRF, CSP | Completo | `…-sp2-t6` · [#37](https://github.com/ErgoCodes/sales_manager/pull/37) | Cookies `__Host-`, refresh con single-flight, CSP con nonce |
+| T7 · Back-office web | Completo, PR pendiente | `…-sp2-t7` | Puntos de venta, usuarios, roles, asignaciones, dispositivos y auditoría |
+| T8 · E2E Playwright + cierre de docs | Completo, PR pendiente | `…-sp2-t8` | Cinco flujos e2e pasando en local; el job `e2e` de CI no se ha ejecutado todavía |
 
 El estado vivo de cada tarea está en Notion: proyecto «Mercado Mónaco — Plataforma multi-negocio», tareas `SP2·T1` a `SP2·T8`.
 
@@ -32,7 +32,9 @@ El estado vivo de cada tarea está en Notion: proyecto «Mercado Mónaco — Pla
    - 89/89 tests de integración y 356 tests unitarios pasando.
 3. ~~**Implementar y cerrar T4.**~~ Módulos administrativos (`locations`, `users`, `roles`, `assignments`, `devices`, `audit-events`), `DrizzleAdminUnitOfWork`, mapeo de errores de dominio/Postgres, rate limit en `POST /users`, tests de integración de aislamiento cross-tenant, no escalada, alcance por puntos y último Owner concurrente, más fix de seguridad:
    - **[RESUELTO] Verdad vacua en alcance con ubicaciones archivadas:** `shortfall` y `canManageDevicesOf` exigen `scope.locationIds.length > 0` para que una asignación cuyas ubicaciones fueron todas archivadas solo pueda ser cubierta por alcance `tenant`.
-4. **Seguir con T5 y T6**, según el plan de SP2.
+4. ~~**T5 y T6.**~~ Completos (#36 y #37).
+5. **T7 y T8:** abrir sus PRs contra `main` y mergearlos en orden. Tras el primer push de T8, comprobar que el job `e2e` pasa en CI (hasta entonces no está verificado).
+6. **Marcar SP2 como completo en Notion** cuando T7 y T8 estén en `main`.
 
 ## Lo que hay que saber de T1–T3
 
@@ -114,6 +116,26 @@ pnpm --filter api test:integration
 ```bash
 pnpm openapi:generate && pnpm --filter web api:generate && git diff --exit-code -- packages/contracts/openapi.json apps/web/src/lib/api/schema.d.ts
 ```
+
+### E2E (Playwright)
+
+Corre contra la API real y un build de producción de la web, con una base de datos propia (`monaco_e2e`) que se recrea en cada ejecución; nunca toca la base `monaco` de desarrollo. Necesita un Postgres con superusuario, indicado en `E2E_PG_ADMIN_URL` (por defecto `postgres://postgres:postgres@127.0.0.1:55432/postgres`).
+
+```bash
+docker run -d --name monaco-e2e-pg -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:55432:5432 postgres:17-alpine
+```
+
+```bash
+pnpm --filter web exec playwright install chromium
+```
+
+```bash
+pnpm --filter web test:e2e
+```
+
+`test:e2e` primero prepara el entorno (`apps/web/e2e/prepare.mjs`: base de datos, `init.sql`, migraciones, seed demo, secretos efímeros y build de la web; deja todo en `apps/web/e2e/.runtime/`, ignorado por git) y después lanza Playwright, que levanta la API (`:4180`) y la web (`:3180`; cambian con `E2E_API_PORT` y `E2E_WEB_PORT`). Las cookies `__Host-` y `Secure` funcionan sin HTTPS porque Chromium trata `http://localhost` como contexto seguro: no se desactiva ninguna protección. Las credenciales demo salen del propio módulo del seed. Al terminar, `docker rm -f monaco-e2e-pg`.
+
+Flujos cubiertos: alta de punto y usuario con asignación (owner); login del usuario nuevo con cambio de contraseña obligatorio; el cashier solo ve su punto y recibe 403 en acciones administrativas (la negativa por alcance de puntos con permiso la cubre el test de integración `admin-isolation`); logout con revocación inmediata; refresh reusado que cierra la sesión.
 
 ## Cómo se trabajó (para seguir igual)
 
