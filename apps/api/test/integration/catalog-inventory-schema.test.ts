@@ -265,6 +265,44 @@ describe('invariant: every movement is in a location of its document (used by T5
   });
 });
 
+describe('invariant helper: NULL comparisons and kind mismatches are violations', () => {
+  it('flags a reversal of a non-transfer document with a line in another location', async () => {
+    const entry = doc();
+    const reversal = doc({ kind: 'reversal', reverses_document_id: entry.id });
+    for (const d of [entry, reversal]) await insertDoc(admin, d);
+    const stray = mov(reversal.id, { kind: 'reversal', quantity_delta: '-1', location_id: ids.locA2 });
+    await insertMov(admin, stray);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([stray.id]);
+  });
+
+  it('flags a transfer_in inside a document without target location', async () => {
+    const entry = doc();
+    await insertDoc(admin, entry);
+    const stray = mov(entry.id, { kind: 'transfer_in', quantity_delta: '1' });
+    await insertMov(admin, stray);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([stray.id]);
+  });
+
+  it('flags a reversal movement inside a non-reversal document', async () => {
+    const entry = doc();
+    await insertDoc(admin, entry);
+    const stray = mov(entry.id, { kind: 'reversal', quantity_delta: '1' });
+    await insertMov(admin, stray);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([stray.id]);
+  });
+
+  it('flags a movement kind that its document kind cannot hold', async () => {
+    const entry = doc();
+    const exit = doc({ kind: 'exit', reason: 'shrinkage' });
+    for (const d of [entry, exit]) await insertDoc(admin, d);
+    const wrongKind = mov(entry.id, { kind: 'adjustment', quantity_delta: '1' });
+    const wrongExit = mov(exit.id, { kind: 'entry' });
+    await insertMov(admin, wrongKind);
+    await insertMov(admin, wrongExit);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([wrongKind.id, wrongExit.id].sort());
+  });
+});
+
 describe('stock sum index', () => {
   it('covers the sum with an INCLUDE column (index-only scans)', async () => {
     const { rows } = await admin.query<{ def: string }>(`select indexdef as def from pg_indexes where indexname = 'inventory_movements_stock_sum_idx'`);

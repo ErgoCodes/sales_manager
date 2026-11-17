@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, numeric, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
 import { locationProducts } from './catalog';
+import { oneOf } from './checks';
 import { users } from './iam';
 import { locations, tenantRef } from './tenants';
 import { tenantIsolationPolicy } from './tenancy';
@@ -17,9 +18,6 @@ import { createdAt, primaryId } from './types';
  * the rule. Kinds are generated from the shared catalogs, like the permission
  * CHECK.
  */
-
-const oneOf = (column: string, values: readonly string[]) =>
-  sql.raw(`${column} in (${values.map((value) => `'${value}'`).join(', ')})`);
 
 /** A header: one command (entry, exit, adjustment, transfer or reversal). `id` comes from the client. */
 export const inventoryDocuments = pgTable(

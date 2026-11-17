@@ -2,6 +2,7 @@ import { CATEGORIES, UNITS_OF_MEASURE } from '@monaco/domain';
 import { sql } from 'drizzle-orm';
 import { bigint, check, date, foreignKey, index, numeric, pgTable, primaryKey, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
+import { oneOf } from './checks';
 import { locations, tenantRef } from './tenants';
 import { tenantIsolationPolicy } from './tenancy';
 import { createdAt, primaryId } from './types';
@@ -17,8 +18,6 @@ import { createdAt, primaryId } from './types';
 export const CURRENCIES = ['CUP', 'USD', 'MLC'] as const;
 export const UNIT_VALUES = UNITS_OF_MEASURE.map((unit) => unit.value);
 
-const oneOf = (column: string, values: readonly string[]) =>
-  sql.raw(`${column} in (${values.map((value) => `'${value}'`).join(', ')})`);
 /** NULL passes a CHECK, so nullable amounts only need the bound. */
 const minorUnits = (name: string) => bigint(name, { mode: 'number' });
 
