@@ -13,6 +13,8 @@ import type { AppConfig } from './config/env';
 import { DatabaseModule } from './infrastructure/db/database.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { toCatalogDomainError } from './modules/catalog/http/catalog-http-errors';
 import { DevicesModule } from './modules/devices/devices.module';
 import { HealthModule } from './modules/health/health.module';
 import { toMappedDomainError } from './modules/iam/http/auth-http-errors';
@@ -43,6 +45,7 @@ export class AppModule implements NestModule {
         HealthModule,
         IamModule,
         LocationsModule,
+        CatalogModule,
         RolesModule,
         UsersModule,
         AssignmentsModule,
@@ -52,7 +55,7 @@ export class AppModule implements NestModule {
       providers: [
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
-        { provide: EXCEPTION_MAPPERS, useValue: [toMappedDomainError] },
+        { provide: EXCEPTION_MAPPERS, useValue: [toMappedDomainError, toCatalogDomainError] },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },
       ],
     };
