@@ -201,6 +201,17 @@ describe('no escalation on user routes', () => {
     expect(reasons).toEqual(['owner_only', 'owner_only', 'owner_only', 'permission_not_held', 'permission_not_held', 'self_modification']);
   });
 
+  it('an existing custom admin with the old Cashier set (no SP3 view permissions) can no longer manage a Cashier', async () => {
+    const legacy = await seeder.role(a.id, 'LegacyUsersAdmin', ['users:manage', 'sales:create', 'reports:view', 'cash:close']);
+    await seeder.user(a.id, 'legacyadmin@a.example', [[legacy, 'tenant']]);
+    const la = await loginAs(app, 'legacyadmin@a.example');
+    await la.post(`/users/${cashier}/reset-password`).expect(403);
+    await la.post(`/users/${cashier}/disable`).expect(403);
+    expect((await userRow(cashier))!.status).toBe('active');
+    const reasons = (await auditRows(admin, a.id)).filter((r) => r.type === 'escalation_denied').map((r) => r.metadata.reason);
+    expect(reasons).toEqual(['permission_not_held', 'permission_not_held']);
+  });
+
   it('a cashier gets 403 on every user route', async () => {
     const c = await loginAs(app, 'cashier@a.example');
     await c.get('/users').expect(403);
