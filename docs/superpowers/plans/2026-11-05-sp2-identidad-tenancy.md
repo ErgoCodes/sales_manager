@@ -131,8 +131,8 @@ T2 (IAM) ┘                  └─> T6 (web BFF) ───┴─> T7 (web admi
   - el cashier solo ve su punto y recibe 403 en acciones administrativas;
   - logout;
   - un refresh reusado cierra la sesión.
-- [x] Job `e2e` en CI (añadido en `.github/workflows/ci.yml`; sin verificar hasta el primer push, porque no se puede ejecutar GitHub Actions en local).
+- [x] Job `e2e` en CI (en `.github/workflows/ci.yml`; pasa en CI).
 - [x] Actualizar `docs/20` (estado de SP2), `README` (login demo) y `CLAUDE.md` (módulo IAM, cómo agregar un permiso y cómo agregar una tabla de tenant).
-- [ ] Marcar SP2 en Notion (lo hace el orquestador).
+- [x] Marcar SP2 en Notion (lo hace el orquestador).
 
 **Hecho cuando:** el job `e2e` pasa en CI y se cumple cada punto del gate de salida del spec.

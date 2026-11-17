@@ -5,7 +5,6 @@
 // Needs a Postgres superuser URL in E2E_PG_ADMIN_URL (default: a local container on port 55432). It only
 // touches the database named by E2E_DB_NAME (default monaco_e2e), which it drops and recreates.
 import { execFileSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';

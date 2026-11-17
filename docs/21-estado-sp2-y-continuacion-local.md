@@ -6,7 +6,7 @@
 
 - **SP1 (Fundaciones): completo y en `main`** (PRs #21–#28). CI en verde en `main`, incluidos `docker build` y los tests de integración.
 - **Spec de SP2: en `main`** (PR #29), con la revisión de seguridad incorporada.
-- **SP2 en curso (T1–T8 implementadas; T7 y T8 con PR pendiente).** Cada tarea vive en su propia rama `claude/wonderful-rubin-0wnoi9-sp2-tN`, con PR contra `main`.
+- **SP2 (Identidad y tenancy): completo y en `main`** (PRs #30–#39). CI en verde en `main`, incluido el job `e2e`. Cada tarea vivió en su propia rama `claude/wonderful-rubin-0wnoi9-sp2-tN`, con PR contra `main`.
 
 | Tarea | Estado | Rama / PR | Notas |
 |---|---|---|---|
@@ -14,11 +14,11 @@
 | T1 · Esquema IAM en Postgres | Mergeado en `main` | `…-sp2-t1` · [#30](https://github.com/ErgoCodes/sales_manager/pull/30) | Mergeado |
 | T2 · Dominio IAM + contratos | Mergeado en `main` | `…-sp2-t2` · [#31](https://github.com/ErgoCodes/sales_manager/pull/31) | Mergeado |
 | T3 · Autenticación en la API | Mergeado en `main` | `…-sp2-t3` · [#34](https://github.com/ErgoCodes/sales_manager/pull/34) | Mergeado |
-| T4 · API de administración | Completo, fixes de seguridad aplicados | `…-sp2-t4` · [#35](https://github.com/ErgoCodes/sales_manager/pull/35) | Verificado: 44 suites unitarias y 14 suites de integración (132 tests) pasando |
-| T5 · CLI `tenant:create` + seed demo | Completo | `…-sp2-t5` · [#36](https://github.com/ErgoCodes/sales_manager/pull/36) | `db:seed` crea el tenant `demo` (2 puntos, owner, manager y cashier) |
-| T6 · Sesión web (BFF), CSRF, CSP | Completo | `…-sp2-t6` · [#37](https://github.com/ErgoCodes/sales_manager/pull/37) | Cookies `__Host-`, refresh con single-flight, CSP con nonce |
-| T7 · Back-office web | Completo, PR pendiente | `…-sp2-t7` | Puntos de venta, usuarios, roles, asignaciones, dispositivos y auditoría |
-| T8 · E2E Playwright + cierre de docs | Completo, PR pendiente | `…-sp2-t8` | Cinco flujos e2e pasando en local; el job `e2e` de CI no se ha ejecutado todavía |
+| T4 · API de administración | Mergeado en `main` | `…-sp2-t4` · [#35](https://github.com/ErgoCodes/sales_manager/pull/35) | Verificado: 44 suites unitarias y 14 suites de integración (132 tests) pasando |
+| T5 · CLI `tenant:create` + seed demo | Mergeado en `main` | `…-sp2-t5` · [#36](https://github.com/ErgoCodes/sales_manager/pull/36) | `db:seed` crea el tenant `demo` (2 puntos, owner, manager y cashier) |
+| T6 · Sesión web (BFF), CSRF, CSP | Mergeado en `main` | `…-sp2-t6` · [#37](https://github.com/ErgoCodes/sales_manager/pull/37) | Cookies `__Host-`, refresh con single-flight, CSP con nonce |
+| T7 · Back-office web | Mergeado en `main` | `…-sp2-t7` · [#38](https://github.com/ErgoCodes/sales_manager/pull/38) | Puntos de venta, usuarios, roles, asignaciones, dispositivos y auditoría |
+| T8 · E2E Playwright + cierre de docs | Mergeado en `main` | `…-sp2-t8` · [#39](https://github.com/ErgoCodes/sales_manager/pull/39) | Cinco flujos e2e pasando en local; el job `e2e` pasa en CI |
 
 El estado vivo de cada tarea está en Notion: proyecto «Mercado Mónaco — Plataforma multi-negocio», tareas `SP2·T1` a `SP2·T8`.
 
@@ -33,8 +33,8 @@ El estado vivo de cada tarea está en Notion: proyecto «Mercado Mónaco — Pla
 3. ~~**Implementar y cerrar T4.**~~ Módulos administrativos (`locations`, `users`, `roles`, `assignments`, `devices`, `audit-events`), `DrizzleAdminUnitOfWork`, mapeo de errores de dominio/Postgres, rate limit en `POST /users`, tests de integración de aislamiento cross-tenant, no escalada, alcance por puntos y último Owner concurrente, más fix de seguridad:
    - **[RESUELTO] Verdad vacua en alcance con ubicaciones archivadas:** `shortfall` y `canManageDevicesOf` exigen `scope.locationIds.length > 0` para que una asignación cuyas ubicaciones fueron todas archivadas solo pueda ser cubierta por alcance `tenant`.
 4. ~~**T5 y T6.**~~ Completos (#36 y #37).
-5. **T7 y T8:** abrir sus PRs contra `main` y mergearlos en orden. Tras el primer push de T8, comprobar que el job `e2e` pasa en CI (hasta entonces no está verificado).
-6. **Marcar SP2 como completo en Notion** cuando T7 y T8 estén en `main`.
+5. ~~**T7 y T8.**~~ Mergeados en `main` (#38 y #39); el job `e2e` pasa en CI.
+6. ~~**Marcar SP2 como completo en Notion.**~~ Hecho.
 
 ## Lo que hay que saber de T1–T3
 
@@ -151,7 +151,6 @@ Flujos cubiertos: alta de punto y usuario con asignación (owner); login del usu
 
 - Zod fijado en `~4.4.3`: desde la 4.5 falla `cleanupOpenApiDoc` de nestjs-zod (ADR 0002). Subirlo cuando nestjs-zod lo soporte.
 - `react`/`react-dom` 19.1.0 fijados en la raíz para que el linker hoisted no mezcle el React de mobile con el de la web (`CLAUDE.md`). Es frágil si cambian esas versiones.
-- La web todavía no tiene componentes shadcn instalados; se agregan en T7 con `pnpm dlx shadcn add …`.
 - `jose` 6 es solo ESM y la API compila a CJS: funciona con Node ≥ 22.12 (`require(esm)`). Hay que mantener Node 24.
 - La IP firmada se puede repetir dentro de 30 s en el mismo endpoint. Es un riesgo aceptado (ADR 0004).
 - Mobile tiene 9 warnings de lint que ya existían antes de la Etapa 2.
