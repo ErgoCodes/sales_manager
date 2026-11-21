@@ -129,6 +129,23 @@ describe('product lifecycle (Owner)', () => {
     expect((await productRow(moved.id))!.currency).toBe('CUP');
     await owner.patch(`/products/${moved.id}`, { name: 'Movido 2', currency: 'CUP' }).expect(200);
   });
+
+  it('a currency change must restate the existing amounts and is blocked by location overrides', async () => {
+    const owner = await loginAs(app, 'owner@a.example');
+    const product = await create(owner, 'Relabel');
+    const stale = await owner.patch(`/products/${product.id}`, { currency: 'USD' }).expect(422);
+    expect(stale.body.error.code).toBe('CURRENCY_MISMATCH');
+    expect(await productRow(product.id)).toMatchObject({ currency: 'CUP' });
+
+    await owner.put(`/locations/${a.locations[0]}/products/${product.id}/price`, { cashPrice: cup(900), transferPrice: null }).expect(200);
+    const usd = (amount: number) => ({ amount, currency: 'USD' });
+    const restated = { currency: 'USD', costPrice: usd(1), cashPrice: usd(2), transferPrice: usd(3) };
+    expect((await owner.patch(`/products/${product.id}`, restated).expect(422)).body.error.code).toBe('CURRENCY_MISMATCH');
+    expect(await productRow(product.id)).toMatchObject({ currency: 'CUP' });
+
+    await owner.put(`/locations/${a.locations[0]}/products/${product.id}/price`, { cashPrice: null, transferPrice: null }).expect(200);
+    expect(Product.parse((await owner.patch(`/products/${product.id}`, restated).expect(200)).body)).toMatchObject({ currency: 'USD', transferPrice: usd(3) });
+  });
 });
 
 describe('location prices and scope', () => {

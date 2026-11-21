@@ -17,7 +17,7 @@ import type { Clock } from '../../iam/domain/auth-ports';
 import { PermissionDenied, ResourceNotFound } from '../../iam/domain/errors';
 import { authorize, authorizeRead, can, hasReadAnywhere } from '../../iam/domain/permissions';
 import { CurrencyMismatch, InvalidCatalogValue, ProductArchived } from '../domain/catalog-errors';
-import type { CatalogUnitOfWork, ProductChanges, ProductPriceRecord, ProductRecord } from '../domain/catalog-ports';
+import type { CatalogTenantScope, CatalogUnitOfWork, ProductChanges, ProductPriceRecord, ProductRecord } from '../domain/catalog-ports';
 
 /**
  * Costs (D10) go only to someone who writes the catalog or the inventory in that
@@ -157,6 +157,20 @@ export class CreateProduct {
   }
 }
 
+const BASE_AMOUNTS = ['costPrice', 'cashPrice', 'transferPrice'] as const;
+
+/**
+ * Amounts are stored as minor units without their currency, so a currency change
+ * would silently relabel them (5000 CUP cents read as 5000 USD cents). It is
+ * allowed only before any movement, when the request restates every base amount
+ * already set (a new amount or null) and no location keeps an override.
+ */
+async function assertCurrencyChangeAllowed(scope: CatalogTenantScope, current: ProductRecord, input: UpdateProductRequest): Promise<void> {
+  if (await scope.products.hasMovements(current.id)) throw new CurrencyMismatch('has_movements');
+  if (BASE_AMOUNTS.some((field) => current[field] !== null && input[field] === undefined)) throw new CurrencyMismatch('stale_amounts');
+  if (await scope.products.hasPriceOverrides(current.id)) throw new CurrencyMismatch('price_overrides');
+}
+
 /**
  * PATCH /products/:id: `catalog:write` tenant-wide. The row is locked first (it
  * waits for inventory documents, which read it FOR SHARE), so "has movements"
@@ -188,7 +202,7 @@ export class UpdateProduct {
       if (!current) throw new ResourceNotFound('product');
       const currency = input.currency ?? current.currency;
       assertCurrency(currency, [input.costPrice, input.cashPrice, input.transferPrice]);
-      if (currency !== current.currency && (await scope.products.hasMovements(id))) throw new CurrencyMismatch('has_movements');
+      if (currency !== current.currency) await assertCurrencyChangeAllowed(scope, current, input);
       const updated = await scope.products.update(id, changes, now);
       await scope.audit.record({
         type: 'product_updated',

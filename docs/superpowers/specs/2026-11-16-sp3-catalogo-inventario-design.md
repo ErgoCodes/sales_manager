@@ -139,7 +139,7 @@ Agregarlos sigue el procedimiento de `CLAUDE.md` ("Adding a permission"): `PERMI
 | Entrada, salida, ajuste | `inventory:write` en el punto |
 | Transferencia | `inventory:transfer` en el origen **y** en el destino (D7) |
 | Revertir | El permiso del documento original en **cada** punto que tocó |
-| Costos en la respuesta | `catalog:write` (costo del producto) o `inventory:write` (costo promedio y `unit_cost`) en ese alcance (D10) |
+| Costos en la respuesta | `catalog:write` **o** `inventory:write` en ese alcance: cualquiera de los dos muestra los tres costos (`cost_price`, `average_cost` y `unit_cost`), según la opción (a) de D10 |
 
 **Implicación de lectura (D9):** en cada caso de uso, `inventory:write` o `inventory:transfer` en un punto cuentan también como `inventory:view` en ese punto, y `catalog:write` como `catalog:view`. Así un rol personalizado (`roles.is_system = false`) que ya tenía `write` lee lo que escribe, sin migrar sus permisos. Un test de integración lo cubre con un rol personalizado.
 
