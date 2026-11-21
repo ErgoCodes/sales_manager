@@ -1,6 +1,6 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
-import { describeApiError, errorCode } from '@/lib/api-errors';
+import { describeApiError, errorCode, errorDetails, type ErrorDetail } from '@/lib/api-errors';
 import { createAuthenticatedClient } from './authenticated';
 
 type Client = Awaited<ReturnType<typeof createAuthenticatedClient>>;
@@ -10,7 +10,8 @@ interface RawResult<T> {
   response: Response;
 }
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; message: string };
+/** A failure carries the stable `code` and `details` when the API sent them, for callers that refine the message. */
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; message: string; code?: string; details?: ErrorDetail[] };
 
 /** Per-request options shared by every back-office call: bounded wait, never cached. */
 export function requestInit() {
@@ -32,6 +33,10 @@ export async function callApi<T>(call: (api: Client) => Promise<RawResult<T>>, {
   }
   const { response } = result;
   if (response.status === 401) redirect('/login');
-  if (!response.ok) return { ok: false, status: response.status, message: describeApiError(response.status, errorCode(result.error)) };
+  if (!response.ok) {
+    const code = errorCode(result.error);
+    const details = errorDetails(result.error);
+    return { ok: false, status: response.status, message: describeApiError(response.status, code), ...(code ? { code } : {}), ...(details.length > 0 ? { details } : {}) };
+  }
   return { ok: true, data: result.data as T };
 }

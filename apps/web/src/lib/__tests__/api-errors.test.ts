@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeApiError } from '../api-errors';
+import { describeApiError, errorDetails } from '../api-errors';
 
 describe('describeApiError', () => {
   it.each([
@@ -32,5 +32,21 @@ describe('describeApiError', () => {
   it('falls back to the status message for unknown codes and never echoes API text', () => {
     expect(describeApiError(409, 'something_new')).toBe(describeApiError(409));
     expect(describeApiError(0)).toContain('No se pudo');
+  });
+});
+
+describe('inventory codes', () => {
+  it('explains INSUFFICIENT_STOCK and IDEMPOTENCY_CONFLICT in Spanish', () => {
+    expect(describeApiError(409, 'INSUFFICIENT_STOCK')).toContain('stock suficiente');
+    expect(describeApiError(409, 'IDEMPOTENCY_CONFLICT')).toMatch(/ya se usó.*Recarga/);
+  });
+});
+
+describe('errorDetails', () => {
+  it('extracts the details of an error body, ignoring malformed entries', () => {
+    expect(errorDetails({ error: { code: 'X', details: [{ path: 'a', message: 'b' }, { path: 1 }, null] } })).toEqual([{ path: 'a', message: 'b' }]);
+    expect(errorDetails({ error: { code: 'X' } })).toEqual([]);
+    expect(errorDetails(null)).toEqual([]);
+    expect(errorDetails({ error: null })).toEqual([]);
   });
 });

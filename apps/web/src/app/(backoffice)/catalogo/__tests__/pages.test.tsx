@@ -44,6 +44,7 @@ const location = (id: string, name: string) => ({ id, name, code: name.toUpperCa
 
 /** Routes every mocked `callApi` by the path the page asked for, and records the query. */
 const calls: { path: string; query?: Record<string, unknown> }[] = [];
+let stockFor: () => unknown = () => ({ ok: true, data: { productId: P, locations: [] } });
 function serve(productFor: (query?: Record<string, unknown>) => unknown) {
   callApi.mockImplementation(async (fn: (api: unknown) => Promise<unknown>) => {
     let path = '';
@@ -59,6 +60,7 @@ function serve(productFor: (query?: Record<string, unknown>) => unknown) {
     calls.push({ path, query });
     if (path === '/locations') return { ok: true, data: { items: [location(L1, 'Centro'), location(L2, 'Norte')], nextCursor: null } };
     if (path === '/products') return { ok: true, data: { items: [productFor(query)], nextCursor: null } };
+    if (path === '/products/{id}/stock') return stockFor();
     return { ok: true, data: productFor(query) };
   });
 }
@@ -68,6 +70,7 @@ beforeEach(() => {
   getMe.mockReset();
   callApi.mockReset();
   calls.length = 0;
+  stockFor = () => ({ ok: true, data: { productId: P, locations: [] } });
 });
 
 describe('catalog list page', () => {
@@ -142,5 +145,36 @@ describe('product detail page', () => {
     asUser(['catalog:view', tenant]);
     callApi.mockResolvedValue({ ok: false, status: 404, message: 'El registro no existe o ya no está disponible.' });
     expect(await html(ProductPage({ params: Promise.resolve({ id: P }) }))).toContain('no existe');
+  });
+
+  it('shows the stock per visible location with average cost when the API returns it', async () => {
+    asUser(['catalog:write', tenant], ['inventory:write', tenant]);
+    serve(() => product);
+    stockFor = () => ({
+      ok: true,
+      data: { productId: P, locations: [{ locationId: L1, locationName: 'Centro', quantity: 12.5, averageCost: { amount: 8050, currency: 'CUP' } }, { locationId: L2, locationName: 'Norte', quantity: 0, averageCost: { amount: 0, currency: 'CUP' } }] },
+    });
+    const out = await html(ProductPage({ params: Promise.resolve({ id: P }) }));
+    for (const text of ['Stock por punto de venta', '12.5 kg', 'Costo promedio', '$80.50 CUP']) expect(out).toContain(text);
+  });
+
+  it('hides the average cost the API did not return, and the stock section without inventory access', async () => {
+    asUser(['catalog:view', at(L1)], ['inventory:view', at(L1)]);
+    serve(() => ({ ...product, costPrice: null }));
+    stockFor = () => ({ ok: true, data: { productId: P, locations: [{ locationId: L1, locationName: 'Centro', quantity: 3, averageCost: null }] } });
+    const out = await html(ProductPage({ params: Promise.resolve({ id: P }) }));
+    expect(out).toContain('Stock por punto de venta');
+    expect(out).toContain('3 kg');
+    expect(out).not.toContain('Costo promedio');
+
+    asUser(['catalog:view', at(L1)]);
+    calls.length = 0;
+    const noInventory = await html(ProductPage({ params: Promise.resolve({ id: P }) }));
+    expect(noInventory).not.toContain('Stock por punto de venta');
+    expect(calls.some((c) => c.path === '/products/{id}/stock')).toBe(false);
+
+    asUser(['catalog:view', at(L1)], ['inventory:view', at(L1)]);
+    stockFor = () => ({ ok: false, status: 503, message: 'El servicio no está disponible.' });
+    expect(await html(ProductPage({ params: Promise.resolve({ id: P }) }))).toContain('El servicio no está disponible.');
   });
 });

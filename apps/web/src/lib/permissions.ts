@@ -24,6 +24,12 @@ export function canReadCatalog(grants: Grants, locationId?: string): boolean {
   return check('catalog:view') || check('catalog:write');
 }
 
+/** D9: `inventory:write` and `inventory:transfer` imply `inventory:view`. Without a location: held anywhere. */
+export function canReadInventory(grants: Grants, locationId?: string): boolean {
+  const check = (permission: Permission) => (locationId === undefined ? canAny(grants, permission) : canAt(grants, permission, locationId));
+  return check('inventory:view') || check('inventory:write') || check('inventory:transfer');
+}
+
 /**
  * D10, as the API decides it: costs come back to whoever has `catalog:write` or `inventory:write`
  * at the asked location, or tenant-wide when no location was asked for. The UI uses it to hide

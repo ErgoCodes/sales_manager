@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PERMISSIONS } from '@monaco/contracts';
-import { PERMISSION_GROUPS, PERMISSION_LABELS, canAny, canAt, canReadCatalog, canSeeCatalogCosts, canTenantWide } from '../permissions';
+import { PERMISSION_GROUPS, PERMISSION_LABELS, canAny, canAt, canReadCatalog, canReadInventory, canSeeCatalogCosts, canTenantWide } from '../permissions';
 
 const tenant = { type: 'tenant' } as const;
 const at = (...ids: string[]) => ({ type: 'locations', locationIds: ids }) as const;
@@ -70,5 +70,18 @@ describe('SP3 read permissions', () => {
     expect(PERMISSION_LABELS['inventory:view']).toBe('Ver el inventario');
     const group = PERMISSION_GROUPS.find((g) => g.title === 'Catálogo e inventario');
     expect(group?.permissions).toEqual(expect.arrayContaining(['catalog:view', 'inventory:view']));
+  });
+});
+
+describe('inventory read hint (D9: write and transfer count as view)', () => {
+  it('reads with inventory:view, inventory:write or inventory:transfer, per location', () => {
+    for (const permission of ['inventory:view', 'inventory:write', 'inventory:transfer'] as const) {
+      const grants = [{ permission, scope: at('a') }];
+      expect(canReadInventory(grants)).toBe(true);
+      expect(canReadInventory(grants, 'a')).toBe(true);
+      expect(canReadInventory(grants, 'b')).toBe(false);
+    }
+    expect(canReadInventory([{ permission: 'catalog:write', scope: tenant }])).toBe(false);
+    expect(canReadInventory([{ permission: 'inventory:view', scope: tenant }], 'z')).toBe(true);
   });
 });
