@@ -291,6 +291,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/locations/{locationId}/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock of a location by product name (inventory:view there); ?lowStockOnly. Costs only with catalog:write or inventory:write in the location */
+        get: operations["getLocationStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{id}/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock of a product in each location where the actor has inventory:view. Costs only with catalog:write or inventory:write in the location */
+        get: operations["getProductStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/locations/{locationId}/inventory-movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ledger of a location, newest first (inventory:view there); the other location of a transfer only with inventory:view in it. Costs only with catalog:write or inventory:write in the location */
+        get: operations["listInventoryMovements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An inventory document (inventory:view in at least one of its locations); locations without it are masked. Costs only with catalog:write or inventory:write in the location */
+        get: operations["getInventoryDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/roles": {
         parameters: {
             query?: never;
@@ -747,12 +815,16 @@ export interface components {
         InventoryMovement: {
             id: components["schemas"]["Uuid"];
             documentId: components["schemas"]["Uuid"];
-            /** @description Null when the other transfer location is not visible to the actor */
-            locationId: components["schemas"]["Uuid"] | null;
+            /** @description The location whose stock this movement changes */
+            locationId: components["schemas"]["Uuid"];
+            /** @description The other location of a transfer; null for any other document, or null when the actor lacks inventory:view there: show it as "otro punto" */
+            counterpartLocationId: components["schemas"]["Uuid"] | null;
+            /** @description Same visibility as counterpartLocationId */
+            counterpartLocationName: string | null;
             productId: components["schemas"]["Uuid"];
             kind: components["schemas"]["InventoryMovementKind"];
             quantityDelta: number;
-            /** @description Null without cost visibility */
+            /** @description Null without catalog:write or inventory:write in that location (D10) */
             unitCost: components["schemas"]["AverageCost"] | null;
             reversesMovementId: components["schemas"]["Uuid"] | null;
             createdAt: components["schemas"]["IsoDateTime"];
@@ -768,14 +840,19 @@ export interface components {
         InventoryDocument: {
             id: components["schemas"]["Uuid"];
             kind: components["schemas"]["InventoryDocumentKind"];
-            locationId: components["schemas"]["Uuid"];
+            /** @description Origin of a transfer, or the only location of any other document; null when the actor lacks inventory:view there: show it as "otro punto" */
+            locationId: components["schemas"]["Uuid"] | null;
+            locationName: string | null;
+            /** @description Destination of a transfer (null for other kinds); null when the actor lacks inventory:view there: show it as "otro punto" */
             targetLocationId: components["schemas"]["Uuid"] | null;
+            targetLocationName: string | null;
             reason: components["schemas"]["ExitReason"] | null;
             reversesDocumentId: components["schemas"]["Uuid"] | null;
             occurredAt: components["schemas"]["IsoDateTime"];
             notes: string | null;
             createdBy: components["schemas"]["Uuid"];
             createdAt: components["schemas"]["IsoDateTime"];
+            /** @description Only the movements in locations where the actor has inventory:view */
             movements: components["schemas"]["InventoryMovement"][];
         };
         /** @enum {string} */
@@ -785,12 +862,16 @@ export interface components {
         InventoryMovement_Output: {
             id: components["schemas"]["Uuid_Output"];
             documentId: components["schemas"]["Uuid_Output"];
-            /** @description Null when the other transfer location is not visible to the actor */
-            locationId: components["schemas"]["Uuid_Output"] | null;
+            /** @description The location whose stock this movement changes */
+            locationId: components["schemas"]["Uuid_Output"];
+            /** @description The other location of a transfer; null for any other document, or null when the actor lacks inventory:view there: show it as "otro punto" */
+            counterpartLocationId: components["schemas"]["Uuid_Output"] | null;
+            /** @description Same visibility as counterpartLocationId */
+            counterpartLocationName: string | null;
             productId: components["schemas"]["Uuid_Output"];
             kind: components["schemas"]["InventoryMovementKind_Output"];
             quantityDelta: number;
-            /** @description Null without cost visibility */
+            /** @description Null without catalog:write or inventory:write in that location (D10) */
             unitCost: components["schemas"]["AverageCost_Output"] | null;
             reversesMovementId: components["schemas"]["Uuid_Output"] | null;
             createdAt: components["schemas"]["IsoDateTime_Output"];
@@ -806,14 +887,19 @@ export interface components {
         InventoryDocument_Output: {
             id: components["schemas"]["Uuid_Output"];
             kind: components["schemas"]["InventoryDocumentKind_Output"];
-            locationId: components["schemas"]["Uuid_Output"];
+            /** @description Origin of a transfer, or the only location of any other document; null when the actor lacks inventory:view there: show it as "otro punto" */
+            locationId: components["schemas"]["Uuid_Output"] | null;
+            locationName: string | null;
+            /** @description Destination of a transfer (null for other kinds); null when the actor lacks inventory:view there: show it as "otro punto" */
             targetLocationId: components["schemas"]["Uuid_Output"] | null;
+            targetLocationName: string | null;
             reason: components["schemas"]["ExitReason_Output"] | null;
             reversesDocumentId: components["schemas"]["Uuid_Output"] | null;
             occurredAt: components["schemas"]["IsoDateTime_Output"];
             notes: string | null;
             createdBy: components["schemas"]["Uuid_Output"];
             createdAt: components["schemas"]["IsoDateTime_Output"];
+            /** @description Only the movements in locations where the actor has inventory:view */
             movements: components["schemas"]["InventoryMovement_Output"][];
         };
         CreateExitRequest: {
@@ -838,6 +924,43 @@ export interface components {
                 productId: components["schemas"]["Uuid"];
                 quantityDelta: components["schemas"]["SignedQuantity"];
             }[];
+        };
+        StockItem_Output: {
+            productId: components["schemas"]["Uuid_Output"];
+            name: string;
+            unitOfMeasure: string;
+            category: string | null;
+            /** @description SUM(quantity_delta), at most 3 decimals */
+            quantity: number;
+            /** @description Effective threshold (getProductThreshold): the product's, else its category's, else the general one */
+            lowStockThreshold: number;
+            /** @description quantity < lowStockThreshold */
+            isLow: boolean;
+            /** @description Null without catalog:write or inventory:write in that location (D10) */
+            averageCost: components["schemas"]["AverageCost_Output"] | null;
+            archivedAt: components["schemas"]["IsoDateTime_Output"] | null;
+        };
+        PaginatedStockItems_Output: {
+            items: components["schemas"]["StockItem_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        ProductStockByLocation_Output: {
+            locationId: components["schemas"]["Uuid_Output"];
+            locationName: string;
+            quantity: number;
+            /** @description Null without catalog:write or inventory:write in that location (D10) */
+            averageCost: components["schemas"]["AverageCost_Output"] | null;
+        };
+        ProductStock_Output: {
+            productId: components["schemas"]["Uuid_Output"];
+            /** @description Visible locations only, by name */
+            locations: components["schemas"]["ProductStockByLocation_Output"][];
+        };
+        PaginatedInventoryMovements_Output: {
+            items: components["schemas"]["InventoryMovement_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
         };
         Role_Output: {
             id: components["schemas"]["Uuid_Output"];
@@ -1620,6 +1743,144 @@ export interface operations {
             };
             /** @description The new document */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getLocationStock: {
+        parameters: {
+            query?: {
+                q?: string;
+                lowStockOnly?: "true" | "false";
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path: {
+                locationId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of stock items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedStockItems_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getProductStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The visible locations with their stock */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductStock_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listInventoryMovements: {
+        parameters: {
+            query?: {
+                productId?: components["schemas"]["Uuid"];
+                kind?: components["schemas"]["InventoryMovementKind"];
+                /** @description Movements recorded at or after this instant */
+                from?: components["schemas"]["IsoDateTime"];
+                /** @description Movements recorded at or before this instant */
+                to?: components["schemas"]["IsoDateTime"];
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path: {
+                locationId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of movements */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedInventoryMovements_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getInventoryDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The document with its visible movements */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

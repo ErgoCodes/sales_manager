@@ -60,3 +60,33 @@ export async function recordEntry(session: Session, locationId: string, productI
   const res = await session.post('/inventory/entries', entryBody(locationId, productId, quantity, unitCost)).expect(201);
   return InventoryDocument.parse(res.body);
 }
+
+/**
+ * A transfer document as T6 will write it (one document, `transfer_out` in the origin and
+ * `transfer_in` in the destination), inserted as superuser so the reads can be tested now.
+ */
+export async function insertTransfer(
+  admin: Pool,
+  tenant: { id: string; owner: string },
+  from: string,
+  to: string,
+  productId: string,
+  quantity: number,
+  unitCost: number,
+): Promise<string> {
+  const documentId = uuidv7();
+  for (const location of [from, to]) {
+    await admin.query(`insert into location_products (tenant_id, location_id, product_id) values ($1, $2, $3) on conflict do nothing`, [tenant.id, location, productId]);
+  }
+  await admin.query(
+    `insert into inventory_documents (id, tenant_id, kind, location_id, target_location_id, occurred_at, payload_hash, created_by)
+     values ($1, $2, 'transfer', $3, $4, now(), 'h', $5)`,
+    [documentId, tenant.id, from, to, tenant.owner],
+  );
+  await admin.query(
+    `insert into inventory_movements (id, tenant_id, document_id, location_id, product_id, kind, quantity_delta, unit_cost, created_at)
+     values ($1, $2, $3, $4, $5, 'transfer_out', $6, $7, clock_timestamp()), ($8, $2, $3, $9, $5, 'transfer_in', $10, $7, clock_timestamp())`,
+    [uuidv7(), tenant.id, documentId, from, productId, -quantity, unitCost, uuidv7(), to, quantity],
+  );
+  return documentId;
+}

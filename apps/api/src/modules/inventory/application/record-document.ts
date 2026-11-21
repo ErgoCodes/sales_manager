@@ -23,7 +23,7 @@ import {
   pairKey,
   sortPairs,
 } from '../domain/inventory-ports';
-import { toDocument } from './document-mapper';
+import { ledgerView, toDocument } from './document-mapper';
 
 export interface PlannedLine {
   readonly productId: string;
@@ -77,7 +77,7 @@ export async function recordDocument(uow: InventoryUnitOfWork, { actor, ip }: Ad
       payloadHash: plan.payloadHash,
       createdBy: actor.userId,
     });
-    if (!inserted) return replay(scope, plan);
+    if (!inserted) return replay(scope, plan, actor);
 
     await lockParents(scope, plan);
     const pairs = sortPairs(plan.lines.map((line) => ({ locationId: plan.locationId, productId: line.productId })));
@@ -103,15 +103,15 @@ export async function recordDocument(uow: InventoryUnitOfWork, { actor, ip }: Ad
     const stored = await scope.ledger.findDocument(plan.id);
     /* v8 ignore next -- the header was inserted in this transaction */
     if (!stored) throw new Error('Inventory document disappeared inside its own transaction');
-    return { document: toDocument(stored), created: true };
+    return { document: toDocument(stored, ledgerView(actor.effective)), created: true };
   });
 }
 
 /** The header insert found the id: the document (same hash) or a conflict (other content, or another tenant's id). */
-async function replay(scope: InventoryScope, plan: DocumentPlan): Promise<RecordedDocument> {
+async function replay(scope: InventoryScope, plan: DocumentPlan, actor: AdminRequest['actor']): Promise<RecordedDocument> {
   const existing = await scope.ledger.findDocument(plan.id);
   if (!existing || existing.payloadHash !== plan.payloadHash) throw new IdempotencyConflict();
-  return { document: toDocument(existing), created: false };
+  return { document: toDocument(existing, ledgerView(actor.effective)), created: false };
 }
 
 /** `FOR SHARE` on the location and the products: a concurrent archive serializes with this document. */

@@ -43,6 +43,9 @@ function lines<T extends z.ZodType<{ productId: string }>>(line: T) {
 
 // ---------- Reads ----------
 
+const COSTS_NOTE = 'Null without catalog:write or inventory:write in that location (D10)';
+const HIDDEN_NOTE = 'null when the actor lacks inventory:view there: show it as "otro punto"';
+
 export const StockItem = z
   .object({
     productId: Uuid,
@@ -50,9 +53,9 @@ export const StockItem = z
     unitOfMeasure: z.string(),
     category: z.string().nullable(),
     quantity: z.number().meta({ description: 'SUM(quantity_delta), at most 3 decimals' }),
-    lowStockThreshold: z.number().nullable(),
-    isLow: z.boolean(),
-    averageCost: AverageCost.nullable().meta({ description: 'Null without catalog:write or inventory:write in scope' }),
+    lowStockThreshold: z.number().meta({ description: "Effective threshold (getProductThreshold): the product's, else its category's, else the general one" }),
+    isLow: z.boolean().meta({ description: 'quantity < lowStockThreshold' }),
+    averageCost: AverageCost.nullable().meta({ description: COSTS_NOTE }),
     archivedAt: IsoDateTime.nullable(),
   })
   .meta({ id: 'StockItem' });
@@ -64,20 +67,31 @@ export const ProductStockByLocation = z
     locationId: Uuid,
     locationName: z.string(),
     quantity: z.number(),
-    averageCost: AverageCost.nullable(),
+    averageCost: AverageCost.nullable().meta({ description: COSTS_NOTE }),
   })
   .meta({ id: 'ProductStockByLocation' });
 export type ProductStockByLocation = z.infer<typeof ProductStockByLocation>;
+
+/** `GET /products/:id/stock`: only the locations where the actor has `inventory:view`. */
+export const ProductStock = z
+  .object({
+    productId: Uuid,
+    locations: z.array(ProductStockByLocation).meta({ description: 'Visible locations only, by name' }),
+  })
+  .meta({ id: 'ProductStock' });
+export type ProductStock = z.infer<typeof ProductStock>;
 
 export const InventoryMovement = z
   .object({
     id: Uuid,
     documentId: Uuid,
-    locationId: Uuid.nullable().meta({ description: 'Null when the other transfer location is not visible to the actor' }),
+    locationId: Uuid.meta({ description: 'The location whose stock this movement changes' }),
+    counterpartLocationId: Uuid.nullable().meta({ description: `The other location of a transfer; null for any other document, or ${HIDDEN_NOTE}` }),
+    counterpartLocationName: z.string().nullable().meta({ description: `Same visibility as counterpartLocationId` }),
     productId: Uuid,
     kind: InventoryMovementKind,
     quantityDelta: z.number(),
-    unitCost: AverageCost.nullable().meta({ description: 'Null without cost visibility' }),
+    unitCost: AverageCost.nullable().meta({ description: COSTS_NOTE }),
     reversesMovementId: Uuid.nullable(),
     createdAt: IsoDateTime,
   })
@@ -89,18 +103,24 @@ export const InventoryDocument = z
   .object({
     id: Uuid,
     kind: InventoryDocumentKind,
-    locationId: Uuid,
-    targetLocationId: Uuid.nullable(),
+    locationId: Uuid.nullable().meta({ description: `Origin of a transfer, or the only location of any other document; ${HIDDEN_NOTE}` }),
+    locationName: z.string().nullable(),
+    targetLocationId: Uuid.nullable().meta({ description: `Destination of a transfer (null for other kinds); ${HIDDEN_NOTE}` }),
+    targetLocationName: z.string().nullable(),
     reason: ExitReason.nullable(),
     reversesDocumentId: Uuid.nullable(),
     occurredAt: IsoDateTime,
     notes: z.string().nullable(),
     createdBy: Uuid,
     createdAt: IsoDateTime,
-    movements: z.array(InventoryMovement),
+    movements: z.array(InventoryMovement).meta({ description: 'Only the movements in locations where the actor has inventory:view' }),
   })
   .meta({ id: 'InventoryDocument' });
 export type InventoryDocument = z.infer<typeof InventoryDocument>;
+
+/** Path parameter of the `/locations/:locationId/...` inventory reads. */
+export const LocationIdParams = z.object({ locationId: Uuid }).meta({ id: 'LocationIdParams' });
+export type LocationIdParams = z.infer<typeof LocationIdParams>;
 
 export const StockQuery = z
   .object({
@@ -122,8 +142,8 @@ export const MovementsQuery = z
   .object({
     productId: Uuid.optional(),
     kind: InventoryMovementKind.optional(),
-    from: IsoDateTime.optional(),
-    to: IsoDateTime.optional(),
+    from: IsoDateTime.optional().meta({ description: 'Movements recorded at or after this instant' }),
+    to: IsoDateTime.optional().meta({ description: 'Movements recorded at or before this instant' }),
     cursor: z.string().min(1).max(512).optional(),
     limit: z
       .union([z.string().regex(/^\d+$/).transform(Number), z.number()])

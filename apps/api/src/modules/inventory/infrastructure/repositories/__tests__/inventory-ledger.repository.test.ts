@@ -21,7 +21,7 @@ describe('InventoryLedgerRepository', () => {
   });
 
   it('reads a document with its movements, converting numerics and dates', async () => {
-    const document = { id: ID, kind: 'entry', locationId: LOC, targetLocationId: null, reason: null, reversesDocumentId: null, occurredAt: NOW_TEXT, notes: 'n', payloadHash: 'h', createdBy: 'u', createdAt: NOW_TEXT };
+    const document = { id: ID, kind: 'entry', locationId: LOC, locationName: 'Centro', targetLocationId: null, targetLocationName: null, reason: null, reversesDocumentId: null, occurredAt: NOW_TEXT, notes: 'n', payloadHash: 'h', createdBy: 'u', createdAt: NOW_TEXT };
     const movement = { id: 'm1', documentId: ID, locationId: LOC, productId: PRODUCT, kind: 'entry', quantityDelta: '2.500', unitCost: '150.500000', currency: 'CUP', reversesMovementId: null, createdAt: NOW_TEXT };
     const { tx, queries } = fakeTx([document], [movement], []);
     const repo = new InventoryLedgerRepository(tx, TENANT);

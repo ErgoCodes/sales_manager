@@ -1,5 +1,6 @@
-import type { ExitReason, InventoryDocumentKind, InventoryMovementKind, Money } from '@monaco/contracts';
+import type { ExitReason, InventoryDocumentKind, InventoryMovementKind, Money, Paginated } from '@monaco/contracts';
 
+import type { PageRequest } from '../../iam/domain/admin-ports';
 import type { AuditLog } from '../../iam/domain/auth-ports';
 
 /** A (location, product) pair: the unit of stock and of locking (ADR 0006 §3). */
@@ -48,7 +49,9 @@ export interface StoredDocument {
   readonly id: string;
   readonly kind: InventoryDocumentKind;
   readonly locationId: string;
+  readonly locationName: string;
   readonly targetLocationId: string | null;
+  readonly targetLocationName: string | null;
   readonly reason: ExitReason | null;
   readonly reversesDocumentId: string | null;
   readonly occurredAt: Date;
@@ -108,8 +111,60 @@ export interface InventoryLedger {
   setAverageCost(pair: PairKey, averageCost: number): Promise<void>;
 }
 
+/** One product's stock at one location. Amounts in minor units of the product's currency. */
+export interface StockRecord {
+  readonly productId: string;
+  readonly name: string;
+  readonly unitOfMeasure: string;
+  readonly category: string | null;
+  readonly currency: Currency;
+  /** The product's own threshold; the effective one comes from `getProductThreshold`. */
+  readonly lowStockThreshold: number | null;
+  readonly archivedAt: Date | null;
+  readonly quantity: number;
+  readonly averageCost: number;
+}
+
+/** One location's stock of a product. */
+export interface LocationStockRecord {
+  readonly locationId: string;
+  readonly locationName: string;
+  readonly currency: Currency;
+  readonly quantity: number;
+  readonly averageCost: number;
+}
+
+/** A movement of the location's ledger, with the other location of its transfer (if any). */
+export interface MovementRecord extends StoredMovement {
+  readonly counterpartLocationId: string | null;
+  readonly counterpartLocationName: string | null;
+}
+
+export interface MovementFilter {
+  readonly productId?: string;
+  readonly kind?: InventoryMovementKind;
+  readonly from?: Date;
+  readonly to?: Date;
+}
+
+/** Read side of the ledger, on the current tenant (RLS): another tenant's ids find nothing. */
+export interface InventoryReader {
+  locationExists(id: string): Promise<boolean>;
+  productExists(id: string): Promise<boolean>;
+  /**
+   * Products of the location by `(name, id)`: active ones, plus archived ones that still
+   * hold stock there. `keep` filters rows (e.g. low stock) without breaking the pagination.
+   */
+  listStock(locationId: string, page: PageRequest & { readonly q?: string }, keep?: (record: StockRecord) => boolean): Promise<Paginated<StockRecord>>;
+  /** Every location (active, or archived with stock) with its stock of the product, by name. */
+  productStock(productId: string): Promise<LocationStockRecord[]>;
+  /** The location's movements, newest first: `(created_at, id)` descending. */
+  listMovements(locationId: string, page: PageRequest & MovementFilter): Promise<Paginated<MovementRecord>>;
+}
+
 export interface InventoryScope {
   readonly ledger: InventoryLedger;
+  readonly reader: InventoryReader;
   readonly audit: AuditLog;
 }
 
