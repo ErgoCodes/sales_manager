@@ -97,9 +97,9 @@ T2 (contracts + perms) ──┘            │                                 
 
 ### T5b · API de inventario: lecturas y visibilidad de costos `M` · `Media` · **crítica de seguridad** (depende de T5a)
 
-- [ ] `GET /locations/:locationId/stock` (bajo stock con `getProductThreshold`), `GET /products/:id/stock` (solo puntos visibles), `GET /locations/:locationId/inventory-movements`, `GET /inventory/documents/:id`.
-- [ ] Autorización con la implicación de lectura de T2; costos solo con `catalog:write`/`inventory:write` en el alcance (D10); enmascarado del otro punto de una transferencia cuando el actor no tiene `inventory:view` en él.
-- [ ] Tests de integración: fuga entre puntos y entre tenants en cada lectura; los costos no aparecen sin `inventory:write`; un rol personalizado con `inventory:write` lee lo que escribe; el punto 1 no ve el nombre del punto 2 en una transferencia.
+- [x] `GET /locations/:locationId/stock` (bajo stock con `getProductThreshold`), `GET /products/:id/stock` (solo puntos visibles), `GET /locations/:locationId/inventory-movements`, `GET /inventory/documents/:id`.
+- [x] Autorización con la implicación de lectura de T2; costos solo con `catalog:write`/`inventory:write` en el alcance (D10); enmascarado del otro punto de una transferencia cuando el actor no tiene `inventory:view` en él.
+- [x] Tests de integración: fuga entre puntos y entre tenants en cada lectura; los costos no aparecen sin `inventory:write`; un rol personalizado con `inventory:write` lee lo que escribe; el punto 1 no ve el nombre del punto 2 en una transferencia.
 
 **Hecho cuando:** pasan los tests, la cobertura sigue sobre sus umbrales y `openapi.json`/`schema.d.ts` están regenerados.
 
