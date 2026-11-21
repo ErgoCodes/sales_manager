@@ -12,3 +12,5 @@ Decisiones de arquitectura de la Etapa 2, una por archivo, con formato corto: co
 | [0006](0006-libro-de-inventario.md) | Libro de inventario append-only, stock derivado de los movimientos, lock por (punto, producto) en orden global e idempotencia por id del cliente | Propuesta |
 | [0007](0007-ventas-y-modelo-de-reportes.md) | Ventas dentro del libro de inventario (escritas por `RecordSale`) y KPIs por consultas en vivo, por moneda y por día local del tenant, sin cache | Propuesta |
 | [0008](0008-despliegue-demo-publica.md) | Despliegue de la demo pública: proveedor con `BYPASSRLS` (default Fly.io + Neon, a confirmar), migraciones fuera del runtime, tenant de solo lectura, reset nocturno e IP real detrás del proxy | Propuesta |
+| [0009](0009-protocolo-sync-mobile.md) | Protocolo de sync de mobile: op-log de comandos, push por lotes idempotente, pull por instantánea, conflictos por regla y lease de permisos para operaciones hechas offline | Propuesta |
+| [0010](0010-migracion-ids-mobile-uuidv7.md) | Migración de los ids de mobile a UUIDv7 con una migración SQL pura, verificación dentro de la transacción y copia previa de 30 días | Propuesta |
