@@ -22,4 +22,11 @@ describe('navItemsFor', () => {
     expect(labels(['catalog:write'])).toContain('Catálogo');
     expect(labels(['inventory:write'])).not.toContain('Catálogo');
   });
+
+  it('shows "Inventario" after "Catálogo" with inventory:view, or inventory:write / inventory:transfer (D9)', () => {
+    expect(labels(['catalog:view', 'inventory:view'])).toEqual(['Inicio', 'Puntos de venta', 'Catálogo', 'Inventario', 'Dispositivos']);
+    expect(labels(['inventory:write'])).toContain('Inventario');
+    expect(labels(['inventory:transfer'])).toContain('Inventario');
+    expect(labels(['catalog:write'])).not.toContain('Inventario');
+  });
 });

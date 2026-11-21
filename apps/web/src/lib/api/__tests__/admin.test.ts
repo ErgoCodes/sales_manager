@@ -44,6 +44,18 @@ describe('callApi', () => {
     expect(result.ok ? '' : result.message).toMatch(message);
   });
 
+  it('keeps the error code and details for callers that refine the message, and omits them when absent', async () => {
+    const details = [{ path: 'p', message: 'Available 1, short by 2' }];
+    expect(await callApi(async () => raw(409, { error: { code: 'INSUFFICIENT_STOCK', message: 'x', details } }), { canRefresh: true })).toEqual({
+      ok: false,
+      status: 409,
+      message: expect.stringContaining('stock suficiente'),
+      code: 'INSUFFICIENT_STOCK',
+      details,
+    });
+    expect(await callApi(async () => raw(403), { canRefresh: true })).toEqual({ ok: false, status: 403, message: expect.any(String) });
+  });
+
   it('turns a network failure into a controlled error', async () => {
     const result = await callApi(
       async () => {

@@ -12,6 +12,8 @@ const BY_CODE: Record<string, string> = {
   permission_denied: 'No tienes permiso para realizar esta acción.',
   conflict: 'Ya existe un registro con esos datos (conflicto).',
   ARCHIVED: 'El registro está archivado y no admite esta operación.',
+  INSUFFICIENT_STOCK: 'No hay stock suficiente para registrar el documento.',
+  IDEMPOTENCY_CONFLICT: 'Este formulario ya se usó para registrar otro documento. Recarga la página e inténtalo de nuevo.',
   CURRENCY_MISMATCH:
     'No se pudo aplicar la moneda: los importes deben estar en la moneda del producto. Para cambiar la moneda hay que volver a ingresar todos los precios base, quitar antes los precios por punto, y no es posible si el producto ya tiene movimientos de inventario.',
 };
@@ -40,4 +42,19 @@ export function errorCode(body: unknown): string | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
   const code = (error as { code?: unknown }).code;
   return typeof code === 'string' ? code : undefined;
+}
+
+export interface ErrorDetail {
+  path: string;
+  message: string;
+}
+
+/** Extracts `error.details` from an API error body (validation issues, `INSUFFICIENT_STOCK` shortages). */
+export function errorDetails(body: unknown): ErrorDetail[] {
+  if (typeof body !== 'object' || body === null) return [];
+  const error = (body as { error?: unknown }).error;
+  if (typeof error !== 'object' || error === null) return [];
+  const details = (error as { details?: unknown }).details;
+  if (!Array.isArray(details)) return [];
+  return details.filter((d): d is ErrorDetail => typeof d === 'object' && d !== null && typeof d.path === 'string' && typeof d.message === 'string').map(({ path, message }) => ({ path, message }));
 }
