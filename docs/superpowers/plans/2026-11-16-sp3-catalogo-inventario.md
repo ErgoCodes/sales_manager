@@ -130,11 +130,11 @@ T2 (contracts + perms) ──┘            │                                 
 
 ### T8a · Web: inventario (stock, entradas, salidas, ajustes y movimientos) `L` · `Media` (depende de T5b y T7)
 
-- [ ] `/inventario` (selector de punto visible, stock, bajo stock, costo promedio si corresponde).
-- [ ] Formularios con líneas para entrada, salida y ajuste; el `id` del documento se genera al renderizar el formulario (campo oculto) con `uuidv7()` de contracts.
-- [ ] `/inventario/movimientos`: libro paginado con filtros y detalle del documento (sin acción de revertir; llega en T8b).
-- [ ] Navegación según `inventory:view`; acciones según `inventory:write` en el punto. Mensajes en español para `INSUFFICIENT_STOCK`, `ARCHIVED` e `IDEMPOTENCY_CONFLICT`.
-- [ ] Tests de componentes: formulario de líneas (agregar, quitar, validación) y doble envío (el mismo `id`).
+- [x] `/inventario` (selector de punto visible, stock, bajo stock, costo promedio si corresponde).
+- [x] Formularios con líneas para entrada, salida y ajuste; el `id` del documento se genera al renderizar el formulario (campo oculto) con `uuidv7()` de contracts.
+- [x] `/inventario/movimientos`: libro paginado con filtros y detalle del documento (sin acción de revertir; llega en T8b).
+- [x] Navegación según `inventory:view`; acciones según `inventory:write` en el punto. Mensajes en español para `INSUFFICIENT_STOCK`, `ARCHIVED` e `IDEMPOTENCY_CONFLICT`.
+- [x] Tests de componentes: formulario de líneas (agregar, quitar, validación) y doble envío (el mismo `id`).
 
 **Hecho cuando:** el Manager del seed registra una entrada y una salida en su punto y ve el stock resultante; un doble clic en "Guardar" crea un solo documento.
 
