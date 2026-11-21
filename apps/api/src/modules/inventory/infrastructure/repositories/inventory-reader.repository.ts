@@ -46,6 +46,9 @@ const toStock = (row: StockRow): StockRecord => ({
  * `SUM(quantity_delta)` (ADR 0006), never a stored column; RLS keeps every
  * query inside the tenant, so another tenant's ids simply find nothing.
  */
+/** Smallest stock batch read per query while filtering pages in memory. */
+export const MIN_STOCK_BATCH = 100;
+
 export class InventoryReaderRepository implements InventoryReader {
   constructor(
     private readonly tx: TenantTransaction,
@@ -61,14 +64,15 @@ export class InventoryReaderRepository implements InventoryReader {
   }
 
   /**
-   * Reads batches of `limit + 1` rows after the cursor and keeps those `keep` accepts,
+   * Reads batches of at least `limit + 1` rows (never fewer than `MIN_STOCK_BATCH`, so a
+   * sparse filter such as low stock does not cost one query per product) after the cursor and keeps those `keep` accepts,
    * until one more than a page is kept or the products run out. The low-stock rule
    * stays in the use case (`getProductThreshold`), and pagination stays exact.
    */
   async listStock(locationId: string, page: PageRequest & { readonly q?: string }, keep: (record: StockRecord) => boolean = () => true): Promise<Paginated<StockRecord>> {
     let after = decodeCursor(page.cursor, ['text', 'uuid']);
     const kept: StockRecord[] = [];
-    const batch = page.limit + 1;
+    const batch = Math.max(page.limit + 1, MIN_STOCK_BATCH);
     for (;;) {
       const found = (await this.stockBatch(locationId, page.q, after, batch)).map(toStock);
       kept.push(...found.filter(keep));

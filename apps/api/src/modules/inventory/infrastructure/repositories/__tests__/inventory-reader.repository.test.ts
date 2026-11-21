@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { fakeTx, NOW_TEXT, TENANT } from '../../../../iam/infrastructure/__tests__/fake-tx';
 import { encodeCursor } from '../../../../iam/infrastructure/pagination';
-import { InventoryReaderRepository } from '../inventory-reader.repository';
+import { InventoryReaderRepository, MIN_STOCK_BATCH } from '../inventory-reader.repository';
 
 const LOC = '0190a000-0000-7000-8000-0000000000c1';
 const OTHER = '0190a000-0000-7000-8000-0000000000c2';
@@ -41,21 +41,20 @@ describe('InventoryReaderRepository', () => {
     expect(page.nextCursor).toBe(encodeCursor(['Arroz', P1]));
     expect(queries[0]!.sql).toMatch(/order by p\.name, p\.id limit \$\d+$/);
     expect(queries[0]!.sql).toMatch(/p\.archived_at is null or coalesce\(s\.quantity, 0\) <> 0/);
-    expect(queries[0]!.params).toEqual(expect.arrayContaining([LOC, 'ar', 'A', P3, 2]));
+    expect(queries[0]!.params).toEqual(expect.arrayContaining([LOC, 'ar', 'A', P3, MIN_STOCK_BATCH]));
   });
 
   it('applies `keep` across batches so a filtered page is still full and its cursor points at its last row', async () => {
-    const { tx, queries } = fakeTx(
-      [stockRow(P1, 'A', '9'), stockRow(P2, 'B', '1')],
-      [stockRow(P3, 'C', '1'), stockRow(OTHER, 'D', '9')],
-      [],
-    );
+    const id = (i: number) => `0190a000-0000-7000-8000-${String(i).padStart(12, '0')}`;
+    const name = (i: number) => `N${String(i).padStart(3, '0')}`;
+    const full = Array.from({ length: MIN_STOCK_BATCH }, (_, i) => stockRow(id(i), name(i), '9'));
+    const { tx, queries } = fakeTx(full, [stockRow(P3, 'O1', '1'), stockRow(OTHER, 'O2', '1')], []);
     const repo = new InventoryReaderRepository(tx, TENANT);
     const page = await repo.listStock(LOC, { limit: 1 }, (record) => record.quantity < 5);
-    expect(page.items.map((r) => r.productId)).toEqual([P2]);
-    expect(page.nextCursor).toBe(encodeCursor(['B', P2]));
+    expect(page.items.map((r) => r.productId)).toEqual([P3]);
+    expect(page.nextCursor).toBe(encodeCursor(['O1', P3]));
     // The second batch continues after the last row read, not after the last row kept.
-    expect(queries[1]!.params).toEqual(expect.arrayContaining(['B', P2]));
+    expect(queries[1]!.params).toEqual(expect.arrayContaining([name(MIN_STOCK_BATCH - 1), id(MIN_STOCK_BATCH - 1)]));
     expect(queries).toHaveLength(2);
 
     const last = fakeTx([stockRow(P1, 'A', '9')]);
