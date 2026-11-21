@@ -15,17 +15,10 @@ import { type AdminRequest, iso, isoOrNull } from '../../iam/application/admin-s
 import type { AuthenticatedActor } from '../../iam/domain/actor';
 import type { Clock } from '../../iam/domain/auth-ports';
 import { PermissionDenied, ResourceNotFound } from '../../iam/domain/errors';
-import { authorize, authorizeRead, can, hasReadAnywhere } from '../../iam/domain/permissions';
+import { authorize, authorizeRead, hasReadAnywhere } from '../../iam/domain/permissions';
 import { CurrencyMismatch, InvalidCatalogValue, ProductArchived } from '../domain/catalog-errors';
 import type { CatalogTenantScope, CatalogUnitOfWork, ProductChanges, ProductPriceRecord, ProductRecord } from '../domain/catalog-ports';
-
-/**
- * Costs (D10) go only to someone who writes the catalog or the inventory in that
- * scope: at the asked location, or tenant-wide when no location was asked for.
- */
-function canSeeCosts(actor: AuthenticatedActor, locationId?: string): boolean {
-  return can(actor.effective, 'catalog:write', locationId) || can(actor.effective, 'inventory:write', locationId);
-}
+import { canSeeCosts } from '../domain/cost-visibility';
 
 /** Reads need `catalog:view` at the location, or somewhere when there is none (D9: `catalog:write` implies it). */
 function authorizeCatalogRead(actor: AuthenticatedActor, locationId?: string): void {
@@ -90,7 +83,7 @@ export class ListProducts {
 
   async execute(actor: AuthenticatedActor, query: ListProductsQuery): Promise<Paginated<ProductWithLocationPrice>> {
     authorizeCatalogRead(actor, query.locationId);
-    const showCosts = canSeeCosts(actor, query.locationId);
+    const showCosts = canSeeCosts(actor.effective, query.locationId);
     const page = await this.uow.run(actor.tenantId, async (scope) => {
       if (query.locationId !== undefined && !(await scope.locationPrices.locationExists(query.locationId))) throw new ResourceNotFound('location');
       return scope.products.list({ ...query, includeArchived: query.includeArchived ?? false });
@@ -105,7 +98,7 @@ export class GetProduct {
 
   async execute(actor: AuthenticatedActor, id: string, locationId?: string): Promise<ProductWithLocationPrice> {
     authorizeCatalogRead(actor, locationId);
-    const showCosts = canSeeCosts(actor, locationId);
+    const showCosts = canSeeCosts(actor.effective, locationId);
     const record = await this.uow.run(actor.tenantId, async (scope) => {
       if (locationId !== undefined && !(await scope.locationPrices.locationExists(locationId))) throw new ResourceNotFound('location');
       return scope.products.findById(id, locationId);
@@ -274,6 +267,6 @@ export class SetLocationPrice {
       return scope.products.findById(productId, locationId);
     });
     if (!record) throw new ResourceNotFound('product');
-    return toPricedProduct(record, canSeeCosts(actor, locationId));
+    return toPricedProduct(record, canSeeCosts(actor.effective, locationId));
   }
 }

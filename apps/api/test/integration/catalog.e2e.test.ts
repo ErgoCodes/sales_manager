@@ -225,6 +225,23 @@ describe('location prices and scope', () => {
     await pricer.get(`/products?locationId=${a.locations[1]}`).expect(403);
   });
 
+  it('a custom role with inventory:write at a location sees product costs there and only there (D10)', async () => {
+    const owner = await loginAs(app, 'owner@a.example');
+    const product = await create(owner, 'Agua');
+    const reader = await seeder.role(a.id, 'Reader', ['catalog:view']);
+    const receiver = await seeder.role(a.id, 'Receiver', ['inventory:write']);
+    await seeder.user(a.id, 'receiver@a.example', [[reader, 'tenant'], [receiver, [a.locations[0]]]]);
+    const session = await loginAs(app, 'receiver@a.example');
+    const atL1 = ProductWithLocationPrice.parse((await session.get(`/products/${product.id}?locationId=${a.locations[0]}`).expect(200)).body);
+    expect(atL1.costPrice).toEqual(cup(800));
+    const listed = PaginatedProducts.parse((await session.get(`/products?locationId=${a.locations[0]}`).expect(200)).body);
+    expect(listed.items[0]!.costPrice).toEqual(cup(800));
+    const atL2 = ProductWithLocationPrice.parse((await session.get(`/products/${product.id}?locationId=${a.locations[1]}`).expect(200)).body);
+    expect(atL2.costPrice).toBeNull();
+    // Without a location only a tenant-wide writer sees costs.
+    expect(ProductWithLocationPrice.parse((await session.get(`/products/${product.id}`).expect(200)).body).costPrice).toBeNull();
+  });
+
   it('a user with no catalog permission anywhere gets 403 on reads', async () => {
     const role = await seeder.role(a.id, 'Nothing', []);
     await seeder.user(a.id, 'nobody@a.example', [[role, 'tenant']]);
