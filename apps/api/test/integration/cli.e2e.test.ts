@@ -1,4 +1,5 @@
 import { AuthTokens, PERMISSIONS } from '@monaco/contracts';
+import { averageCostAfterEntry } from '@monaco/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Pool } from 'pg';
 import request from 'supertest';
@@ -6,6 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { CLIENT_IP_HEADER } from '../../src/common/http/client-ip';
 import { Argon2PasswordHasher } from '../../src/modules/iam/infrastructure/argon2-password-hasher';
+import { DEMO_DOCUMENTS, DEMO_LOCATION_PRICES, DEMO_PRODUCTS } from '../../src/scripts/demo-inventory-seed';
 import { DEMO_USERS } from '../../src/scripts/demo-seed';
 import { runSeed } from '../../src/scripts/seed';
 import { runTenantCreate } from '../../src/scripts/tenant-create';
@@ -117,6 +119,67 @@ describe('db:seed', () => {
       { email: DEMO_USERS.manager.email, key: 'manager', scope: 'locations', code: 'P1' },
       { email: DEMO_USERS.owner.email, key: 'owner', scope: 'tenant', code: null },
     ]);
+  });
+
+  it('seeds the demo catalog, P2 prices and inventory once, through the use cases (a re-run changes nothing)', async () => {
+    await runSeed(OWNER_URL(), capture().write);
+    const snapshot = async () => ({
+      products: await count('products'),
+      documents: await count('inventory_documents'),
+      movements: await count('inventory_movements'),
+      locationProducts: (await admin.query('select * from location_products order by location_id, product_id')).rows,
+      audit: (await admin.query('select type, count(*)::int as n from audit_events group by type order by type')).rows,
+    });
+    const first = await snapshot();
+    await runSeed(OWNER_URL(), capture().write);
+    expect(await snapshot()).toEqual(first);
+
+    expect(first.products).toBe(DEMO_PRODUCTS.length);
+    expect(first.documents).toBe(DEMO_DOCUMENTS.length);
+    expect(first.movements).toBe(DEMO_DOCUMENTS.reduce((n, doc) => n + doc.lines.length * (doc.kind === 'transfer' ? 2 : 1), 0));
+    // One audit event per write: the use cases ran (and the re-run was a replay, not a second write).
+    expect(first.audit).toEqual(
+      expect.arrayContaining([
+        { type: 'product_created', n: DEMO_PRODUCTS.length },
+        { type: 'location_price_set', n: DEMO_LOCATION_PRICES.length },
+        { type: 'inventory_entry_recorded', n: 3 },
+        { type: 'inventory_exit_recorded', n: 2 },
+        { type: 'inventory_transfer_recorded', n: 1 },
+      ]),
+    );
+
+    const stock = await admin.query(
+      `select l.code, p.name, sum(m.quantity_delta)::text as quantity
+         from inventory_movements m join locations l on l.id = m.location_id join products p on p.id = m.product_id
+        group by l.code, p.name order by l.code, p.name`,
+    );
+    expect(stock.rows).toEqual([
+      { code: 'P1', name: 'Arroz', quantity: '73.500' },
+      { code: 'P1', name: 'Detergente 1 kg', quantity: '24.000' },
+      { code: 'P1', name: 'Frijoles negros', quantity: '30.000' },
+      { code: 'P1', name: 'Leche en polvo 1 kg', quantity: '15.000' },
+      { code: 'P1', name: 'Refresco de cola 1.5 L', quantity: '69.000' },
+      { code: 'P2', name: 'Arroz', quantity: '30.000' },
+      { code: 'P2', name: 'Detergente 1 kg', quantity: '10.000' },
+      { code: 'P2', name: 'Frijoles negros', quantity: '10.000' },
+      { code: 'P2', name: 'Leche en polvo 1 kg', quantity: '5.000' },
+      { code: 'P2', name: 'Refresco de cola 1.5 L', quantity: '24.000' },
+    ]);
+
+    const pair = async (code: string, name: string) =>
+      (
+        await admin.query(
+          `select lp.average_cost::text as cost, lp.cash_price_override as cash, lp.transfer_price_override as transfer
+             from location_products lp join locations l on l.id = lp.location_id join products p on p.id = lp.product_id
+            where l.code = $1 and p.name = $2`,
+          [code, name],
+        )
+      ).rows[0];
+    // Two entries blend the average (domain rule); the transfer brings the origin's average to P2.
+    expect((await pair('P1', 'Arroz')).cost).toBe(String(averageCostAfterEntry(50, 22000, 25, 23000).toFixed(6)));
+    expect(await pair('P2', 'Leche en polvo 1 kg')).toMatchObject({ cost: '180000.000000', cash: null, transfer: null });
+    expect(await pair('P2', 'Arroz')).toMatchObject({ cash: '26000', transfer: '27000' });
+    expect(await pair('P1', 'Arroz')).toMatchObject({ cash: null, transfer: null });
   });
 
   it('seeds the Cashier with the SP3 read permissions (what GET /me shows for them)', async () => {

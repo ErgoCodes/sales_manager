@@ -3,7 +3,9 @@ import { and, eq } from 'drizzle-orm';
 import { locations, tenants, users } from '../infrastructure/db/schema';
 import { uuidv7 } from '../infrastructure/db/uuidv7';
 import { withTenant } from '../infrastructure/db/with-tenant';
-import type { PasswordHasher } from '../modules/iam/domain/auth-ports';
+import type { Clock, PasswordHasher } from '../modules/iam/domain/auth-ports';
+import { systemClock } from '../modules/iam/infrastructure/system-clock';
+import { type DemoOwner, seedDemoInventory } from './demo-inventory-seed';
 import { assignRole, ensureSystemRoles, insertUser, pgError, withOwnerDatabase } from './provisioning';
 import type { Database } from '../infrastructure/db/database';
 import type { TenantTransaction } from '../infrastructure/db/with-tenant';
@@ -43,9 +45,13 @@ async function createDemoUser(tx: TenantTransaction, key: keyof typeof DEMO_USER
   }
 }
 
-/** Idempotent: existing rows (and passwords changed since) are left untouched. */
-export async function seedDemo(db: Database, hasher: PasswordHasher): Promise<void> {
-  await withTenant(db, DEMO_TENANT_ID, async (tx) => {
+/**
+ * Idempotent: existing rows (and passwords changed since) are left untouched. The tenant, roles,
+ * locations and users go in one transaction; then the demo catalog and inventory (SP3), written
+ * through the use cases, each document in its own transaction like the API.
+ */
+export async function seedDemo(db: Database, hasher: PasswordHasher, clock: Clock = systemClock): Promise<void> {
+  const owner = await withTenant(db, DEMO_TENANT_ID, async (tx): Promise<DemoOwner> => {
     await tx.insert(tenants).values({ id: DEMO_TENANT_ID, name: 'Demo', slug: DEMO_SLUG }).onConflictDoNothing({ target: tenants.id });
     const roleIds = await ensureSystemRoles(tx, DEMO_TENANT_ID);
 
@@ -62,13 +68,17 @@ export async function seedDemo(db: Database, hasher: PasswordHasher): Promise<vo
       locationIds.push(location!.id);
     }
 
+    let ownerUserId = '';
     for (const key of ['owner', 'manager', 'cashier'] as const) {
       const demo = DEMO_USERS[key];
       const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.email, demo.email));
       const userId = existing?.id ?? (await createDemoUser(tx, key, hasher));
       await assignRole(tx, DEMO_TENANT_ID, userId, roleIds[key], key === 'owner' ? undefined : [locationIds[0]!]);
+      if (key === 'owner') ownerUserId = userId;
     }
+    return { tenantId: DEMO_TENANT_ID, userId: ownerUserId, roleId: roleIds.owner, locationIds };
   });
+  await seedDemoInventory(db, owner, clock);
 }
 
 export async function seedDemoWithOwnerConnection(env: Readonly<Record<string, string | undefined>>, hasher: PasswordHasher): Promise<void> {
