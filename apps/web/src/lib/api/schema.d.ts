@@ -170,6 +170,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products by name (catalog:view); with ?locationId the effective prices of that location. Costs only for writers */
+        get: operations["listProducts"];
+        put?: never;
+        /** Create a product (catalog:write, tenant-wide) */
+        post: operations["createProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A product (catalog:view); ?locationId for the effective price */
+        get: operations["getProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a product (catalog:write, tenant-wide); the currency cannot change once it has movements */
+        patch: operations["updateProduct"];
+        trace?: never;
+    };
+    "/products/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a product (catalog:write, tenant-wide); idempotent */
+        post: operations["archiveProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/locations/{locationId}/products/{productId}/price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a product's price overrides at a location (catalog:write at that location); null removes an override */
+        put: operations["setLocationPrice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/roles": {
         parameters: {
             query?: never;
@@ -504,6 +574,102 @@ export interface components {
             name?: string;
             /** @description Short code, unique per tenant */
             code?: string;
+        };
+        ProductWithLocationPrice_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            name: string;
+            unitOfMeasure: string;
+            category: string | null;
+            /** @enum {string} */
+            currency: "CUP" | "USD" | "MLC";
+            /** @description Null when hidden (no catalog:write) or unset */
+            costPrice: components["schemas"]["Money_Output"] | null;
+            cashPrice: components["schemas"]["Money_Output"] | null;
+            transferPrice: components["schemas"]["Money_Output"] | null;
+            lowStockThreshold: number | null;
+            expirationDate: string | null;
+            archivedAt: components["schemas"]["IsoDateTime_Output"] | null;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+            updatedAt: components["schemas"]["IsoDateTime_Output"];
+            /** @description Location override, else base price */
+            effectiveCashPrice: components["schemas"]["Money_Output"] | null;
+            effectiveTransferPrice: components["schemas"]["Money_Output"] | null;
+            cashPriceOverride: components["schemas"]["Money_Output"] | null;
+            transferPriceOverride: components["schemas"]["Money_Output"] | null;
+        };
+        Money_Output: {
+            /** @description Non-negative amount in minor units (cents) */
+            amount: number;
+            /**
+             * @description Supported currency (MLC is not ISO 4217)
+             * @example CUP
+             * @enum {string}
+             */
+            currency: "CUP" | "USD" | "MLC";
+        };
+        PaginatedProducts_Output: {
+            items: components["schemas"]["ProductWithLocationPrice_Output"][];
+            /** @description Null when there are no more pages */
+            nextCursor: string | null;
+        };
+        Money: {
+            /** @description Non-negative amount in minor units (cents) */
+            amount: number;
+            /**
+             * @description Supported currency (MLC is not ISO 4217)
+             * @example CUP
+             * @enum {string}
+             */
+            currency: "CUP" | "USD" | "MLC";
+        };
+        CreateProductRequest: {
+            name: string;
+            unitOfMeasure: string;
+            category?: string | null;
+            /** @enum {string} */
+            currency: "CUP" | "USD" | "MLC";
+            costPrice?: components["schemas"]["Money"] | null;
+            cashPrice?: components["schemas"]["Money"] | null;
+            transferPrice?: components["schemas"]["Money"] | null;
+            lowStockThreshold?: number | null;
+            /** Format: date */
+            expirationDate?: string | null;
+        };
+        Product_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            name: string;
+            unitOfMeasure: string;
+            category: string | null;
+            /** @enum {string} */
+            currency: "CUP" | "USD" | "MLC";
+            /** @description Null when hidden (no catalog:write) or unset */
+            costPrice: components["schemas"]["Money_Output"] | null;
+            cashPrice: components["schemas"]["Money_Output"] | null;
+            transferPrice: components["schemas"]["Money_Output"] | null;
+            lowStockThreshold: number | null;
+            expirationDate: string | null;
+            archivedAt: components["schemas"]["IsoDateTime_Output"] | null;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+            updatedAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        UpdateProductRequest: {
+            name?: string;
+            unitOfMeasure?: string;
+            category?: string | null;
+            /** @enum {string} */
+            currency?: "CUP" | "USD" | "MLC";
+            costPrice?: components["schemas"]["Money"] | null;
+            cashPrice?: components["schemas"]["Money"] | null;
+            transferPrice?: components["schemas"]["Money"] | null;
+            lowStockThreshold?: number | null;
+            /** Format: date */
+            expirationDate?: string | null;
+        };
+        SetLocationPriceRequest: {
+            /** @description Null removes the override */
+            cashPrice: components["schemas"]["Money"] | null;
+            /** @description Null removes the override */
+            transferPrice: components["schemas"]["Money"] | null;
         };
         Role_Output: {
             id: components["schemas"]["Uuid_Output"];
@@ -961,6 +1127,210 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Location_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listProducts: {
+        parameters: {
+            query?: {
+                q?: string;
+                category?: string;
+                includeArchived?: "true" | "false";
+                locationId?: components["schemas"]["Uuid"];
+                cursor?: string;
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of products */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedProducts_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProductRequest"];
+            };
+        };
+        responses: {
+            /** @description The new product */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getProduct: {
+        parameters: {
+            query?: {
+                locationId?: components["schemas"]["Uuid"];
+            };
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The product */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductWithLocationPrice_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProductRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated product */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    archiveProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The archived product */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    setLocationPrice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: components["schemas"]["Uuid"];
+                productId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetLocationPriceRequest"];
+            };
+        };
+        responses: {
+            /** @description The product with the effective prices of the location */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductWithLocationPrice_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */

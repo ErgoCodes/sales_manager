@@ -1,3 +1,4 @@
+import { CURRENCIES } from '@monaco/contracts';
 import { CATEGORIES, UNITS_OF_MEASURE } from '@monaco/domain';
 import { sql } from 'drizzle-orm';
 import { bigint, check, date, foreignKey, index, numeric, pgTable, primaryKey, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
@@ -15,7 +16,6 @@ import { createdAt, primaryId } from './types';
  * (catalog-inventory-schema.test.ts fails until it exists).
  */
 
-export const CURRENCIES = ['CUP', 'USD', 'MLC'] as const;
 export const UNIT_VALUES = UNITS_OF_MEASURE.map((unit) => unit.value);
 
 /** NULL passes a CHECK, so nullable amounts only need the bound. */

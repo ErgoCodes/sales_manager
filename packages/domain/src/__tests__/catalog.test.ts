@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORY_OPTIONS, getProductThreshold } from '../catalog';
+import { CATEGORY_OPTIONS, getProductThreshold, isCategory, isUnitOfMeasure } from '../catalog';
 
 describe('getProductThreshold', () => {
   it('prefers the product own threshold', () => {
@@ -14,5 +14,16 @@ describe('getProductThreshold', () => {
   });
   it('exposes category options', () => {
     expect(CATEGORY_OPTIONS[0]).toEqual({ label: 'Bebidas', value: 'Bebidas' });
+  });
+});
+
+describe('isUnitOfMeasure / isCategory', () => {
+  it('accept only the catalog values', () => {
+    expect(isUnitOfMeasure('kg')).toBe(true);
+    expect(isUnitOfMeasure('Kg')).toBe(false);
+    expect(isUnitOfMeasure('')).toBe(false);
+    expect(isCategory('Bebidas')).toBe(true);
+    expect(isCategory('bebidas')).toBe(false);
+    expect(isCategory('Nope')).toBe(false);
   });
 });

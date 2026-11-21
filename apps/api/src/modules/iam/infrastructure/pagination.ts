@@ -5,8 +5,15 @@ import { InvalidCursor } from '../domain/errors';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
-/** What one cursor position may hold: ids and timestamps only (they end up as SQL parameters). */
-export type CursorPart = 'uuid' | 'timestamp';
+/** What one cursor position may hold: ids, timestamps or bounded free text (always bound as SQL parameters). */
+export type CursorPart = 'uuid' | 'timestamp' | 'text';
+
+const MAX_TEXT = 200;
+
+function isValidPart(value: string, part: CursorPart): boolean {
+  if (part === 'text') return value.length <= MAX_TEXT;
+  return (part === 'uuid' ? UUID : ISO).test(value);
+}
 
 /** Opaque cursor: base64url of a JSON array with the sort key of the last row of the page. */
 export function encodeCursor(values: readonly string[]): string {
@@ -25,7 +32,7 @@ export function decodeCursor(cursor: string | undefined, parts: readonly CursorP
   const valid =
     Array.isArray(values) &&
     values.length === parts.length &&
-    values.every((value, i) => typeof value === 'string' && (parts[i] === 'uuid' ? UUID : ISO).test(value));
+    values.every((value, i) => typeof value === 'string' && isValidPart(value, parts[i]!));
   if (!valid) throw new InvalidCursor();
   return values as string[];
 }
