@@ -22,7 +22,9 @@ interface DocumentRow {
   id: string;
   kind: StoredDocument['kind'];
   locationId: string;
+  locationName: string;
   targetLocationId: string | null;
+  targetLocationName: string | null;
   reason: StoredDocument['reason'];
   reversesDocumentId: string | null;
   occurredAt: Dated;
@@ -86,10 +88,14 @@ export class InventoryLedgerRepository implements InventoryLedger {
   async findDocument(id: string): Promise<StoredDocument | null> {
     const [document] = await rows<DocumentRow>(
       this.tx,
-      sql`select id, kind, location_id as "locationId", target_location_id as "targetLocationId", reason,
-                 reverses_document_id as "reversesDocumentId", occurred_at as "occurredAt", notes,
-                 payload_hash as "payloadHash", created_by as "createdBy", created_at as "createdAt"
-          from inventory_documents where id = ${id}`,
+      sql`select d.id, d.kind, d.location_id as "locationId", l.name as "locationName",
+                 d.target_location_id as "targetLocationId", t.name as "targetLocationName", d.reason,
+                 d.reverses_document_id as "reversesDocumentId", d.occurred_at as "occurredAt", d.notes,
+                 d.payload_hash as "payloadHash", d.created_by as "createdBy", d.created_at as "createdAt"
+          from inventory_documents d
+          join locations l on l.id = d.location_id and l.tenant_id = d.tenant_id
+          left join locations t on t.id = d.target_location_id and t.tenant_id = d.tenant_id
+          where d.id = ${id}`,
     );
     if (!document) return null;
     const movements = await rows<MovementRow>(

@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import { LOC_1, TENANT } from '../../../iam/application/__tests__/admin-fakes';
 import type {
   InventoryLedger,
+  InventoryReader,
   InventoryScope,
   InventoryUnitOfWork,
   LocationState,
@@ -79,7 +80,7 @@ export function fakeLedger(state: FakeState) {
         const product = state.products.find((p) => p.id === movement.productId)!;
         return { ...movement, id: `movement-${index}`, documentId: id, currency: product.currency, reversesMovementId: null, createdAt: CREATED_AT };
       });
-      return { id, ...header, targetLocationId: null, reversesDocumentId: null, createdAt: CREATED_AT, movements };
+      return { id, ...header, locationName: 'Location 1', targetLocationId: null, targetLocationName: null, reversesDocumentId: null, createdAt: CREATED_AT, movements };
     }),
     lockLocations: vi.fn(async (ids) => {
       state.calls.push('lockLocations');
@@ -114,7 +115,18 @@ export function fakeLedger(state: FakeState) {
   return { ledger, written, headers, averageCosts };
 }
 
-export function fakeInventory(state: FakeState = fakeState()) {
+/** A reader whose every method is a `vi.fn()`; read tests set the results they need. */
+export function fakeReader() {
+  return {
+    locationExists: vi.fn(async (_id: string) => true),
+    productExists: vi.fn(async (_id: string) => true),
+    listStock: vi.fn<InventoryReader['listStock']>(async () => ({ items: [], nextCursor: null })),
+    productStock: vi.fn<InventoryReader['productStock']>(async () => []),
+    listMovements: vi.fn<InventoryReader['listMovements']>(async () => ({ items: [], nextCursor: null })),
+  } satisfies InventoryReader;
+}
+
+export function fakeInventory(state: FakeState = fakeState(), reader = fakeReader()) {
   const { ledger, written, headers, averageCosts } = fakeLedger(state);
   const audit = {
     record: vi.fn(async () => {
@@ -122,12 +134,12 @@ export function fakeInventory(state: FakeState = fakeState()) {
     }),
   };
   const runs: string[] = [];
-  const scope: InventoryScope = { ledger, audit };
+  const scope: InventoryScope = { ledger, reader, audit };
   const uow: InventoryUnitOfWork = {
     run: async (tenantId, work) => {
       runs.push(tenantId);
       return work(scope);
     },
   };
-  return { uow, ledger, audit, state, written, headers, averageCosts, runs, tenant: TENANT };
+  return { uow, ledger, reader, audit, state, written, headers, averageCosts, runs, tenant: TENANT };
 }

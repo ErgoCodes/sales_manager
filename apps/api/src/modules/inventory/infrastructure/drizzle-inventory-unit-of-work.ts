@@ -3,6 +3,7 @@ import { withTenant } from '../../../infrastructure/db/with-tenant';
 import { AuditRepository } from '../../iam/infrastructure/repositories/audit.repository';
 import type { InventoryScope, InventoryUnitOfWork } from '../domain/inventory-ports';
 import { InventoryLedgerRepository } from './repositories/inventory-ledger.repository';
+import { InventoryReaderRepository } from './repositories/inventory-reader.repository';
 
 /**
  * The only place that builds the inventory repositories (ADR 0004): on a
@@ -14,7 +15,11 @@ export class DrizzleInventoryUnitOfWork implements InventoryUnitOfWork {
 
   run<T>(tenantId: string, work: (scope: InventoryScope) => Promise<T>): Promise<T> {
     return withTenant(this.db, tenantId, (tx) =>
-      work({ ledger: new InventoryLedgerRepository(tx, tenantId), audit: new AuditRepository(tx, tenantId) }),
+      work({
+        ledger: new InventoryLedgerRepository(tx, tenantId),
+        reader: new InventoryReaderRepository(tx, tenantId),
+        audit: new AuditRepository(tx, tenantId),
+      }),
     );
   }
 }
