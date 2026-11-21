@@ -18,6 +18,22 @@ export function canAt(grants: Grants, permission: Permission, locationId: string
   );
 }
 
+/** D9: `catalog:write` implies `catalog:view`. Without a location: held anywhere. */
+export function canReadCatalog(grants: Grants, locationId?: string): boolean {
+  const check = (permission: Permission) => (locationId === undefined ? canAny(grants, permission) : canAt(grants, permission, locationId));
+  return check('catalog:view') || check('catalog:write');
+}
+
+/**
+ * D10, as the API decides it: costs come back to whoever has `catalog:write` or `inventory:write`
+ * at the asked location, or tenant-wide when no location was asked for. The UI uses it to hide
+ * the cost column; a null cost is never rendered as a value.
+ */
+export function canSeeCatalogCosts(grants: Grants, locationId?: string): boolean {
+  const check = (permission: Permission) => (locationId === undefined ? canTenantWide(grants, permission) : canAt(grants, permission, locationId));
+  return check('catalog:write') || check('inventory:write');
+}
+
 export const PERMISSION_LABELS: Record<Permission, string> = {
   'tenant:manage': 'Administrar el negocio',
   'locations:manage': 'Administrar puntos de venta',

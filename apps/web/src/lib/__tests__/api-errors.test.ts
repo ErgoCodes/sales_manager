@@ -22,6 +22,13 @@ describe('describeApiError', () => {
     expect(describeApiError(422, 'invalid_scope')).toContain('alcance');
   });
 
+  it('explains the catalog codes (ARCHIVED, CURRENCY_MISMATCH) and a 400', () => {
+    expect(describeApiError(409, 'ARCHIVED')).toContain('archivado');
+    const currency = describeApiError(422, 'CURRENCY_MISMATCH');
+    for (const text of ['moneda', 'precios', 'por punto', 'movimientos']) expect(currency).toContain(text);
+    expect(describeApiError(400, 'VALIDATION_ERROR')).toContain('no son válidos');
+  });
+
   it('falls back to the status message for unknown codes and never echoes API text', () => {
     expect(describeApiError(409, 'something_new')).toBe(describeApiError(409));
     expect(describeApiError(0)).toContain('No se pudo');
