@@ -151,7 +151,7 @@ T2 (contracts + perms) ──┘            │                                 
 
 - [x] `db:seed` (idempotente) agrega productos demo, precios por punto y movimientos en los dos puntos (base para los KPIs de SP4). El Manager demo sigue asignado solo al punto 1, así que con D7 el e2e de transferencias (T8b) usa al Owner.
 - [x] Playwright en `apps/web/e2e`: entrada con stock resultante; salida que excede el stock muestra el error; Cashier ve solo el stock de su punto y no ve escrituras.
-- [ ] Con T8b: transferencia con stock resultante en ambos puntos y revertir una entrada (Playwright).
+- [x] Con T8b: transferencia con stock resultante en ambos puntos y revertir una entrada (Playwright).
 - [x] `docs/20` (estado de SP3), `README` (flujo demo de inventario), `CLAUDE.md` (módulos `catalog` e `inventory`, cómo agregar un tipo de movimiento) y ADR 0006 pasa a "Aceptada".
 - [ ] Marcar SP3 en Notion (lo hace el orquestador).
 
