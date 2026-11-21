@@ -985,6 +985,298 @@
         ]
       }
     },
+    "/locations/{locationId}/stock": {
+      "get": {
+        "operationId": "getLocationStock",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "lowStockOnly",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of stock items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedStockItems_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stock of a location by product name (inventory:view there); ?lowStockOnly. Costs only with catalog:write or inventory:write in the location",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/products/{id}/stock": {
+      "get": {
+        "operationId": "getProductStock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The visible locations with their stock",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductStock_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stock of a product in each location where the actor has inventory:view. Costs only with catalog:write or inventory:write in the location",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/locations/{locationId}/inventory-movements": {
+      "get": {
+        "operationId": "listInventoryMovements",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          },
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/InventoryMovementKind"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Movements recorded at or after this instant",
+            "schema": {
+              "$ref": "#/components/schemas/IsoDateTime"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Movements recorded at or before this instant",
+            "schema": {
+              "$ref": "#/components/schemas/IsoDateTime"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of movements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedInventoryMovements_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ledger of a location, newest first (inventory:view there); the other location of a transfer only with inventory:view in it. Costs only with catalog:write or inventory:write in the location",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/inventory/documents/{id}": {
+      "get": {
+        "operationId": "getInventoryDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document with its visible movements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An inventory document (inventory:view in at least one of its locations); locations without it are masked. Costs only with catalog:write or inventory:write in the location",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
     "/roles": {
       "get": {
         "operationId": "listRoles",
@@ -2794,11 +3086,28 @@
           "locationId": {
             "allOf": [
               {
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+              },
+              {
+                "pattern": "^[0-9a-f-]+$"
+              }
+            ],
+            "description": "The location whose stock this movement changes",
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "counterpartLocationId": {
+            "allOf": [
+              {
                 "$ref": "#/components/schemas/Uuid"
               }
             ],
             "nullable": true,
-            "description": "Null when the other transfer location is not visible to the actor"
+            "description": "The other location of a transfer; null for any other document, or null when the actor lacks inventory:view there: show it as \"otro punto\""
+          },
+          "counterpartLocationName": {
+            "type": "string",
+            "description": "Same visibility as counterpartLocationId",
+            "nullable": true
           },
           "productId": {
             "$ref": "#/components/schemas/Uuid"
@@ -2816,7 +3125,7 @@
               }
             ],
             "nullable": true,
-            "description": "Null without cost visibility"
+            "description": "Null without catalog:write or inventory:write in that location (D10)"
           },
           "reversesMovementId": {
             "allOf": [
@@ -2834,6 +3143,8 @@
           "id",
           "documentId",
           "locationId",
+          "counterpartLocationId",
+          "counterpartLocationName",
           "productId",
           "kind",
           "quantityDelta",
@@ -2886,7 +3197,17 @@
             "$ref": "#/components/schemas/InventoryDocumentKind"
           },
           "locationId": {
-            "$ref": "#/components/schemas/Uuid"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              }
+            ],
+            "nullable": true,
+            "description": "Origin of a transfer, or the only location of any other document; null when the actor lacks inventory:view there: show it as \"otro punto\""
+          },
+          "locationName": {
+            "type": "string",
+            "nullable": true
           },
           "targetLocationId": {
             "allOf": [
@@ -2894,6 +3215,11 @@
                 "$ref": "#/components/schemas/Uuid"
               }
             ],
+            "nullable": true,
+            "description": "Destination of a transfer (null for other kinds); null when the actor lacks inventory:view there: show it as \"otro punto\""
+          },
+          "targetLocationName": {
+            "type": "string",
             "nullable": true
           },
           "reason": {
@@ -2929,14 +3255,17 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryMovement"
-            }
+            },
+            "description": "Only the movements in locations where the actor has inventory:view"
           }
         },
         "required": [
           "id",
           "kind",
           "locationId",
+          "locationName",
           "targetLocationId",
+          "targetLocationName",
           "reason",
           "reversesDocumentId",
           "occurredAt",
@@ -2975,11 +3304,28 @@
           "locationId": {
             "allOf": [
               {
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+              },
+              {
+                "pattern": "^[0-9a-f-]+$"
+              }
+            ],
+            "description": "The location whose stock this movement changes",
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "counterpartLocationId": {
+            "allOf": [
+              {
                 "$ref": "#/components/schemas/Uuid_Output"
               }
             ],
             "nullable": true,
-            "description": "Null when the other transfer location is not visible to the actor"
+            "description": "The other location of a transfer; null for any other document, or null when the actor lacks inventory:view there: show it as \"otro punto\""
+          },
+          "counterpartLocationName": {
+            "type": "string",
+            "description": "Same visibility as counterpartLocationId",
+            "nullable": true
           },
           "productId": {
             "$ref": "#/components/schemas/Uuid_Output"
@@ -2997,7 +3343,7 @@
               }
             ],
             "nullable": true,
-            "description": "Null without cost visibility"
+            "description": "Null without catalog:write or inventory:write in that location (D10)"
           },
           "reversesMovementId": {
             "allOf": [
@@ -3015,6 +3361,8 @@
           "id",
           "documentId",
           "locationId",
+          "counterpartLocationId",
+          "counterpartLocationName",
           "productId",
           "kind",
           "quantityDelta",
@@ -3069,7 +3417,17 @@
             "$ref": "#/components/schemas/InventoryDocumentKind_Output"
           },
           "locationId": {
-            "$ref": "#/components/schemas/Uuid_Output"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Origin of a transfer, or the only location of any other document; null when the actor lacks inventory:view there: show it as \"otro punto\""
+          },
+          "locationName": {
+            "type": "string",
+            "nullable": true
           },
           "targetLocationId": {
             "allOf": [
@@ -3077,6 +3435,11 @@
                 "$ref": "#/components/schemas/Uuid_Output"
               }
             ],
+            "nullable": true,
+            "description": "Destination of a transfer (null for other kinds); null when the actor lacks inventory:view there: show it as \"otro punto\""
+          },
+          "targetLocationName": {
+            "type": "string",
             "nullable": true
           },
           "reason": {
@@ -3112,14 +3475,17 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryMovement_Output"
-            }
+            },
+            "description": "Only the movements in locations where the actor has inventory:view"
           }
         },
         "required": [
           "id",
           "kind",
           "locationId",
+          "locationName",
           "targetLocationId",
+          "targetLocationName",
           "reason",
           "reversesDocumentId",
           "occurredAt",
@@ -3225,6 +3591,157 @@
           "id",
           "locationId",
           "lines"
+        ],
+        "additionalProperties": false
+      },
+      "StockItem_Output": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unitOfMeasure": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "number",
+            "description": "SUM(quantity_delta), at most 3 decimals"
+          },
+          "lowStockThreshold": {
+            "type": "number",
+            "description": "Effective threshold (getProductThreshold): the product's, else its category's, else the general one"
+          },
+          "isLow": {
+            "type": "boolean",
+            "description": "quantity < lowStockThreshold"
+          },
+          "averageCost": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AverageCost_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null without catalog:write or inventory:write in that location (D10)"
+          },
+          "archivedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime_Output"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "productId",
+          "name",
+          "unitOfMeasure",
+          "category",
+          "quantity",
+          "lowStockThreshold",
+          "isLow",
+          "averageCost",
+          "archivedAt"
+        ],
+        "additionalProperties": false
+      },
+      "PaginatedStockItems_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockItem_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "ProductStockByLocation_Output": {
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "locationName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "averageCost": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AverageCost_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null without catalog:write or inventory:write in that location (D10)"
+          }
+        },
+        "required": [
+          "locationId",
+          "locationName",
+          "quantity",
+          "averageCost"
+        ],
+        "additionalProperties": false
+      },
+      "ProductStock_Output": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductStockByLocation_Output"
+            },
+            "description": "Visible locations only, by name"
+          }
+        },
+        "required": [
+          "productId",
+          "locations"
+        ],
+        "additionalProperties": false
+      },
+      "PaginatedInventoryMovements_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryMovement_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Null when there are no more pages",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
         ],
         "additionalProperties": false
       },
