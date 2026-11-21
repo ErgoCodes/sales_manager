@@ -10,14 +10,15 @@ import { listAll } from '@/lib/api/list-all';
 import { getMe } from '@/lib/api/me';
 import { parseId } from '@/lib/admin/form-ids';
 import { formatMoney } from '@/lib/catalog/money';
-import { canAt, canReadCatalog, canSeeCatalogCosts, canTenantWide } from '@/lib/permissions';
+import { formatAverageCost, formatQuantity } from '@/lib/inventory/format';
+import { canAt, canReadCatalog, canReadInventory, canSeeCatalogCosts, canTenantWide } from '@/lib/permissions';
 import { archiveProductAction, setLocationPriceAction, updateProductAction } from '../actions';
 import { LocationPriceFields } from '../location-price-fields';
 import { ProductFormFields } from '../product-form-fields';
 
 export const metadata: Metadata = { title: 'Producto' };
 
-/** Product detail: base data, product actions (tenant-wide `catalog:write`) and prices per visible location. */
+/** Product detail: base data, product actions (tenant-wide `catalog:write`), prices per visible location and, with inventory access, stock per location. */
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const id = parseId((await params).id);
   if (!id) return <ErrorNotice message="El producto indicado no existe." />;
@@ -26,9 +27,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const grants = me.data.permissions;
   if (!canReadCatalog(grants)) return <NoAccess />;
 
-  const [product, locations] = await Promise.all([
+  const [product, locations, stock] = await Promise.all([
     callApi((api) => api.GET('/products/{id}', { params: { path: { id } }, ...requestInit() }), { canRefresh: false }),
     listAll((cursor) => callApi((api) => api.GET('/locations', { params: { query: { cursor, limit: 100 } }, ...requestInit() }), { canRefresh: false })),
+    // Only the locations where the user has inventory:view come back (API); without inventory access, no call.
+    canReadInventory(grants) ? callApi((api) => api.GET('/products/{id}/stock', { params: { path: { id } }, ...requestInit() }), { canRefresh: false }) : null,
   ]);
   if (!product.ok) return <ErrorNotice message={product.message} />;
   if (!locations.ok) return <ErrorNotice message={locations.message} />;
@@ -45,6 +48,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const archived = p.archivedAt !== null;
   const canWrite = canTenantWide(grants, 'catalog:write') && !archived;
   const showCost = canSeeCatalogCosts(grants);
+  const showStockCost = stock?.ok === true && stock.data.locations.some((l) => l.averageCost !== null);
   const unit = UNITS_OF_MEASURE.find((u) => u.value === p.unitOfMeasure)?.label ?? p.unitOfMeasure;
 
   return (
@@ -142,6 +146,41 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           ) : null}
         </TableBody>
       </Table>
+
+      {stock ? (
+        <>
+          <h2 className="text-lg font-medium">Stock por punto de venta</h2>
+          {!stock.ok ? (
+            <ErrorNotice message={stock.message} />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Punto de venta</TableHead>
+                  <TableHead>Cantidad</TableHead>
+                  {showStockCost ? <TableHead>Costo promedio</TableHead> : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stock.data.locations.map((l) => (
+                  <TableRow key={l.locationId}>
+                    <TableCell>{l.locationName}</TableCell>
+                    <TableCell>
+                      {formatQuantity(l.quantity)} {p.unitOfMeasure}
+                    </TableCell>
+                    {showStockCost ? <TableCell>{formatAverageCost(l.averageCost)}</TableCell> : null}
+                  </TableRow>
+                ))}
+                {stock.data.locations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={showStockCost ? 3 : 2}>No hay puntos de venta con inventario para mostrar.</TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }
