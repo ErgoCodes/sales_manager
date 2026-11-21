@@ -106,7 +106,7 @@ T2 (contracts + perms) ──┘            │                                 
 ### T6 · Transferencias y reversiones `L` · `Difícil` · **crítica de datos** (depende de T5a)
 
 - [x] `POST /inventory/transfers`: un documento, `transfer_out` + `transfer_in` por línea, `inventory:transfer` en origen y destino, locks de los dos puntos en el orden global, costo promedio del destino mezclando el del origen (`transfer_in`). `transfer_out` desde un punto archivado pasa; `transfer_in` hacia uno archivado da `ARCHIVED` (D15).
-- [x] `POST /inventory/documents/:id/reversal`: líneas opuestas en todos los puntos del original, permiso del original en cada punto, una sola vez (`ALREADY_REVERSED`, incluida la violación 23505 con otro `id`), regla de stock no negativo y recálculo con `replayAverageCost` al revertir entradas o transferencias (el costo del destino queda como si la transferencia no hubiera existido).
+- [x] `POST /inventory/documents/:id/reversal`: líneas opuestas en todos los puntos del original, permiso del original en cada punto, una sola vez (`ALREADY_REVERSED`, también para una segunda reversión con otro `id`), regla de stock no negativo y recálculo con `replayAverageCost` al revertir entradas o transferencias (el costo del destino queda como si la transferencia no hubiera existido).
 - [x] Auditoría (`inventory_transfer_recorded`, `inventory_document_reversed`).
 - [x] Tests de integración:
   - transferencias simultáneas A→B y B→A del mismo producto: sin deadlock y con stock final correcto;
@@ -149,9 +149,10 @@ T2 (contracts + perms) ──┘            │                                 
 
 ### T9 · Seed demo, E2E y cierre de documentación `M` · `Media` (depende de T8a; el e2e de transferencias y reversión depende de T8b)
 
-- [ ] `db:seed` (idempotente) agrega productos demo, precios por punto y movimientos en los dos puntos (base para los KPIs de SP4). El Manager demo sigue asignado solo al punto 1, así que con D7 el e2e de transferencias (T8b) usa al Owner.
-- [ ] Playwright en `apps/web/e2e`: entrada con stock resultante; salida que excede el stock muestra el error; Cashier ve solo el stock de su punto y no ve escrituras. Con T8b: transferencia con stock resultante en ambos puntos y revertir una entrada.
-- [ ] `docs/20` (estado de SP3), `README` (flujo demo de inventario), `CLAUDE.md` (módulos `catalog` e `inventory`, cómo agregar un tipo de movimiento) y ADR 0006 pasa a "Aceptada".
+- [x] `db:seed` (idempotente) agrega productos demo, precios por punto y movimientos en los dos puntos (base para los KPIs de SP4). El Manager demo sigue asignado solo al punto 1, así que con D7 el e2e de transferencias (T8b) usa al Owner.
+- [x] Playwright en `apps/web/e2e`: entrada con stock resultante; salida que excede el stock muestra el error; Cashier ve solo el stock de su punto y no ve escrituras.
+- [ ] Con T8b: transferencia con stock resultante en ambos puntos y revertir una entrada (Playwright).
+- [x] `docs/20` (estado de SP3), `README` (flujo demo de inventario), `CLAUDE.md` (módulos `catalog` e `inventory`, cómo agregar un tipo de movimiento) y ADR 0006 pasa a "Aceptada".
 - [ ] Marcar SP3 en Notion (lo hace el orquestador).
 
 **Hecho cuando:** el job `e2e` pasa en CI y se cumple cada punto del gate de salida del spec.

@@ -110,6 +110,15 @@ pnpm --filter api db:seed
 
 To try the back-office, run `pnpm dev`, open http://localhost:3000/login and sign in with any of these users. The owner can manage locations, users, roles and assignments; the cashier sees none of the admin actions.
 
+The seed also stocks a demo catalog (five products in CUP, with price overrides in P2) and inventory documents in both locations: entries, a shrinkage and an owner withdrawal, and one transfer from P1 to P2. It writes them as the demo owner through the same use cases as the API (stock and average cost from `@monaco/domain`, audit events included), with fixed document ids, so running it again changes nothing. To walk through the inventory flow:
+
+1. Sign in as the **manager** and open **Inventario**: the stock of P1 (the only location the manager has), with the average cost.
+2. **Registrar entrada**: pick a product, a quantity and a unit cost; after saving, the stock row shows the new quantity. A double click on "Guardar" still records one document (the form carries its id).
+3. **Registrar salida** with more than the stock: the form shows "No hay stock suficiente" and how much is missing; nothing is recorded.
+4. **Movimientos** lists the ledger of the location; each document opens its detail.
+5. Sign in as the **cashier**: the same stock page for P1 only, without average costs or write actions.
+6. Sign in as the **owner** to see both locations and the catalog (`/catalogo`), including the P2 price overrides.
+
 ### End-to-end tests
 
 `pnpm --filter web test:e2e` runs the Playwright suite against the real API and a production build of the web app, on its own database (`monaco_e2e`, recreated on every run; your `monaco` database is never touched). It needs a Postgres superuser URL in `E2E_PG_ADMIN_URL` (default `postgres://postgres:postgres@127.0.0.1:55432/postgres`) and Chromium (`pnpm --filter web exec playwright install chromium`). See [docs/21](docs/21-estado-sp2-y-continuacion-local.md) for the details.
