@@ -162,7 +162,7 @@ Esquemas nuevos en `packages/contracts/src/catalog/` y `src/inventory/`, todos c
 | `GET /locations/:locationId/stock` | `inventory:view` (punto) | `?q`, `?lowStockOnly` (umbral con `getProductThreshold` del dominio), paginado |
 | `GET /products/:id/stock` | `inventory:view` (por punto) | Solo los puntos visibles para el actor |
 | `GET /locations/:locationId/inventory-movements` | `inventory:view` (punto) | `?productId`, `?kind`, `?from`, `?to`, paginado por `(created_at, id)` descendente |
-| `GET /inventory/documents/:id` | `inventory:view` en cada punto del documento | Cabecera y líneas |
+| `GET /inventory/documents/:id` | `inventory:view` en al menos un punto del documento | Cabecera y líneas de los puntos visibles; el otro punto se enmascara |
 | `POST /inventory/entries` | `inventory:write` (punto) | `{ id, locationId, occurredAt?, notes?, lines: [{ productId, quantity, unitCost: Money }] }` |
 | `POST /inventory/exits` | `inventory:write` (punto) | `{ id, locationId, reason: 'shrinkage' \| 'owner_withdrawal', … lines: [{ productId, quantity }] }` |
 | `POST /inventory/adjustments` | `inventory:write` (punto) | `lines: [{ productId, quantityDelta }]` con signo, ≠ 0 |
