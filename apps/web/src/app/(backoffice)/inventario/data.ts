@@ -3,7 +3,7 @@ import { callApi, requestInit, type ApiResult } from '@/lib/api/admin';
 import { listAll } from '@/lib/api/list-all';
 import type { Location, StockItem } from '@/lib/api/types';
 import { parseId } from '@/lib/admin/form-ids';
-import { canReadInventory } from '@/lib/permissions';
+import { canAt, canReadInventory } from '@/lib/permissions';
 
 /**
  * Locations whose inventory the user reads (D9 implication), archived ones included: an archived
@@ -12,6 +12,14 @@ import { canReadInventory } from '@/lib/permissions';
 export async function inventoryLocations(grants: readonly PermissionGrant[]): Promise<ApiResult<Location[]>> {
   const all = await listAll((cursor) => callApi((api) => api.GET('/locations', { params: { query: { cursor, limit: 100 } }, ...requestInit() }), { canRefresh: false }));
   return all.ok ? { ok: true, data: all.data.filter((l) => canReadInventory(grants, l.id)) } : all;
+}
+
+/**
+ * Locations where the user may transfer (`inventory:transfer`). D7 asks for it at the origin and at the
+ * destination, so a transfer is possible only when this has at least two locations.
+ */
+export function transferLocations(visible: readonly Location[], grants: readonly PermissionGrant[]): Location[] {
+  return visible.filter((l) => canAt(grants, 'inventory:transfer', l.id));
 }
 
 /** The asked location when visible; otherwise the first active one, else the first. */

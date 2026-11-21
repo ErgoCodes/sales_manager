@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { CreateAdjustmentRequest, CreateEntryRequest, CreateExitRequest } from '@monaco/contracts';
+import { CreateAdjustmentRequest, CreateEntryRequest, CreateExitRequest, CreateTransferRequest } from '@monaco/contracts';
 import { callApi, requestInit, type ApiResult } from '@/lib/api/admin';
 import type { ErrorDetail } from '@/lib/api-errors';
 import { parseId } from '@/lib/admin/form-ids';
@@ -49,8 +49,10 @@ async function record(kind: DocumentFormKind, formData: FormData): Promise<Inven
   const id = parseId(values.id);
   const locationId = parseId(values.locationId);
   if (!id || !locationId) return { error: 'El documento o el punto de venta no es válido.' };
+  const toLocationId = values.toLocationId ? parseId(values.toLocationId) : '';
+  if (toLocationId === null) return { error: 'El punto de destino no es válido.' };
 
-  const form = validateDocumentForm(kind, { ...values, id, locationId }, { today: todayDate(), currencyOf: postedCurrencies(formData) });
+  const form = validateDocumentForm(kind, { ...values, id, locationId, toLocationId }, { today: todayDate(), currencyOf: postedCurrencies(formData) });
   if (!form.ok) return { error: firstDocumentError(form.errors) };
 
   let result: ApiResult<unknown>;
@@ -62,10 +64,14 @@ async function record(kind: DocumentFormKind, formData: FormData): Promise<Inven
     const body = CreateExitRequest.safeParse(form.body);
     if (!body.success) return INVALID;
     result = await callApi((api) => api.POST('/inventory/exits', { body: body.data, ...requestInit() }), { canRefresh: true });
-  } else {
+  } else if (kind === 'adjustment') {
     const body = CreateAdjustmentRequest.safeParse(form.body);
     if (!body.success) return INVALID;
     result = await callApi((api) => api.POST('/inventory/adjustments', { body: body.data, ...requestInit() }), { canRefresh: true });
+  } else {
+    const body = CreateTransferRequest.safeParse(form.body);
+    if (!body.success) return INVALID;
+    result = await callApi((api) => api.POST('/inventory/transfers', { body: body.data, ...requestInit() }), { canRefresh: true });
   }
   if (!result.ok) return failure(result);
 
@@ -85,4 +91,9 @@ export async function recordExitAction(_prev: InventoryActionState, formData: Fo
 
 export async function recordAdjustmentAction(_prev: InventoryActionState, formData: FormData): Promise<InventoryActionState> {
   return record('adjustment', formData);
+}
+
+/** D6: one atomic document from the origin (`locationId`) to `toLocationId`; returns to the origin's stock. */
+export async function recordTransferAction(_prev: InventoryActionState, formData: FormData): Promise<InventoryActionState> {
+  return record('transfer', formData);
 }

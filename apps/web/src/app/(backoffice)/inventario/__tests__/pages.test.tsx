@@ -45,6 +45,16 @@ describe('inventory stock page', () => {
     expect(out).toContain('No hay productos para mostrar');
   });
 
+  it('offers a transfer only with inventory:transfer in at least two locations (D7)', async () => {
+    serve({ '/locations': locations, '/locations/{locationId}/stock': () => page([]) });
+    asUser(['inventory:transfer', at(L1, L2)]);
+    expect(await html(InventoryPage(search({ locationId: L2 })))).toContain(`/inventario/transferencias/nueva?locationId=${L2}`);
+    asUser(['inventory:transfer', at(L1)], ['inventory:write', at(L1, L2)]);
+    const out = await html(InventoryPage(search()));
+    expect(out).not.toContain('Registrar transferencia');
+    expect(out).toContain('Registrar entrada');
+  });
+
   it('denies a user without inventory permissions, and renders API failures as alerts', async () => {
     asUser(['catalog:write', tenant]);
     expect(await html(InventoryPage(search()))).toContain('No tienes acceso');

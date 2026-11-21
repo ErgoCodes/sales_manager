@@ -10,10 +10,11 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/api/authenticated', () => ({ createAuthenticatedClient: async () => ({ POST: post }) }));
 
-import { recordAdjustmentAction, recordEntryAction, recordExitAction } from '../actions';
+import { recordAdjustmentAction, recordEntryAction, recordExitAction, recordTransferAction } from '../actions';
 
 const ID = '018f0000-0000-7000-8000-0000000000d1';
 const L = '018f0000-0000-7000-8000-0000000000b1';
+const L2 = '018f0000-0000-7000-8000-0000000000b2';
 const P1 = '018f0000-0000-7000-8000-000000000001';
 
 function form(fields: Record<string, string>, lines: [string, string, string?][]) {
@@ -106,5 +107,28 @@ describe('recordAdjustmentAction', () => {
     post.mockResolvedValue(ok());
     await expect(recordAdjustmentAction({}, form({ ...base, notes: 'conteo' }, [[P1, '-3']]))).rejects.toThrow(/REDIRECT/);
     expect(post).toHaveBeenCalledWith('/inventory/adjustments', expect.objectContaining({ body: { id: ID, locationId: L, notes: 'conteo', lines: [{ productId: P1, quantityDelta: -3 }] } }));
+  });
+});
+
+describe('recordTransferAction', () => {
+  it('posts the transfer from the origin to the destination and returns to the origin stock', async () => {
+    post.mockResolvedValue(ok());
+    await expect(recordTransferAction({}, form({ ...base, toLocationId: L2 }, [[P1, '2']]))).rejects.toThrow(`REDIRECT:/inventario?locationId=${L}&registrado=1`);
+    expect(post).toHaveBeenCalledWith('/inventory/transfers', expect.objectContaining({ body: { id: ID, fromLocationId: L, toLocationId: L2, lines: [{ productId: P1, quantity: 2 }] } }));
+    expect(revalidatePath).toHaveBeenCalledWith('/inventario', 'layout');
+  });
+
+  it('rejects a missing or repeated destination before calling the API', async () => {
+    expect((await recordTransferAction({}, form({ ...base, toLocationId: L }, [[P1, '2']]))).error).toMatch(/distinto del origen/);
+    expect((await recordTransferAction({}, form({ ...base, toLocationId: 'nope' }, [[P1, '2']]))).error).toMatch(/destino/);
+    expect((await recordTransferAction({}, form(base, [[P1, '2']]))).error).toMatch(/destino/);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('maps INSUFFICIENT_STOCK shortages and ARCHIVED like the other documents', async () => {
+    post.mockResolvedValue(fail(409, 'INSUFFICIENT_STOCK', [{ path: P1, message: 'Available 1, short by 1' }]));
+    expect(await recordTransferAction({}, form({ ...base, toLocationId: L2 }, [[P1, '2']]))).toMatchObject({ shortages: [{ productId: P1, available: 1, shortBy: 1 }] });
+    post.mockResolvedValue(fail(409, 'ARCHIVED'));
+    expect((await recordTransferAction({}, form({ ...base, toLocationId: L2 }, [[P1, '2']]))).error).toMatch(/archivado/);
   });
 });

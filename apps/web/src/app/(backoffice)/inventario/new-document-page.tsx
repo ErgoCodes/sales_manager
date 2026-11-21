@@ -9,16 +9,19 @@ import { recordAdjustmentAction, recordEntryAction, recordExitAction } from './a
 import { allStock, inventoryLocations, pickLocation } from './data';
 import { InventoryDocumentForm } from './document-form';
 
-const TITLES: Record<DocumentFormKind, string> = { entry: 'Registrar entrada', exit: 'Registrar salida', adjustment: 'Registrar ajuste' };
+/** Documents of a single location; transfers have their own page (origin and destination). */
+type SingleLocationKind = Exclude<DocumentFormKind, 'transfer'>;
+
+const TITLES: Record<SingleLocationKind, string> = { entry: 'Registrar entrada', exit: 'Registrar salida', adjustment: 'Registrar ajuste' };
 const ACTIONS = { entry: recordEntryAction, exit: recordExitAction, adjustment: recordAdjustmentAction };
-const HELP: Record<DocumentFormKind, string> = {
+const HELP: Record<SingleLocationKind, string> = {
   entry: 'Mercancía que llega al punto, con su costo unitario en la moneda del producto.',
   exit: 'Mercancía que sale del punto por merma o retiro del propietario.',
   adjustment: 'Corrige el stock tras un conteo: cantidades positivas suman y negativas restan.',
 };
 
 /** Form options from the stock rows. The product currency comes with the average cost, visible to `inventory:write` (D10). */
-function productOptions(items: readonly StockItem[]): ProductOption[] {
+export function productOptions(items: readonly StockItem[]): ProductOption[] {
   return items.map((item) => ({
     id: item.productId,
     name: item.name,
@@ -33,7 +36,7 @@ function productOptions(items: readonly StockItem[]): ProductOption[] {
  * Page of a new inventory document in one location (`inventory:write` there). The document `id` is
  * generated here, when the page renders: a double submit or a retry of this form is one document.
  */
-export async function NewDocumentPage({ kind, searchParams }: { kind: DocumentFormKind; searchParams: Promise<{ locationId?: string }> }) {
+export async function NewDocumentPage({ kind, searchParams }: { kind: SingleLocationKind; searchParams: Promise<{ locationId?: string }> }) {
   const { locationId: asked } = await searchParams;
   const me = await getMe();
   if (!me.ok) return <ErrorNotice message={me.message} />;
