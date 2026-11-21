@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CreateAdjustmentRequest, CreateEntryRequest, CreateExitRequest } from '@monaco/contracts';
+import { CreateAdjustmentRequest, CreateEntryRequest, CreateExitRequest, CreateTransferRequest } from '@monaco/contracts';
 import { emptyLine, occurredAtFor, readDocumentForm, todayDate, validateDocumentForm, type DocumentFormValues } from '../document-form';
 
 const ID = '018f0000-0000-7000-8000-0000000000d1';
 const L = '018f0000-0000-7000-8000-0000000000b1';
+const L2 = '018f0000-0000-7000-8000-0000000000b2';
 const P1 = '018f0000-0000-7000-8000-000000000001';
 const P2 = '018f0000-0000-7000-8000-000000000002';
 const TODAY = '2026-11-21';
@@ -98,6 +99,26 @@ describe('validateDocumentForm', () => {
     expect(past.ok && past.body.occurredAt).toBe('2026-11-20T12:00:00.000Z');
   });
 
+  it('builds a transfer from the origin to the destination, with positive quantities and no cost', () => {
+    const result = validateDocumentForm('transfer', values({ toLocationId: L2, notes: ' reposición ', lines: [emptyLine(P1, '1,5')] }), options);
+    expect(result).toEqual({ ok: true, body: { id: ID, fromLocationId: L, toLocationId: L2, notes: 'reposición', lines: [{ productId: P1, quantity: 1.5 }] } });
+    expect(result.ok && CreateTransferRequest.safeParse(result.body).success).toBe(true);
+    const negative = validateDocumentForm('transfer', values({ toLocationId: L2, lines: [emptyLine(P1, '-1')] }), options);
+    expect(!negative.ok && negative.errors.lineErrors[0]?.quantity).toMatch(/mayor que 0/);
+  });
+
+  it('requires a transfer destination different from the origin', () => {
+    const missing = validateDocumentForm('transfer', values({ lines: [emptyLine(P1, '1')] }), options);
+    expect(!missing.ok && missing.errors.toLocationId).toBe('Elige el punto de destino.');
+    const same = validateDocumentForm('transfer', values({ toLocationId: L, lines: [emptyLine(P1, '1')] }), options);
+    expect(!same.ok && same.errors.toLocationId).toBe('El destino debe ser distinto del origen.');
+  });
+
+  it('ignores a destination on other document kinds', () => {
+    const exit = validateDocumentForm('exit', values({ reason: 'shrinkage', toLocationId: L, lines: [emptyLine(P1, '1')] }), options);
+    expect(exit).toEqual({ ok: true, body: { id: ID, locationId: L, reason: 'shrinkage', lines: [{ productId: P1, quantity: 1 }] } });
+  });
+
   it('caps the notes at 500 characters', () => {
     const result = validateDocumentForm('adjustment', values({ notes: 'x'.repeat(501), lines: [emptyLine(P1, '1')] }), options);
     expect(!result.ok && result.errors.notes).toMatch(/500/);
@@ -141,5 +162,15 @@ describe('readDocumentForm', () => {
         { productId: P2, quantity: '3', unitCost: '' },
       ],
     });
+  });
+
+  it('reads the transfer destination only when the form posts it', () => {
+    const f = new FormData();
+    f.set('id', ID);
+    f.set('locationId', L);
+    f.set('toLocationId', ` ${L2} `);
+    expect(readDocumentForm(f).toLocationId).toBe(L2);
+    f.delete('toLocationId');
+    expect(readDocumentForm(f)).not.toHaveProperty('toLocationId');
   });
 });

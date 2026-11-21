@@ -6,14 +6,15 @@ import {
   type CreateAdjustmentRequest,
   type CreateEntryRequest,
   type CreateExitRequest,
+  type CreateTransferRequest,
   type CurrencyCode,
   type ExitReason,
 } from '@monaco/contracts';
 import type { ActionState } from '@/lib/action-state';
 import { parseMoneyInput } from '@/lib/catalog/money';
 
-/** The document kinds T8a records from the web (transfers and reversals arrive in T8b). */
-export type DocumentFormKind = 'entry' | 'exit' | 'adjustment';
+/** The document kinds recorded with the lines form. A transfer's `locationId` is its origin (D6, one step). */
+export type DocumentFormKind = 'entry' | 'exit' | 'adjustment' | 'transfer';
 
 export interface DocumentLineValues {
   productId: string;
@@ -26,6 +27,8 @@ export interface DocumentLineValues {
 export interface DocumentFormValues {
   id: string;
   locationId: string;
+  /** Transfers only: the destination location. */
+  toLocationId?: string;
   reason: string;
   /** `YYYY-MM-DD`, or empty for "now". */
   occurredOn: string;
@@ -40,6 +43,7 @@ export interface LineErrors {
 }
 
 export interface DocumentFormErrors {
+  toLocationId?: string;
   reason?: string;
   occurredOn?: string;
   notes?: string;
@@ -47,7 +51,7 @@ export interface DocumentFormErrors {
   lineErrors: LineErrors[];
 }
 
-export type DocumentBody = CreateEntryRequest | CreateExitRequest | CreateAdjustmentRequest;
+export type DocumentBody = CreateEntryRequest | CreateExitRequest | CreateAdjustmentRequest | CreateTransferRequest;
 export type DocumentFormResult = { ok: true; body: DocumentBody } | { ok: false; errors: DocumentFormErrors };
 
 /** A product the form offers, from the location's stock. `currency` is null when the API hid the cost (D10). */
@@ -87,6 +91,8 @@ const MESSAGES = {
   noLines: 'Agrega al menos una línea.',
   tooManyLines: `Un documento admite hasta ${MAX_DOCUMENT_LINES} líneas.`,
   reason: 'Elige el motivo de la salida.',
+  destination: 'Elige el punto de destino.',
+  sameLocation: 'El destino debe ser distinto del origen.',
   futureDate: 'La fecha no puede ser futura.',
   invalidDate: 'La fecha no es válida.',
   notes: `Las notas admiten hasta ${MAX_NOTES_LENGTH} caracteres.`,
@@ -156,7 +162,7 @@ export function validateDocumentForm(
     if (quantity === null) lineErrors.quantity = kind === 'adjustment' ? MESSAGES.delta : MESSAGES.quantity;
 
     if (kind === 'adjustment') return { productId, quantityDelta: quantity ?? 0 };
-    if (kind === 'exit') return { productId, quantity: quantity ?? 0 };
+    if (kind === 'exit' || kind === 'transfer') return { productId, quantity: quantity ?? 0 };
 
     const cost = parseMoneyInput(line.unitCost);
     const currency = productId === '' ? null : currencyOf(productId);
@@ -173,6 +179,12 @@ export function validateDocumentForm(
   const reason = values.reason.trim();
   if (kind === 'exit' && !isExitReason(reason)) errors.reason = MESSAGES.reason;
 
+  const toLocationId = values.toLocationId?.trim() ?? '';
+  if (kind === 'transfer') {
+    if (toLocationId === '') errors.toLocationId = MESSAGES.destination;
+    else if (toLocationId === values.locationId) errors.toLocationId = MESSAGES.sameLocation;
+  }
+
   const occurredAt = occurredAtFor(values.occurredOn, today);
   if (!occurredAt.ok) errors.occurredOn = occurredAt.error;
 
@@ -180,11 +192,11 @@ export function validateDocumentForm(
   if (notes.length > MAX_NOTES_LENGTH) errors.notes = MESSAGES.notes;
 
   const lineFailed = errors.lineErrors.some((e) => Object.keys(e).length > 0);
-  if (lineFailed || errors.lines || errors.reason || errors.occurredOn || errors.notes || !occurredAt.ok) return { ok: false, errors };
+  if (lineFailed || errors.lines || errors.toLocationId || errors.reason || errors.occurredOn || errors.notes || !occurredAt.ok) return { ok: false, errors };
 
   const header = {
     id: values.id,
-    locationId: values.locationId,
+    ...(kind === 'transfer' ? { fromLocationId: values.locationId, toLocationId } : { locationId: values.locationId }),
     ...(kind === 'exit' ? { reason: reason as ExitReason } : {}),
     ...(occurredAt.value ? { occurredAt: occurredAt.value } : {}),
     ...(notes ? { notes } : {}),
@@ -195,7 +207,7 @@ export function validateDocumentForm(
 /** First error of a failed validation, for the Server Action's single message. */
 export function firstDocumentError(errors: DocumentFormErrors): string {
   const line = errors.lineErrors.find((e) => Object.keys(e).length > 0);
-  return errors.lines ?? errors.reason ?? errors.occurredOn ?? errors.notes ?? line?.productId ?? line?.quantity ?? line?.unitCost ?? 'Revisa los datos del documento.';
+  return errors.lines ?? errors.toLocationId ?? errors.reason ?? errors.occurredOn ?? errors.notes ?? line?.productId ?? line?.quantity ?? line?.unitCost ?? 'Revisa los datos del documento.';
 }
 
 function textOf(value: FormDataEntryValue | null | undefined): string {
@@ -210,6 +222,7 @@ export function readDocumentForm(formData: FormData): DocumentFormValues {
   return {
     id: textOf(formData.get('id')).trim(),
     locationId: textOf(formData.get('locationId')).trim(),
+    ...(formData.has('toLocationId') ? { toLocationId: textOf(formData.get('toLocationId')).trim() } : {}),
     reason: textOf(formData.get('reason')),
     occurredOn: textOf(formData.get('occurredOn')),
     notes: textOf(formData.get('notes')),

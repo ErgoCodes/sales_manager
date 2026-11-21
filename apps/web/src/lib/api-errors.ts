@@ -13,6 +13,7 @@ const BY_CODE: Record<string, string> = {
   conflict: 'Ya existe un registro con esos datos (conflicto).',
   ARCHIVED: 'El registro está archivado y no admite esta operación.',
   INSUFFICIENT_STOCK: 'No hay stock suficiente para registrar el documento.',
+  ALREADY_REVERSED: 'El documento ya fue revertido o es una reversión: un documento solo se revierte una vez.',
   IDEMPOTENCY_CONFLICT: 'Este formulario ya se usó para registrar otro documento. Recarga la página e inténtalo de nuevo.',
   CURRENCY_MISMATCH:
     'No se pudo aplicar la moneda: los importes deben estar en la moneda del producto. Para cambiar la moneda hay que volver a ingresar todos los precios base, quitar antes los precios por punto, y no es posible si el producto ya tiene movimientos de inventario.',

@@ -11,7 +11,7 @@ import { getMe } from '@/lib/api/me';
 import { formatAverageCost, formatQuantity } from '@/lib/inventory/format';
 import { canAt, canReadInventory } from '@/lib/permissions';
 import { SELECT_CLASS } from '../catalogo/form-field';
-import { inventoryLocations, pickLocation } from './data';
+import { inventoryLocations, pickLocation, transferLocations } from './data';
 
 export const metadata: Metadata = { title: 'Inventario' };
 
@@ -25,7 +25,8 @@ interface Search {
 
 /**
  * Stock of one location (selector: the locations the user reads). The average cost column appears
- * only when the API returns it (D10); write actions only with `inventory:write` there.
+ * only when the API returns it (D10); write actions only with `inventory:write` there, and the transfer
+ * action with `inventory:transfer` in at least two locations (D7).
  */
 export default async function InventoryPage({ searchParams }: { searchParams: Promise<Search> }) {
   const search = await searchParams;
@@ -51,6 +52,9 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
   );
 
   const canWrite = canAt(grants, 'inventory:write', location.id);
+  const canTransfer = transferLocations(locations.data, grants).length >= 2;
+  // Start the transfer from this location when the user can send from it; otherwise the form picks the origin.
+  const transferFrom = canAt(grants, 'inventory:transfer', location.id) ? `?locationId=${location.id}` : '';
   const archived = location.archivedAt !== null;
   const filters: Record<string, string> = { locationId: location.id };
   if (q) filters.q = q;
@@ -80,6 +84,11 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                 <Link href={`/inventario/ajustes/nuevo${at}`}>Registrar ajuste</Link>
               </Button>
             </>
+          ) : null}
+          {canTransfer ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/inventario/transferencias/nueva${transferFrom}`}>Registrar transferencia</Link>
+            </Button>
           ) : null}
         </div>
       </div>

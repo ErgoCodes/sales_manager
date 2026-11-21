@@ -5,12 +5,15 @@ const callApi = vi.fn();
 vi.mock('@/lib/api/me', () => ({ getMe: () => getMe() }));
 vi.mock('@/lib/api/admin', () => ({ callApi: (...args: unknown[]) => callApi(...args), requestInit: () => ({}) }));
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
-vi.mock('../actions', () => ({ recordEntryAction: vi.fn(), recordExitAction: vi.fn(), recordAdjustmentAction: vi.fn() }));
+vi.mock('../actions', () => ({ recordEntryAction: vi.fn(), recordExitAction: vi.fn(), recordAdjustmentAction: vi.fn(), recordTransferAction: vi.fn() }));
 
 import NewAdjustmentPage from '../ajustes/nuevo/page';
 import NewEntryPage from '../entradas/nueva/page';
 import NewExitPage from '../salidas/nueva/page';
-import { at, harness, html, L1, location, locations, P2, page, search, stockItem, tenant } from './fixtures';
+import NewTransferPage from '../transferencias/nueva/page';
+import { at, harness, html, L1, L2, location, locations, P2, page, search, stockItem, tenant } from './fixtures';
+
+const L3 = '018f0000-0000-7000-8000-0000000000b3';
 
 const { asUser, serve, reset } = harness(getMe, callApi);
 beforeEach(reset);
@@ -47,5 +50,50 @@ describe('new document pages', () => {
     serve({ '/locations': () => page([location(L1, 'Centro', '2026-11-10T00:00:00.000Z')]), '/locations/{locationId}/stock': () => page([]) });
     expect(await html(NewEntryPage(search({ locationId: L1 })))).toContain('archivado');
     expect(await html(NewExitPage(search({ locationId: L1 })))).toContain('Registrar salida');
+  });
+});
+
+describe('new transfer page', () => {
+  const three = () => page([location(L1, 'Centro'), location(L2, 'Norte'), location(L3, 'Sur', '2026-11-10T00:00:00.000Z')]);
+  const options = (out: string, select: string) => {
+    const block = new RegExp(`<select[^>]*name="${select}"[^>]*>([\\s\\S]*?)</select>`).exec(out)?.[1] ?? '';
+    return [...block.matchAll(/<option[^>]*>([^<]*)/g)].map((m) => m[1]);
+  };
+
+  it('offers origins and destinations with inventory:transfer (D7), products from the origin, and a fresh id', async () => {
+    asUser(['inventory:transfer', tenant]);
+    serve({ '/locations': three, '/locations/{locationId}/stock': (_q, path) => page([stockItem({ name: path?.locationId === L2 ? 'Leche' : 'Arroz' })]) });
+    const out = await html(NewTransferPage(search({ locationId: L2 })));
+    for (const text of ['Registrar transferencia', 'Leche', 'Cambiar origen']) expect(out).toContain(text);
+    expect(out).not.toContain('Arroz');
+    expect(out).toMatch(new RegExp(`name="locationId" value="${L2}"`));
+    expect(options(out, 'locationId')).toEqual(['Centro', 'Norte', 'Sur (archivado)']);
+    expect(options(out, 'toLocationId')).toEqual(['Elige el destino', 'Centro']);
+    const second = await html(NewTransferPage(search({ locationId: L2 })));
+    const id = (s: string) => /name="id" value="([^"]+)"/.exec(s)?.[1];
+    expect(id(out)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(id(out)).not.toBe(id(second));
+  });
+
+  it('only counts locations where the user can transfer', async () => {
+    asUser(['inventory:transfer', at(L1, L2)], ['inventory:write', at(L3)]);
+    serve({ '/locations': three, '/locations/{locationId}/stock': () => page([stockItem()]) });
+    const out = await html(NewTransferPage(search()));
+    expect(options(out, 'locationId')).toEqual(['Centro', 'Norte']);
+    expect(options(out, 'toLocationId')).toEqual(['Elige el destino', 'Norte']);
+  });
+
+  it('denies an origin without inventory:transfer, and a user who can transfer in a single location', async () => {
+    asUser(['inventory:transfer', at(L1, L2)], ['inventory:view', at(L3)]);
+    serve({ '/locations': three, '/locations/{locationId}/stock': () => page([]) });
+    expect(await html(NewTransferPage(search({ locationId: L3 })))).toContain('No tienes acceso');
+    asUser(['inventory:transfer', at(L1)], ['inventory:write', at(L2)]);
+    expect(await html(NewTransferPage(search({ locationId: L1 })))).toContain('No tienes acceso');
+  });
+
+  it('explains when no active destination remains', async () => {
+    asUser(['inventory:transfer', tenant]);
+    serve({ '/locations': () => page([location(L1, 'Centro'), location(L2, 'Norte', '2026-11-10T00:00:00.000Z')]), '/locations/{locationId}/stock': () => page([]) });
+    expect(await html(NewTransferPage(search({ locationId: L1 })))).toContain('No hay otro punto de venta activo');
   });
 });

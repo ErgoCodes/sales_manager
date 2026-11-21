@@ -140,10 +140,10 @@ T2 (contracts + perms) ──┘            │                                 
 
 ### T8b · Web: transferencias y reversión `M` · `Media` (depende de T6 y T8a)
 
-- [ ] Formulario de transferencia (`/inventario/transferencias/nueva`) con el mismo manejo de `id` y de errores.
-- [ ] Acción **Revertir** con confirmación en el detalle del documento; mensaje en español para `ALREADY_REVERSED`.
-- [ ] Acciones según `inventory:transfer` en origen y destino.
-- [ ] Tests de componentes: formulario de transferencia (origen ≠ destino) y confirmación de revertir.
+- [x] Formulario de transferencia (`/inventario/transferencias/nueva`) con el mismo manejo de `id` y de errores.
+- [x] Acción **Revertir** con confirmación en el detalle del documento; mensaje en español para `ALREADY_REVERSED`.
+- [x] Acciones según `inventory:transfer` en origen y destino.
+- [x] Tests de componentes: formulario de transferencia (origen ≠ destino) y confirmación de revertir.
 
 **Hecho cuando:** el Owner del seed registra una transferencia entre los dos puntos, ve el stock resultante en ambos y puede revertir una entrada.
 

@@ -5,6 +5,7 @@ const callApi = vi.fn();
 vi.mock('@/lib/api/me', () => ({ getMe: () => getMe() }));
 vi.mock('@/lib/api/admin', () => ({ callApi: (...args: unknown[]) => callApi(...args), requestInit: () => ({}) }));
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
+vi.mock('../actions', () => ({ reverseDocumentAction: vi.fn() }));
 
 import DocumentPage from '../movimientos/[id]/page';
 import MovementsPage from '../movimientos/page';
@@ -43,6 +44,16 @@ describe('inventory stock page', () => {
     expect(out).toContain('Registrar salida');
     expect(out).not.toContain('Registrar entrada');
     expect(out).toContain('No hay productos para mostrar');
+  });
+
+  it('offers a transfer only with inventory:transfer in at least two locations (D7)', async () => {
+    serve({ '/locations': locations, '/locations/{locationId}/stock': () => page([]) });
+    asUser(['inventory:transfer', at(L1, L2)]);
+    expect(await html(InventoryPage(search({ locationId: L2 })))).toContain(`/inventario/transferencias/nueva?locationId=${L2}`);
+    asUser(['inventory:transfer', at(L1)], ['inventory:write', at(L1, L2)]);
+    const out = await html(InventoryPage(search()));
+    expect(out).not.toContain('Registrar transferencia');
+    expect(out).toContain('Registrar entrada');
   });
 
   it('denies a user without inventory permissions, and renders API failures as alerts', async () => {
@@ -108,6 +119,33 @@ describe('document detail page', () => {
     });
     const out = await html(DocumentPage({ params: Promise.resolve({ id: D }) }));
     for (const text of ['Salida', 'Merma', 'Costo unitario', '$80.00 CUP', `/inventario/movimientos/${P2}`]) expect(out).toContain(text);
+  });
+
+  it('offers "Revertir" with inventory:write in the location of an entry, with a fresh reversal id', async () => {
+    serve({ '/inventory/documents/{id}': () => document_({ kind: 'entry', movements: [movement()] }), '/locations/{locationId}/stock': () => page([stockItem()]) });
+    asUser(['inventory:write', at(L1)]);
+    const out = await html(DocumentPage({ params: Promise.resolve({ id: D }) }));
+    expect(out).toContain('Revertir');
+    expect(out).toMatch(new RegExp(`name="documentId" value="${D}"`));
+    const again = await html(DocumentPage({ params: Promise.resolve({ id: D }) }));
+    const id = (s: string) => /name="id" value="([^"]+)"/.exec(s)?.[1];
+    expect(id(out)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(id(out)).not.toBe(id(again));
+    asUser(['inventory:write', at(L2)], ['inventory:transfer', at(L1)]);
+    expect(await html(DocumentPage({ params: Promise.resolve({ id: D }) }))).not.toContain('Revertir');
+  });
+
+  it('offers "Revertir" on a transfer only with inventory:transfer at both ends, and never on a reversal', async () => {
+    serve({ '/inventory/documents/{id}': () => document_({ targetLocationId: L2, targetLocationName: 'Norte' }), '/locations/{locationId}/stock': () => page([]) });
+    asUser(['inventory:transfer', at(L1, L2)]);
+    expect(await html(DocumentPage({ params: Promise.resolve({ id: D }) }))).toContain('Revertir');
+    asUser(['inventory:transfer', at(L1)], ['inventory:view', at(L2)]);
+    expect(await html(DocumentPage({ params: Promise.resolve({ id: D }) }))).not.toContain('Revertir');
+    serve({ '/inventory/documents/{id}': () => document_({ kind: 'reversal', reversesDocumentId: P2, movements: [] }), '/locations/{locationId}/stock': () => page([]) });
+    asUser(['inventory:write', tenant], ['inventory:transfer', tenant]);
+    const out = await html(DocumentPage({ params: Promise.resolve({ id: D }), searchParams: Promise.resolve({ revertido: '1' }) }));
+    expect(out).toContain('Documento revertido');
+    expect(out).not.toContain('>Revertir<');
   });
 
   it('renders a malformed id, a 404 and a user without access as messages', async () => {
