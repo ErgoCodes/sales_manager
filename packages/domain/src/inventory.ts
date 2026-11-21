@@ -117,6 +117,13 @@ export function averageCostAfterTransferIn(
   return blendAverageCost(destinationStock, destinationAverageCost, quantity, sourceAverageCost);
 }
 
+const BLENDING_KINDS: ReadonlySet<InventoryMovementKind> = new Set(['entry', 'transfer_in']);
+
+/** True for the kinds that blend a new cost into the average: entries and incoming transfers. */
+export function blendsAverageCost(kind: InventoryMovementKind): boolean {
+  return BLENDING_KINDS.has(kind);
+}
+
 export interface LedgerLine {
   documentId: string;
   kind: InventoryMovementKind;
@@ -138,7 +145,7 @@ export function replayAverageCost(ledger: readonly LedgerLine[]): number {
   let average = 0;
   for (const line of ledger) {
     if (line.reversesDocumentId !== null || reverted.has(line.documentId)) continue;
-    if (line.kind === 'entry' || line.kind === 'transfer_in') {
+    if (blendsAverageCost(line.kind)) {
       average = blendAverageCost(fromThousandths(stock), average, line.quantityDelta, line.unitCost);
     }
     stock += toThousandths(line.quantityDelta);

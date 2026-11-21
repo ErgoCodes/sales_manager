@@ -14,6 +14,7 @@ import {
   deriveStock,
   fromMinorUnits,
   fromThousandths,
+  blendsAverageCost,
   movementDelta,
   replayAverageCost,
   toMinorUnits,
@@ -190,6 +191,21 @@ describe('average cost', () => {
       line({ documentId: 'c', kind: 'entry', quantityDelta: 5, unitCost: 40 }),
     ];
     expect(replayAverageCost(ledger)).toBe(40);
+  });
+
+  it('only entries and incoming transfers blend the average cost', () => {
+    const blending = INVENTORY_MOVEMENT_KINDS.filter((kind) => blendsAverageCost(kind));
+    expect(blending).toEqual(['entry', 'transfer_in']);
+  });
+
+  it('reverting a transfer_in leaves the destination as if it never happened', () => {
+    const ledger: LedgerLine[] = [
+      line({ documentId: 'a', kind: 'entry', quantityDelta: 10, unitCost: 100 }),
+      line({ documentId: 't', kind: 'transfer_in', quantityDelta: 10, unitCost: 300 }),
+      line({ documentId: 'b', kind: 'entry', quantityDelta: 10, unitCost: 100 }),
+      line({ documentId: 'r', kind: 'reversal', quantityDelta: -10, unitCost: 300, reversesDocumentId: 't' }),
+    ];
+    expect(replayAverageCost(ledger)).toBe(100);
   });
 });
 
