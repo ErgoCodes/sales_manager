@@ -106,6 +106,14 @@ describe('ProductsRepository', () => {
     expect(await repo.hasMovements(ID)).toBe(false);
     expect(queries[0]!.sql).toMatch(/from inventory_movements where product_id = \$1 limit 1/);
   });
+
+  it('detects a location that still overrides a price of the product', async () => {
+    const { tx, queries } = fakeTx([{ one: 1 }], []);
+    const repo = new ProductsRepository(tx, TENANT);
+    expect(await repo.hasPriceOverrides(ID)).toBe(true);
+    expect(await repo.hasPriceOverrides(ID)).toBe(false);
+    expect(queries[0]!.sql).toMatch(/from location_products\s+where product_id = \$1 and \(cash_price_override is not null or transfer_price_override is not null\)/);
+  });
 });
 
 describe('LocationPricesRepository', () => {

@@ -150,4 +150,14 @@ export class ProductsRepository implements ProductRepository {
     const found = await rows<{ one: number }>(this.tx, sql`select 1 as one from inventory_movements where product_id = ${id} limit 1`);
     return found.length > 0;
   }
+
+  async hasPriceOverrides(id: string): Promise<boolean> {
+    const found = await rows<{ one: number }>(
+      this.tx,
+      sql`select 1 as one from location_products
+            where product_id = ${id} and (cash_price_override is not null or transfer_price_override is not null)
+            limit 1`,
+    );
+    return found.length > 0;
+  }
 }

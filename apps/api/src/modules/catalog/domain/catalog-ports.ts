@@ -57,6 +57,8 @@ export interface ProductRepository {
   /** Sets `archived_at` once; archiving again keeps the first date. */
   archive(id: string, now: Date): Promise<ProductRecord | null>;
   hasMovements(id: string): Promise<boolean>;
+  /** True when some location still has a cash or transfer price override for the product. */
+  hasPriceOverrides(id: string): Promise<boolean>;
 }
 
 /** The per-location price overrides: columns of `location_products`, the row that also holds the pair's lock. */

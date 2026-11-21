@@ -12,7 +12,7 @@ const fn = () => vi.fn();
 
 function fakeCatalog() {
   const scope = {
-    products: { list: fn(), findById: fn(), create: fn(), lockForUpdate: fn(), lockForShare: fn(), update: fn(), archive: fn(), hasMovements: fn() },
+    products: { list: fn(), findById: fn(), create: fn(), lockForUpdate: fn(), lockForShare: fn(), update: fn(), archive: fn(), hasMovements: fn(), hasPriceOverrides: fn() },
     locationPrices: { locationExists: fn(), set: fn() },
     audit: { record: fn() },
   };
@@ -191,8 +191,31 @@ describe('UpdateProduct', () => {
     await expect(useCase.execute(request(), PRODUCT, { currency: 'USD' })).rejects.toThrow(CurrencyMismatch);
     expect(scope.products.update).not.toHaveBeenCalled();
     scope.products.hasMovements.mockResolvedValueOnce(false);
-    await useCase.execute(request(), PRODUCT, { currency: 'USD', cashPrice: { amount: 5, currency: 'USD' } });
-    expect(scope.products.update).toHaveBeenCalledWith(PRODUCT, { currency: 'USD', cashPrice: 5 }, NOW);
+    scope.products.hasPriceOverrides.mockResolvedValueOnce(false);
+    const usd = (amount: number) => ({ amount, currency: 'USD' as const });
+    await useCase.execute(request(), PRODUCT, { currency: 'USD', costPrice: usd(4), cashPrice: usd(5), transferPrice: null });
+    expect(scope.products.update).toHaveBeenCalledWith(PRODUCT, { currency: 'USD', costPrice: 4, cashPrice: 5, transferPrice: null }, NOW);
+  });
+
+  it('a currency change must restate every amount already set, or the old minor units would be read in the new currency (422)', async () => {
+    const { uow, scope } = fakeCatalog();
+    scope.products.lockForUpdate.mockResolvedValue(record);
+    scope.products.hasMovements.mockResolvedValue(false);
+    scope.products.hasPriceOverrides.mockResolvedValue(false);
+    const useCase = new UpdateProduct(uow, clock);
+    const usd = (amount: number) => ({ amount, currency: 'USD' as const });
+    await expect(useCase.execute(request(), PRODUCT, { currency: 'USD' })).rejects.toMatchObject({ reason: 'stale_amounts' });
+    await expect(useCase.execute(request(), PRODUCT, { currency: 'USD', costPrice: usd(4), cashPrice: usd(5) })).rejects.toMatchObject({ reason: 'stale_amounts' });
+    expect(scope.products.update).not.toHaveBeenCalled();
+  });
+
+  it('a currency change is rejected while a location still has a price override in the old currency (422)', async () => {
+    const { uow, scope } = fakeCatalog();
+    scope.products.lockForUpdate.mockResolvedValue({ ...record, costPrice: null, cashPrice: null, transferPrice: null });
+    scope.products.hasMovements.mockResolvedValue(false);
+    scope.products.hasPriceOverrides.mockResolvedValue(true);
+    await expect(new UpdateProduct(uow, clock).execute(request(), PRODUCT, { currency: 'USD' })).rejects.toMatchObject({ reason: 'price_overrides' });
+    expect(scope.products.update).not.toHaveBeenCalled();
   });
 
   it('keeping the same currency does not look at the ledger, and amounts must match the resulting currency', async () => {

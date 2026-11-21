@@ -20,11 +20,18 @@ export class ProductArchived extends IamDomainError {
 }
 
 /** A price or cost is not in the product's currency, or the currency cannot change any more. */
+const CURRENCY_MISMATCH_MESSAGES = {
+  amount_currency: 'The amount is not in the product currency',
+  has_movements: 'The currency cannot change once the product has movements',
+  stale_amounts: 'A currency change must restate every amount already set (send the new amount or null)',
+  price_overrides: 'The currency cannot change while a location has a price override; remove the overrides first',
+} as const;
+
 export class CurrencyMismatch extends IamDomainError {
   readonly code = 'currency_mismatch';
 
-  constructor(readonly reason: 'amount_currency' | 'has_movements') {
-    super(reason === 'has_movements' ? 'The currency cannot change once the product has movements' : 'The amount is not in the product currency');
+  constructor(readonly reason: 'amount_currency' | 'has_movements' | 'stale_amounts' | 'price_overrides') {
+    super(CURRENCY_MISMATCH_MESSAGES[reason]);
   }
 }
 
