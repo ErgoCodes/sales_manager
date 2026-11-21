@@ -240,6 +240,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/inventory/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a stock entry with unit costs (inventory:write in the location) */
+        post: operations["createInventoryEntry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/exits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a shrinkage or owner withdrawal (inventory:write in the location) */
+        post: operations["createInventoryExit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record signed stock adjustments (inventory:write in the location) */
+        post: operations["createInventoryAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/roles": {
         parameters: {
             query?: never;
@@ -670,6 +721,123 @@ export interface components {
             cashPrice: components["schemas"]["Money"] | null;
             /** @description Null removes the override */
             transferPrice: components["schemas"]["Money"] | null;
+        };
+        /**
+         * Format: date-time
+         * @description ISO 8601 UTC date-time
+         */
+        IsoDateTime: string;
+        /** @description Positive quantity, at most 3 decimals */
+        Quantity: number;
+        CreateEntryRequest: {
+            id: components["schemas"]["Uuid"];
+            locationId: components["schemas"]["Uuid"];
+            occurredAt?: components["schemas"]["IsoDateTime"];
+            notes?: string;
+            lines: {
+                productId: components["schemas"]["Uuid"];
+                quantity: components["schemas"]["Quantity"];
+                unitCost: components["schemas"]["Money"];
+            }[];
+        };
+        /** @enum {string} */
+        InventoryDocumentKind: "entry" | "exit" | "adjustment" | "transfer" | "reversal";
+        /** @enum {string} */
+        ExitReason: "shrinkage" | "owner_withdrawal";
+        InventoryMovement: {
+            id: components["schemas"]["Uuid"];
+            documentId: components["schemas"]["Uuid"];
+            /** @description Null when the other transfer location is not visible to the actor */
+            locationId: components["schemas"]["Uuid"] | null;
+            productId: components["schemas"]["Uuid"];
+            kind: components["schemas"]["InventoryMovementKind"];
+            quantityDelta: number;
+            /** @description Null without cost visibility */
+            unitCost: components["schemas"]["AverageCost"] | null;
+            reversesMovementId: components["schemas"]["Uuid"] | null;
+            createdAt: components["schemas"]["IsoDateTime"];
+        };
+        /** @enum {string} */
+        InventoryMovementKind: "entry" | "shrinkage" | "owner_withdrawal" | "adjustment" | "transfer_out" | "transfer_in" | "reversal";
+        AverageCost: {
+            /** @description Minor units, up to 6 decimals */
+            amount: number;
+            /** @enum {string} */
+            currency: "CUP" | "USD" | "MLC";
+        };
+        InventoryDocument: {
+            id: components["schemas"]["Uuid"];
+            kind: components["schemas"]["InventoryDocumentKind"];
+            locationId: components["schemas"]["Uuid"];
+            targetLocationId: components["schemas"]["Uuid"] | null;
+            reason: components["schemas"]["ExitReason"] | null;
+            reversesDocumentId: components["schemas"]["Uuid"] | null;
+            occurredAt: components["schemas"]["IsoDateTime"];
+            notes: string | null;
+            createdBy: components["schemas"]["Uuid"];
+            createdAt: components["schemas"]["IsoDateTime"];
+            movements: components["schemas"]["InventoryMovement"][];
+        };
+        /** @enum {string} */
+        InventoryDocumentKind_Output: "entry" | "exit" | "adjustment" | "transfer" | "reversal";
+        /** @enum {string} */
+        ExitReason_Output: "shrinkage" | "owner_withdrawal";
+        InventoryMovement_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            documentId: components["schemas"]["Uuid_Output"];
+            /** @description Null when the other transfer location is not visible to the actor */
+            locationId: components["schemas"]["Uuid_Output"] | null;
+            productId: components["schemas"]["Uuid_Output"];
+            kind: components["schemas"]["InventoryMovementKind_Output"];
+            quantityDelta: number;
+            /** @description Null without cost visibility */
+            unitCost: components["schemas"]["AverageCost_Output"] | null;
+            reversesMovementId: components["schemas"]["Uuid_Output"] | null;
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+        };
+        /** @enum {string} */
+        InventoryMovementKind_Output: "entry" | "shrinkage" | "owner_withdrawal" | "adjustment" | "transfer_out" | "transfer_in" | "reversal";
+        AverageCost_Output: {
+            /** @description Minor units, up to 6 decimals */
+            amount: number;
+            /** @enum {string} */
+            currency: "CUP" | "USD" | "MLC";
+        };
+        InventoryDocument_Output: {
+            id: components["schemas"]["Uuid_Output"];
+            kind: components["schemas"]["InventoryDocumentKind_Output"];
+            locationId: components["schemas"]["Uuid_Output"];
+            targetLocationId: components["schemas"]["Uuid_Output"] | null;
+            reason: components["schemas"]["ExitReason_Output"] | null;
+            reversesDocumentId: components["schemas"]["Uuid_Output"] | null;
+            occurredAt: components["schemas"]["IsoDateTime_Output"];
+            notes: string | null;
+            createdBy: components["schemas"]["Uuid_Output"];
+            createdAt: components["schemas"]["IsoDateTime_Output"];
+            movements: components["schemas"]["InventoryMovement_Output"][];
+        };
+        CreateExitRequest: {
+            id: components["schemas"]["Uuid"];
+            locationId: components["schemas"]["Uuid"];
+            reason: components["schemas"]["ExitReason"];
+            occurredAt?: components["schemas"]["IsoDateTime"];
+            notes?: string;
+            lines: {
+                productId: components["schemas"]["Uuid"];
+                quantity: components["schemas"]["Quantity"];
+            }[];
+        };
+        /** @description Non-zero signed quantity, at most 3 decimals */
+        SignedQuantity: number;
+        CreateAdjustmentRequest: {
+            id: components["schemas"]["Uuid"];
+            locationId: components["schemas"]["Uuid"];
+            occurredAt?: components["schemas"]["IsoDateTime"];
+            notes?: string;
+            lines: {
+                productId: components["schemas"]["Uuid"];
+                quantityDelta: components["schemas"]["SignedQuantity"];
+            }[];
         };
         Role_Output: {
             id: components["schemas"]["Uuid_Output"];
@@ -1331,6 +1499,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductWithLocationPrice_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createInventoryEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description The same document, when the id was already used with the same content (idempotent retry) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument"];
+                };
+            };
+            /** @description The new document */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createInventoryExit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateExitRequest"];
+            };
+        };
+        responses: {
+            /** @description The same document, when the id was already used with the same content (idempotent retry) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument"];
+                };
+            };
+            /** @description The new document */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createInventoryAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description The same document, when the id was already used with the same content (idempotent retry) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument"];
+                };
+            };
+            /** @description The new document */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */

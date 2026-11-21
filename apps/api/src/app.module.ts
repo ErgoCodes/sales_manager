@@ -19,6 +19,8 @@ import { DevicesModule } from './modules/devices/devices.module';
 import { HealthModule } from './modules/health/health.module';
 import { toMappedDomainError } from './modules/iam/http/auth-http-errors';
 import { IamModule } from './modules/iam/iam.module';
+import { toInventoryMappedError } from './modules/inventory/http/inventory-http-errors';
+import { InventoryModule } from './modules/inventory/inventory.module';
 import { LocationsModule } from './modules/locations/locations.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
@@ -46,6 +48,7 @@ export class AppModule implements NestModule {
         IamModule,
         LocationsModule,
         CatalogModule,
+        InventoryModule,
         RolesModule,
         UsersModule,
         AssignmentsModule,
@@ -55,7 +58,10 @@ export class AppModule implements NestModule {
       providers: [
         { provide: APP_PIPE, useClass: ZodValidationPipe },
         { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
-        { provide: EXCEPTION_MAPPERS, useValue: [toMappedDomainError, toCatalogDomainError] },
+        {
+          provide: EXCEPTION_MAPPERS,
+          useValue: [toMappedDomainError, toCatalogDomainError, toInventoryMappedError],
+        },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },
       ],
     };

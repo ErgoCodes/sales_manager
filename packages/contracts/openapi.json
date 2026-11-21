@@ -814,6 +814,177 @@
         ]
       }
     },
+    "/inventory/entries": {
+      "post": {
+        "operationId": "createInventoryEntry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The same document, when the id was already used with the same content (idempotent retry)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a stock entry with unit costs (inventory:write in the location)",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/inventory/exits": {
+      "post": {
+        "operationId": "createInventoryExit",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The same document, when the id was already used with the same content (idempotent retry)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a shrinkage or owner withdrawal (inventory:write in the location)",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/inventory/adjustments": {
+      "post": {
+        "operationId": "createInventoryAdjustment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdjustmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The same document, when the id was already used with the same content (idempotent retry)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record signed stock adjustments (inventory:write in the location)",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
     "/roles": {
       "get": {
         "operationId": "listRoles",
@@ -2532,6 +2703,528 @@
         "required": [
           "cashPrice",
           "transferPrice"
+        ],
+        "additionalProperties": false
+      },
+      "IsoDateTime": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+        "description": "ISO 8601 UTC date-time"
+      },
+      "Quantity": {
+        "type": "number",
+        "description": "Positive quantity, at most 3 decimals"
+      },
+      "CreateEntryRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "locationId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/IsoDateTime"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "$ref": "#/components/schemas/Uuid"
+                },
+                "quantity": {
+                  "$ref": "#/components/schemas/Quantity"
+                },
+                "unitCost": {
+                  "$ref": "#/components/schemas/Money"
+                }
+              },
+              "required": [
+                "productId",
+                "quantity",
+                "unitCost"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
+      "InventoryDocumentKind": {
+        "type": "string",
+        "enum": [
+          "entry",
+          "exit",
+          "adjustment",
+          "transfer",
+          "reversal"
+        ]
+      },
+      "ExitReason": {
+        "type": "string",
+        "enum": [
+          "shrinkage",
+          "owner_withdrawal"
+        ]
+      },
+      "InventoryMovement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "documentId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "locationId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              }
+            ],
+            "nullable": true,
+            "description": "Null when the other transfer location is not visible to the actor"
+          },
+          "productId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/InventoryMovementKind"
+          },
+          "quantityDelta": {
+            "type": "number"
+          },
+          "unitCost": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AverageCost"
+              }
+            ],
+            "nullable": true,
+            "description": "Null without cost visibility"
+          },
+          "reversesMovementId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime"
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "locationId",
+          "productId",
+          "kind",
+          "quantityDelta",
+          "unitCost",
+          "reversesMovementId",
+          "createdAt"
+        ]
+      },
+      "InventoryMovementKind": {
+        "type": "string",
+        "enum": [
+          "entry",
+          "shrinkage",
+          "owner_withdrawal",
+          "adjustment",
+          "transfer_out",
+          "transfer_in",
+          "reversal"
+        ]
+      },
+      "AverageCost": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Minor units, up to 6 decimals"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ]
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ]
+      },
+      "InventoryDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/InventoryDocumentKind"
+          },
+          "locationId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "targetLocationId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              }
+            ],
+            "nullable": true
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExitReason"
+              }
+            ],
+            "nullable": true
+          },
+          "reversesDocumentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              }
+            ],
+            "nullable": true
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/IsoDateTime"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime"
+          },
+          "movements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryMovement"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "locationId",
+          "targetLocationId",
+          "reason",
+          "reversesDocumentId",
+          "occurredAt",
+          "notes",
+          "createdBy",
+          "createdAt",
+          "movements"
+        ]
+      },
+      "InventoryDocumentKind_Output": {
+        "type": "string",
+        "enum": [
+          "entry",
+          "exit",
+          "adjustment",
+          "transfer",
+          "reversal"
+        ]
+      },
+      "ExitReason_Output": {
+        "type": "string",
+        "enum": [
+          "shrinkage",
+          "owner_withdrawal"
+        ]
+      },
+      "InventoryMovement_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "documentId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "locationId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null when the other transfer location is not visible to the actor"
+          },
+          "productId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/InventoryMovementKind_Output"
+          },
+          "quantityDelta": {
+            "type": "number"
+          },
+          "unitCost": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AverageCost_Output"
+              }
+            ],
+            "nullable": true,
+            "description": "Null without cost visibility"
+          },
+          "reversesMovementId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "locationId",
+          "productId",
+          "kind",
+          "quantityDelta",
+          "unitCost",
+          "reversesMovementId",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "InventoryMovementKind_Output": {
+        "type": "string",
+        "enum": [
+          "entry",
+          "shrinkage",
+          "owner_withdrawal",
+          "adjustment",
+          "transfer_out",
+          "transfer_in",
+          "reversal"
+        ]
+      },
+      "AverageCost_Output": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Minor units, up to 6 decimals"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ]
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "additionalProperties": false
+      },
+      "InventoryDocument_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/InventoryDocumentKind_Output"
+          },
+          "locationId": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "targetLocationId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExitReason_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "reversesDocumentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Uuid_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/Uuid_Output"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "movements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryMovement_Output"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "locationId",
+          "targetLocationId",
+          "reason",
+          "reversesDocumentId",
+          "occurredAt",
+          "notes",
+          "createdBy",
+          "createdAt",
+          "movements"
+        ],
+        "additionalProperties": false
+      },
+      "CreateExitRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "locationId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ExitReason"
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/IsoDateTime"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "$ref": "#/components/schemas/Uuid"
+                },
+                "quantity": {
+                  "$ref": "#/components/schemas/Quantity"
+                }
+              },
+              "required": [
+                "productId",
+                "quantity"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "reason",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
+      "SignedQuantity": {
+        "type": "number",
+        "description": "Non-zero signed quantity, at most 3 decimals"
+      },
+      "CreateAdjustmentRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "locationId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/IsoDateTime"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "$ref": "#/components/schemas/Uuid"
+                },
+                "quantityDelta": {
+                  "$ref": "#/components/schemas/SignedQuantity"
+                }
+              },
+              "required": [
+                "productId",
+                "quantityDelta"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "lines"
         ],
         "additionalProperties": false
       },
