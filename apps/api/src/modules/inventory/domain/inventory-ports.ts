@@ -1,4 +1,5 @@
 import type { ExitReason, InventoryDocumentKind, InventoryMovementKind, Money, Paginated } from '@monaco/contracts';
+import type { LedgerLine } from '@monaco/domain';
 
 import type { PageRequest } from '../../iam/domain/admin-ports';
 import type { AuditLog } from '../../iam/domain/auth-ports';
@@ -20,9 +21,14 @@ type Currency = Money['currency'];
 
 export interface NewDocumentHeader {
   readonly id: string;
-  readonly kind: Extract<InventoryDocumentKind, 'entry' | 'exit' | 'adjustment'>;
+  readonly kind: InventoryDocumentKind;
+  /** The only location, or the origin of a transfer; a reversal keeps the original's. */
   readonly locationId: string;
+  /** Destination of a transfer; null for every other kind. */
+  readonly targetLocationId: string | null;
   readonly reason: ExitReason | null;
+  /** The reversed document; null unless `kind` is `reversal`. */
+  readonly reversesDocumentId: string | null;
   readonly occurredAt: Date;
   readonly notes: string | null;
   /** SHA-256 of the body as the client sent it. */
@@ -82,6 +88,8 @@ export interface NewMovement extends PairKey {
   readonly kind: InventoryMovementKind;
   readonly quantityDelta: number;
   readonly unitCost: number;
+  /** Reversal lines only: the movement this one cancels. */
+  readonly reversesMovementId?: string;
 }
 
 /**
@@ -91,11 +99,21 @@ export interface NewMovement extends PairKey {
  */
 export interface InventoryLedger {
   /**
-   * `INSERT ... ON CONFLICT DO NOTHING` without a target, so every unique index arbitrates:
-   * false when the id already exists (also in another tenant). A reversal must not reuse it,
-   * or a `(tenant_id, reverses_document_id)` conflict would look like an idempotency replay.
+   * `INSERT ... ON CONFLICT DO NOTHING` without a target, so every unique index arbitrates
+   * (and waits for a concurrent insert of the same key): false when the id already exists
+   * (also in another tenant) *or*, for a reversal, when the document is already reversed
+   * (`UNIQUE (tenant_id, reverses_document_id)`). A false alone is ambiguous: the caller
+   * tells the cases apart with `findDocument(id)` and then `findReversalOf`, never by
+   * assuming an idempotent replay (that would turn ALREADY_REVERSED into IDEMPOTENCY_CONFLICT).
    */
   insertDocumentHeader(header: NewDocumentHeader): Promise<boolean>;
+  /** Id of the committed reversal of `documentId`, or null when it was never reversed. */
+  findReversalOf(documentId: string): Promise<string | null>;
+  /**
+   * The ledger of one pair in insertion order (`created_at`, `id`), each line with the
+   * document it reverses (if any): the input of `replayAverageCost`. Call it after the lock.
+   */
+  pairLedger(pair: PairKey): Promise<LedgerLine[]>;
   /** The document with its movements, or null when missing or of another tenant (RLS). */
   findDocument(id: string): Promise<StoredDocument | null>;
   /** `FOR SHARE`, ascending id: a concurrent archive waits for the document or makes it wait. Missing ids are absent. */

@@ -1,3 +1,4 @@
+import type { LedgerLine } from '@monaco/domain';
 import { sql } from 'drizzle-orm';
 
 import type { TenantTransaction } from '../../../../infrastructure/db/with-tenant';
@@ -72,12 +73,15 @@ export class InventoryLedgerRepository implements InventoryLedger {
     // No conflict target on purpose: `on conflict (id)` only arbitrates the PK, so two
     // concurrent inserts of the same id raced onto the second unique index, (id, tenant_id),
     // and the loser got a 23505 instead of a skip (seen as a 409 in ~1 of 60 retries).
-    // Without a target every unique index arbitrates.
+    // Without a target every unique index arbitrates, including (tenant_id, reverses_document_id):
+    // a second reversal of the same document waits for the first and is skipped once it commits,
+    // so a false here may also mean "already reversed" (the script checks findReversalOf).
     const inserted = await rows<{ id: string }>(
       this.tx,
       sql`insert into inventory_documents
             (id, tenant_id, kind, location_id, target_location_id, reason, reverses_document_id, occurred_at, notes, payload_hash, created_by)
-          values (${header.id}, ${this.tenantId}, ${header.kind}, ${header.locationId}, null, ${header.reason}, null,
+          values (${header.id}, ${this.tenantId}, ${header.kind}, ${header.locationId}, ${header.targetLocationId}, ${header.reason},
+                  ${header.reversesDocumentId},
                   ${header.occurredAt}, ${header.notes}, ${header.payloadHash}, ${header.createdBy})
           on conflict do nothing
           returning id`,
@@ -119,6 +123,27 @@ export class InventoryLedgerRepository implements InventoryLedger {
         createdAt: toDate(movement.createdAt),
       })),
     };
+  }
+
+  async findReversalOf(documentId: string): Promise<string | null> {
+    const [reversal] = await rows<{ id: string }>(
+      this.tx,
+      sql`select id from inventory_documents where tenant_id = ${this.tenantId} and reverses_document_id = ${documentId}`,
+    );
+    return reversal?.id ?? null;
+  }
+
+  async pairLedger(pair: PairKey): Promise<LedgerLine[]> {
+    const lines = await rows<{ documentId: string; kind: LedgerLine['kind']; quantityDelta: string; unitCost: string; reversesDocumentId: string | null }>(
+      this.tx,
+      sql`select m.document_id as "documentId", m.kind, m.quantity_delta::text as "quantityDelta", m.unit_cost::text as "unitCost",
+                 d.reverses_document_id as "reversesDocumentId"
+          from inventory_movements m
+          join inventory_documents d on d.id = m.document_id and d.tenant_id = m.tenant_id
+          where m.tenant_id = ${this.tenantId} and m.location_id = ${pair.locationId} and m.product_id = ${pair.productId}
+          order by m.created_at, m.id`,
+    );
+    return lines.map((line) => ({ ...line, quantityDelta: Number(line.quantityDelta), unitCost: Number(line.unitCost) }));
   }
 
   async lockLocations(ids: readonly string[]): Promise<LocationState[]> {
@@ -183,10 +208,11 @@ export class InventoryLedgerRepository implements InventoryLedger {
     const values = movements.map(
       (movement) =>
         sql`(${uuidv7()}, ${this.tenantId}, ${documentId}, ${movement.locationId}, ${movement.productId}, ${movement.kind},
-             ${movement.quantityDelta}, ${movement.unitCost}, clock_timestamp())`,
+             ${movement.quantityDelta}, ${movement.unitCost}, ${movement.reversesMovementId ?? null}, clock_timestamp())`,
     );
     await this.tx.execute(
-      sql`insert into inventory_movements (id, tenant_id, document_id, location_id, product_id, kind, quantity_delta, unit_cost, created_at)
+      sql`insert into inventory_movements
+            (id, tenant_id, document_id, location_id, product_id, kind, quantity_delta, unit_cost, reverses_movement_id, created_at)
           values ${sql.join(values, sql`, `)}`,
     );
   }

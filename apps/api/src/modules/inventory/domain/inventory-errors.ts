@@ -6,6 +6,7 @@
  * |----------------------|------|-----------------------|
  * | `InsufficientStock`  | 409  | `INSUFFICIENT_STOCK`  |
  * | `IdempotencyConflict`| 409  | `IDEMPOTENCY_CONFLICT`|
+ * | `AlreadyReversed`    | 409  | `ALREADY_REVERSED`    |
  * | `ArchivedResource`   | 409  | `ARCHIVED`            |
  * | `CurrencyMismatch`   | 422  | `CURRENCY_MISMATCH`   |
  * | `FutureOccurredAt`   | 400  | `VALIDATION_ERROR`    |
@@ -42,6 +43,15 @@ export class IdempotencyConflict extends InventoryDomainError {
 
   constructor() {
     super('The id was already used for a different document');
+  }
+}
+
+/** The document was already reversed (once is the limit, D8), or it is itself a reversal. */
+export class AlreadyReversed extends InventoryDomainError {
+  readonly code = 'ALREADY_REVERSED';
+
+  constructor() {
+    super('The document was already reversed or is a reversal');
   }
 }
 

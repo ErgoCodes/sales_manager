@@ -90,3 +90,18 @@ export async function insertTransfer(
   );
   return documentId;
 }
+
+export const transferBody = (fromLocationId: string, toLocationId: string, productId: string, quantity: number, id = uuidv7()) => ({
+  id,
+  fromLocationId,
+  toLocationId,
+  lines: [{ productId, quantity }],
+});
+
+export const reversalBody = (id = uuidv7(), notes?: string) => ({ id, ...(notes === undefined ? {} : { notes }) });
+
+/** Records a transfer through the API as `session` (fails the test unless 201). */
+export async function recordTransfer(session: Session, fromLocationId: string, toLocationId: string, productId: string, quantity: number) {
+  const res = await session.post('/inventory/transfers', transferBody(fromLocationId, toLocationId, productId, quantity)).expect(201);
+  return InventoryDocument.parse(res.body);
+}

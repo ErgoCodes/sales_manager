@@ -1,3 +1,4 @@
+import type { LedgerLine } from '@monaco/domain';
 import { vi } from 'vitest';
 
 import { LOC_1, TENANT } from '../../../iam/application/__tests__/admin-fakes';
@@ -24,6 +25,12 @@ export interface FakeState {
   /** False: the id already exists (the retry path). */
   inserted: boolean;
   existing: StoredDocument | null;
+  /** Committed documents found by id before `existing` (the original of a reversal). */
+  documents: StoredDocument[];
+  /** What `findReversalOf` answers: the id of the committed reversal, if any. */
+  reversalOf: string | null;
+  /** `pairLedger` per pair key, before the lines this document writes. */
+  ledgers: Map<string, LedgerLine[]>;
   locations: LocationState[];
   products: ProductState[];
   /** Average cost per pair, minor units. */
@@ -44,6 +51,9 @@ export function fakeState(overrides: Partial<FakeState> = {}): FakeState {
   return {
     inserted: true,
     existing: null,
+    documents: [],
+    reversalOf: null,
+    ledgers: new Map(),
     locations: [{ id: LOC_1, archivedAt: null }],
     products: [activeProduct(PRODUCT_A), activeProduct(PRODUCT_B)],
     averageCost: new Map(),
@@ -55,6 +65,8 @@ export function fakeState(overrides: Partial<FakeState> = {}): FakeState {
     ...overrides,
   };
 }
+
+type NewMovementLike = { locationId: string; productId: string; kind: StoredMovement['kind']; quantityDelta: number; unitCost: number };
 
 /**
  * An in-memory ledger that records the order of the calls (the ADR 0006 script)
@@ -72,15 +84,32 @@ export function fakeLedger(state: FakeState) {
     }),
     findDocument: vi.fn(async (id) => {
       state.calls.push('findDocument');
+      const committed = state.documents.find((d) => d.id === id);
+      if (committed) return committed;
       if (state.existing) return state.existing;
-      if (!state.inserted) return null;
-      const header = headers[0] as { kind: StoredDocument['kind']; locationId: string; reason: StoredDocument['reason']; occurredAt: Date; notes: string | null; payloadHash: string; createdBy: string };
+      if (!state.inserted || headers.length === 0) return null;
+      const header = headers[0] as Omit<StoredDocument, 'id' | 'locationName' | 'targetLocationName' | 'createdAt' | 'movements'>;
       const movements: StoredMovement[] = (written[0]?.movements ?? []).map((m, index) => {
-        const movement = m as { locationId: string; productId: string; kind: StoredMovement['kind']; quantityDelta: number; unitCost: number };
+        const movement = m as { locationId: string; productId: string; kind: StoredMovement['kind']; quantityDelta: number; unitCost: number; reversesMovementId?: string };
         const product = state.products.find((p) => p.id === movement.productId)!;
-        return { ...movement, id: `movement-${index}`, documentId: id, currency: product.currency, reversesMovementId: null, createdAt: CREATED_AT };
+        return { ...movement, id: `movement-${index}`, documentId: id, currency: product.currency, reversesMovementId: movement.reversesMovementId ?? null, createdAt: CREATED_AT };
       });
-      return { id, ...header, locationName: 'Location 1', targetLocationId: null, targetLocationName: null, reversesDocumentId: null, createdAt: CREATED_AT, movements };
+      const targetLocationName = header.targetLocationId === null ? null : 'Location 2';
+      return { id, ...header, locationName: 'Location 1', targetLocationName, createdAt: CREATED_AT, movements };
+    }),
+    findReversalOf: vi.fn(async () => {
+      state.calls.push('findReversalOf');
+      return state.reversalOf;
+    }),
+    pairLedger: vi.fn(async (pair: PairKey): Promise<LedgerLine[]> => {
+      state.calls.push('pairLedger');
+      const before = state.ledgers.get(pairKey(pair)) ?? [];
+      const header = headers[0] as { id: string; reversesDocumentId: string | null } | undefined;
+      const mine = (written[0]?.movements ?? [])
+        .map((m) => m as NewMovementLike)
+        .filter((m) => m.locationId === pair.locationId && m.productId === pair.productId)
+        .map((m) => ({ documentId: header!.id, kind: m.kind, quantityDelta: m.quantityDelta, unitCost: m.unitCost, reversesDocumentId: header!.reversesDocumentId }));
+      return [...before, ...mine];
     }),
     lockLocations: vi.fn(async (ids) => {
       state.calls.push('lockLocations');

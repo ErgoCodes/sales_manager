@@ -8,7 +8,18 @@ import { uuidv7 } from '../../src/infrastructure/db/uuidv7';
 import { loginAs, resetAll, type SeededTenant, type Session, Seeder } from './admin-fixtures';
 import { createAuthApp } from './auth-fixtures';
 import { adminPool } from './helpers';
-import { adjustmentBody, averageCostOf, countRows, entryBody, exitBody, insertProduct, recordEntry, stockOf } from './inventory-fixtures';
+import {
+  adjustmentBody,
+  averageCostOf,
+  countRows,
+  entryBody,
+  exitBody,
+  insertProduct,
+  recordEntry,
+  recordTransfer,
+  reversalBody,
+  stockOf,
+} from './inventory-fixtures';
 import { movementsOutsideDocumentLocations } from './inventory-invariants';
 
 /*
@@ -46,6 +57,7 @@ beforeEach(async () => {
 });
 
 const L1 = () => a.locations[0];
+const L2 = () => a.locations[1];
 const statuses = (responses: { status: number }[]) => responses.map((r) => r.status).sort((x, y) => x - y);
 /** Status plus error code: a failure shows which error came back, not just 409. */
 const outcomes = (responses: { status: number; body: { error?: { code?: string } } }[]) =>
@@ -148,6 +160,95 @@ describe('concurrent submissions of the same id', () => {
     await recordEntry(owner, L1(), productA, 5, 10);
     await owner.post('/inventory/exits', exitBody(L1(), productA, 5, id)).expect(201);
     expect(await stockOf(admin, a.id, L1(), productA)).toBe(0);
+  });
+});
+
+/** Polls pg_stat_activity until `count` backends wait on a lock while running a query that matches `pattern`. */
+async function waitForLockWaiters(pattern: string, count: number): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    const { rows } = await admin.query<{ n: number }>(
+      `select count(*)::int as n from pg_stat_activity where wait_event_type = 'Lock' and query ilike $1 and pid <> pg_backend_pid()`,
+      [pattern],
+    );
+    if (rows[0]!.n >= count) return;
+    if (attempt > 400) throw new Error(`Never saw ${count} backend(s) waiting on ${pattern}`);
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+}
+
+describe('transfers in both directions (global lock order)', () => {
+  it('simultaneous A->B and B->A transfers of the same products never deadlock and leave the right stock', async () => {
+    for (const product of [productA, productB]) {
+      await recordEntry(owner, L1(), product, 100, 10);
+      await recordEntry(owner, L2(), product, 100, 30);
+    }
+    // Opposite directions and opposite line orders: without one global order these would deadlock.
+    const forward = () => ({ id: uuidv7(), fromLocationId: L1(), toLocationId: L2(), lines: [{ productId: productA, quantity: 2 }, { productId: productB, quantity: 2 }] });
+    const backward = () => ({ id: uuidv7(), fromLocationId: L2(), toLocationId: L1(), lines: [{ productId: productB, quantity: 1 }, { productId: productA, quantity: 1 }] });
+    const responses = await Promise.all(Array.from({ length: 24 }, (_, i) => owner.post('/inventory/transfers', i % 2 === 0 ? forward() : backward())));
+    expect(outcomes(responses)).toEqual(Array(24).fill('201'));
+    for (const product of [productA, productB]) {
+      expect(await stockOf(admin, a.id, L1(), product)).toBe(100 - 12 * 2 + 12 * 1);
+      expect(await stockOf(admin, a.id, L2(), product)).toBe(100 + 12 * 2 - 12 * 1);
+    }
+    expect(await countRows(admin, 'inventory_documents', a.id)).toBe(4 + 24);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([]);
+  });
+
+  it('transfers that together exceed the origin stock: exactly the ones that fit move, both ends stay consistent', async () => {
+    await recordEntry(owner, L1(), productA, 10, 10);
+    const responses = await Promise.all(Array.from({ length: 6 }, () => owner.post('/inventory/transfers', { id: uuidv7(), fromLocationId: L1(), toLocationId: L2(), lines: [{ productId: productA, quantity: 3 }] })));
+    expect(outcomes(responses)).toEqual(['201', '201', '201', '409 INSUFFICIENT_STOCK', '409 INSUFFICIENT_STOCK', '409 INSUFFICIENT_STOCK']);
+    expect(await stockOf(admin, a.id, L1(), productA)).toBe(1);
+    expect(await stockOf(admin, a.id, L2(), productA)).toBe(9);
+  });
+});
+
+describe('concurrent reversals of the same document', () => {
+  it('two reversals with different ids in parallel: one passes, the other is ALREADY_REVERSED (10 rounds)', async () => {
+    for (let round = 0; round < 10; round++) {
+      const entry = await recordEntry(owner, L1(), productA, 5, 10);
+      const responses = await Promise.all([1, 2].map(() => owner.post(`/inventory/documents/${entry.id}/reversal`, reversalBody())));
+      expect(outcomes(responses)).toEqual(['201', '409 ALREADY_REVERSED']);
+    }
+    expect(await stockOf(admin, a.id, L1(), productA)).toBe(0);
+    expect(await countRows(admin, 'inventory_documents', a.id)).toBe(20);
+  });
+
+  it('a reversal queued behind the uncommitted header of another (the unique index race) is ALREADY_REVERSED, not IDEMPOTENCY_CONFLICT', async () => {
+    await recordEntry(owner, L1(), productA, 10, 10);
+    const transfer = await recordTransfer(owner, L1(), L2(), productA, 4);
+    const client = await admin.connect();
+    try {
+      // Hold the destination pair: the first reversal inserts its header, then waits here.
+      await client.query('begin');
+      await client.query('select 1 from location_products where tenant_id = $1 and location_id = $2 and product_id = $3 for update', [a.id, L2(), productA]);
+      const first = Promise.resolve(owner.post(`/inventory/documents/${transfer.id}/reversal`, reversalBody()));
+      await waitForLockWaiters('%from location_products lp%for update of lp%', 1);
+      // The second one now waits on the first's uncommitted (tenant_id, reverses_document_id) entry.
+      const second = Promise.resolve(owner.post(`/inventory/documents/${transfer.id}/reversal`, reversalBody()));
+      await waitForLockWaiters('%insert into inventory_documents%', 1);
+      await client.query('commit');
+      expect(outcomes([await first, await second])).toEqual(['201', '409 ALREADY_REVERSED']);
+    } finally {
+      client.release();
+    }
+    expect(await stockOf(admin, a.id, L1(), productA)).toBe(10);
+    expect(await stockOf(admin, a.id, L2(), productA)).toBe(0);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([]);
+  });
+
+  it('a reversal and an exit racing for the same stock: never below zero', async () => {
+    for (let round = 0; round < 5; round++) {
+      const entry = await recordEntry(owner, L1(), productA, 5, 10);
+      const [reversal, exit] = await Promise.all([
+        owner.post(`/inventory/documents/${entry.id}/reversal`, reversalBody()),
+        owner.post('/inventory/exits', exitBody(L1(), productA, 5)),
+      ]);
+      // Whichever commits first takes the 5 units; the other finds 0.
+      expect(outcomes([reversal, exit])).toEqual(['201', '409 INSUFFICIENT_STOCK']);
+      expect(await stockOf(admin, a.id, L1(), productA)).toBe(0);
+    }
   });
 });
 
