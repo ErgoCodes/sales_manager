@@ -10,3 +10,5 @@ Decisiones de arquitectura de la Etapa 2, una por archivo, con formato corto: co
 | [0004](0004-autenticacion.md) | Autenticación: JWT EdDSA, refresh rotativo con detección de reuso, verificación por petición, IP firmada y rate limiting en Postgres | Aceptada |
 | [0005](0005-autorizacion.md) | Autorización: permisos en código, roles por tenant con alcance, no escalada de privilegios y Owner protegido | Aceptada |
 | [0006](0006-libro-de-inventario.md) | Libro de inventario append-only, stock derivado de los movimientos, lock por (punto, producto) en orden global e idempotencia por id del cliente | Propuesta |
+| [0007](0007-ventas-y-modelo-de-reportes.md) | Ventas dentro del libro de inventario (escritas por `RecordSale`) y KPIs por consultas en vivo, por moneda y por día local del tenant, sin cache | Propuesta |
+| [0008](0008-despliegue-demo-publica.md) | Despliegue de la demo pública: proveedor con `BYPASSRLS` (default Fly.io + Neon, a confirmar), migraciones fuera del runtime, tenant de solo lectura, reset nocturno e IP real detrás del proxy | Propuesta |
