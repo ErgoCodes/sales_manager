@@ -985,6 +985,129 @@
         ]
       }
     },
+    "/inventory/transfers": {
+      "post": {
+        "operationId": "createInventoryTransfer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The same document, when the id was already used with the same content (idempotent retry)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move stock between two locations in one atomic document (inventory:transfer in the origin and in the destination)",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/inventory/documents/{id}/reversal": {
+      "post": {
+        "operationId": "reverseInventoryDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReversalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The same document, when the id was already used with the same content (idempotent retry)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The reversal document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDocument_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reverse a whole document once, with the original's permission in every location it touched",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
     "/locations/{locationId}/stock": {
       "get": {
         "operationId": "getLocationStock",
@@ -3591,6 +3714,71 @@
           "id",
           "locationId",
           "lines"
+        ],
+        "additionalProperties": false
+      },
+      "CreateTransferRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "fromLocationId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "toLocationId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/IsoDateTime"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "$ref": "#/components/schemas/Uuid"
+                },
+                "quantity": {
+                  "$ref": "#/components/schemas/Quantity"
+                }
+              },
+              "required": [
+                "productId",
+                "quantity"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "fromLocationId",
+          "toLocationId",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
+      "CreateReversalRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "id"
         ],
         "additionalProperties": false
       },

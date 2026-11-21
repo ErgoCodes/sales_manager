@@ -12,12 +12,50 @@ describe('InventoryLedgerRepository', () => {
   it('inserts the header idempotently: true when inserted, false when the id already existed', async () => {
     const { tx, queries } = fakeTx([{ id: ID }], []);
     const repo = new InventoryLedgerRepository(tx, TENANT);
-    const header = { id: ID, kind: 'exit' as const, locationId: LOC, reason: 'shrinkage' as const, occurredAt: NOW, notes: null, payloadHash: 'h', createdBy: 'u' };
+    const header = {
+      id: ID,
+      kind: 'exit' as const,
+      locationId: LOC,
+      targetLocationId: null,
+      reason: 'shrinkage' as const,
+      reversesDocumentId: null,
+      occurredAt: NOW,
+      notes: null,
+      payloadHash: 'h',
+      createdBy: 'u',
+    };
     expect(await repo.insertDocumentHeader(header)).toBe(true);
     expect(await repo.insertDocumentHeader(header)).toBe(false);
     // No conflict target: every unique index (PK and (id, tenant_id)) must arbitrate a race.
     expect(queries[0]!.sql).toMatch(/on conflict do nothing/);
-    expect(queries[0]!.params).toEqual([ID, TENANT, 'exit', LOC, 'shrinkage', NOW, null, 'h', 'u']);
+    expect(queries[0]!.params).toEqual([ID, TENANT, 'exit', LOC, null, 'shrinkage', null, NOW, null, 'h', 'u']);
+  });
+
+  it('writes the destination of a transfer and the reversed document of a reversal', async () => {
+    const { tx, queries } = fakeTx([{ id: ID }], [{ id: ID }]);
+    const repo = new InventoryLedgerRepository(tx, TENANT);
+    const base = { id: ID, locationId: LOC, reason: null, occurredAt: NOW, notes: null, payloadHash: 'h', createdBy: 'u' };
+    await repo.insertDocumentHeader({ ...base, kind: 'transfer', targetLocationId: PRODUCT, reversesDocumentId: null });
+    await repo.insertDocumentHeader({ ...base, kind: 'reversal', targetLocationId: null, reversesDocumentId: PRODUCT });
+    expect(queries[0]!.params.slice(2, 7)).toEqual(['transfer', LOC, PRODUCT, null, null]);
+    expect(queries[1]!.params.slice(2, 7)).toEqual(['reversal', LOC, null, null, PRODUCT]);
+  });
+
+  it('finds the reversal of a document in the tenant, or null', async () => {
+    const { tx, queries } = fakeTx([{ id: 'r1' }], []);
+    const repo = new InventoryLedgerRepository(tx, TENANT);
+    expect(await repo.findReversalOf(ID)).toBe('r1');
+    expect(await repo.findReversalOf(ID)).toBeNull();
+    expect(queries[0]!.sql).toMatch(/reverses_document_id = \$2/);
+    expect(queries[0]!.params).toEqual([TENANT, ID]);
+  });
+
+  it('reads the ledger of one pair in insertion order with the reversed document of each line', async () => {
+    const line = { documentId: ID, kind: 'reversal', quantityDelta: '-2.500', unitCost: '100.000000', reversesDocumentId: 'd0' };
+    const { tx, queries } = fakeTx([line]);
+    expect(await new InventoryLedgerRepository(tx, TENANT).pairLedger(PAIR)).toEqual([{ ...line, quantityDelta: -2.5, unitCost: 100 }]);
+    expect(queries[0]!.sql).toMatch(/order by m\.created_at, m\.id$/);
+    expect(queries[0]!.params).toEqual([TENANT, LOC, PRODUCT]);
   });
 
   it('reads a document with its movements, converting numerics and dates', async () => {
@@ -72,12 +110,15 @@ describe('InventoryLedgerRepository', () => {
     expect(queries).toHaveLength(0);
     await repo.insertMovements(ID, [
       { ...PAIR, kind: 'entry', quantityDelta: 2.5, unitCost: 100 },
-      { locationId: LOC, productId: ID, kind: 'adjustment', quantityDelta: -1, unitCost: 0 },
+      { locationId: LOC, productId: ID, kind: 'reversal', quantityDelta: -1, unitCost: 0, reversesMovementId: 'm0' },
     ]);
     expect(queries).toHaveLength(1);
     expect(queries[0]!.sql.match(/clock_timestamp\(\)/g)).toHaveLength(2);
     expect(queries[0]!.params.filter((p) => p === TENANT)).toHaveLength(2);
     expect(queries[0]!.params).toContain(-1);
+    // Only the reversal line carries the movement it cancels; the others write null.
+    expect(queries[0]!.params).toContain('m0');
+    expect(queries[0]!.params.filter((p) => p === null)).toHaveLength(1);
   });
 
   it('projects the average cost with six decimals', async () => {

@@ -1,8 +1,10 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Param, Post, Res } from '@nestjs/common';
 import {
   CreateAdjustmentRequest,
   CreateEntryRequest,
   CreateExitRequest,
+  CreateReversalRequest,
+  CreateTransferRequest,
   InventoryDocument,
 } from '@monaco/contracts';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -11,14 +13,17 @@ import { createZodDto, ZodResponse } from 'nestjs-zod';
 
 import { ApiErrorResponse } from '../../../common/http/api-error-response.decorator';
 import type { AuthenticatedActor } from '../../iam/domain/actor';
+import { IdParamsDto } from '../../iam/http/admin.dto';
 import { ClientIp, CurrentActor, RequirePermission } from '../../iam/http/auth.decorators';
 import type { RecordedDocument } from '../application/record-document';
-import { RecordAdjustment, RecordEntry, RecordExit } from '../application/inventory.use-cases';
+import { RecordAdjustment, RecordEntry, RecordExit, RecordTransfer, ReverseDocument } from '../application/inventory.use-cases';
 
 class InventoryDocumentDto extends createZodDto(InventoryDocument) {}
 class CreateEntryRequestDto extends createZodDto(CreateEntryRequest) {}
 class CreateExitRequestDto extends createZodDto(CreateExitRequest) {}
 class CreateAdjustmentRequestDto extends createZodDto(CreateAdjustmentRequest) {}
+class CreateTransferRequestDto extends createZodDto(CreateTransferRequest) {}
+class CreateReversalRequestDto extends createZodDto(CreateReversalRequest) {}
 
 const RETRY_DESCRIPTION = 'The same document, when the id was already used with the same content (idempotent retry)';
 
@@ -37,6 +42,8 @@ export class InventoryController {
     private readonly recordEntry: RecordEntry,
     private readonly recordExit: RecordExit,
     private readonly recordAdjustment: RecordAdjustment,
+    private readonly recordTransfer: RecordTransfer,
+    private readonly reverseDocument: ReverseDocument,
   ) {}
 
   @Post('entries')
@@ -82,5 +89,45 @@ export class InventoryController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return respond(res, await this.recordAdjustment.execute({ actor, ip }, body));
+  }
+
+  @Post('transfers')
+  @RequirePermission('inventory:transfer')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    operationId: 'createInventoryTransfer',
+    summary: 'Move stock between two locations in one atomic document (inventory:transfer in the origin and in the destination)',
+  })
+  @ZodResponse({ status: 201, description: 'The new document', type: InventoryDocumentDto })
+  @ApiResponse({ status: 200, description: RETRY_DESCRIPTION, type: InventoryDocumentDto })
+  async transfer(
+    @CurrentActor() actor: AuthenticatedActor,
+    @ClientIp() ip: string | null,
+    @Body() body: CreateTransferRequestDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return respond(res, await this.recordTransfer.execute({ actor, ip }, body));
+  }
+
+  /**
+   * No `@RequirePermission`: the permission is the original document's (inventory:write or
+   * inventory:transfer) in each of its locations, so only the use case can decide (ADR 0005).
+   */
+  @Post('documents/:id/reversal')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    operationId: 'reverseInventoryDocument',
+    summary: "Reverse a whole document once, with the original's permission in every location it touched",
+  })
+  @ZodResponse({ status: 201, description: 'The reversal document', type: InventoryDocumentDto })
+  @ApiResponse({ status: 200, description: RETRY_DESCRIPTION, type: InventoryDocumentDto })
+  async reversal(
+    @CurrentActor() actor: AuthenticatedActor,
+    @ClientIp() ip: string | null,
+    @Param() params: IdParamsDto,
+    @Body() body: CreateReversalRequestDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return respond(res, await this.reverseDocument.execute({ actor, ip }, params.id, body));
   }
 }

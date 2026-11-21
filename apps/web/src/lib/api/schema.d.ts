@@ -291,6 +291,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/inventory/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move stock between two locations in one atomic document (inventory:transfer in the origin and in the destination) */
+        post: operations["createInventoryTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/documents/{id}/reversal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reverse a whole document once, with the original's permission in every location it touched */
+        post: operations["reverseInventoryDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/locations/{locationId}/stock": {
         parameters: {
             query?: never;
@@ -924,6 +958,21 @@ export interface components {
                 productId: components["schemas"]["Uuid"];
                 quantityDelta: components["schemas"]["SignedQuantity"];
             }[];
+        };
+        CreateTransferRequest: {
+            id: components["schemas"]["Uuid"];
+            fromLocationId: components["schemas"]["Uuid"];
+            toLocationId: components["schemas"]["Uuid"];
+            occurredAt?: components["schemas"]["IsoDateTime"];
+            notes?: string;
+            lines: {
+                productId: components["schemas"]["Uuid"];
+                quantity: components["schemas"]["Quantity"];
+            }[];
+        };
+        CreateReversalRequest: {
+            id: components["schemas"]["Uuid"];
+            notes?: string;
         };
         StockItem_Output: {
             productId: components["schemas"]["Uuid_Output"];
@@ -1742,6 +1791,92 @@ export interface operations {
                 };
             };
             /** @description The new document */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createInventoryTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description The same document, when the id was already used with the same content (idempotent retry) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument"];
+                };
+            };
+            /** @description The new document */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reverseInventoryDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReversalRequest"];
+            };
+        };
+        responses: {
+            /** @description The same document, when the id was already used with the same content (idempotent retry) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDocument"];
+                };
+            };
+            /** @description The reversal document */
             201: {
                 headers: {
                     [name: string]: unknown;
