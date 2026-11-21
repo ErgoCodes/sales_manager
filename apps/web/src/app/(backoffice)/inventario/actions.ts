@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { CreateAdjustmentRequest, CreateEntryRequest, CreateExitRequest, CreateTransferRequest } from '@monaco/contracts';
+import { CreateAdjustmentRequest, CreateEntryRequest, CreateExitRequest, CreateReversalRequest, CreateTransferRequest, MAX_NOTES_LENGTH } from '@monaco/contracts';
 import { callApi, requestInit, type ApiResult } from '@/lib/api/admin';
 import type { ErrorDetail } from '@/lib/api-errors';
 import { parseId } from '@/lib/admin/form-ids';
@@ -96,4 +96,32 @@ export async function recordAdjustmentAction(_prev: InventoryActionState, formDa
 /** D6: one atomic document from the origin (`locationId`) to `toLocationId`; returns to the origin's stock. */
 export async function recordTransferAction(_prev: InventoryActionState, formData: FormData): Promise<InventoryActionState> {
   return record('transfer', formData);
+}
+
+/**
+ * D8: reverses the whole document (`documentId`) once. `id` is the reversal's own id, generated when the
+ * detail page renders, so a double confirm is one reversal. Success opens the reversal document.
+ */
+export async function reverseDocumentAction(_prev: InventoryActionState, formData: FormData): Promise<InventoryActionState> {
+  const text = (name: string) => {
+    const value = formData.get(name);
+    return typeof value === 'string' ? value.trim() : '';
+  };
+  const id = parseId(text('id'));
+  const documentId = parseId(text('documentId'));
+  if (!id || !documentId) return { error: 'El documento indicado no es válido.' };
+  const notes = text('notes');
+  if (notes.length > MAX_NOTES_LENGTH) return { error: `Las notas admiten hasta ${MAX_NOTES_LENGTH} caracteres.` };
+
+  const body = CreateReversalRequest.safeParse({ id, ...(notes ? { notes } : {}) });
+  if (!body.success) return INVALID;
+  const result = await callApi(
+    (api) => api.POST('/inventory/documents/{id}/reversal', { params: { path: { id: documentId } }, body: body.data, ...requestInit() }),
+    { canRefresh: true },
+  );
+  if (!result.ok) return failure(result);
+
+  revalidatePath('/inventario', 'layout');
+  revalidatePath('/catalogo', 'layout');
+  redirect(`/inventario/movimientos/${id}?revertido=1`);
 }

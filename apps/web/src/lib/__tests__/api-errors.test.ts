@@ -40,6 +40,10 @@ describe('inventory codes', () => {
     expect(describeApiError(409, 'INSUFFICIENT_STOCK')).toContain('stock suficiente');
     expect(describeApiError(409, 'IDEMPOTENCY_CONFLICT')).toMatch(/ya se usó.*Recarga/);
   });
+
+  it('explains ALREADY_REVERSED in Spanish', () => {
+    expect(describeApiError(409, 'ALREADY_REVERSED')).toBe('El documento ya fue revertido o es una reversión: un documento solo se revierte una vez.');
+  });
 });
 
 describe('errorDetails', () => {

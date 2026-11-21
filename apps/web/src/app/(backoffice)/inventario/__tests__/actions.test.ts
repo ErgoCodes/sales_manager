@@ -10,7 +10,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/api/authenticated', () => ({ createAuthenticatedClient: async () => ({ POST: post }) }));
 
-import { recordAdjustmentAction, recordEntryAction, recordExitAction, recordTransferAction } from '../actions';
+import { recordAdjustmentAction, recordEntryAction, recordExitAction, recordTransferAction, reverseDocumentAction } from '../actions';
 
 const ID = '018f0000-0000-7000-8000-0000000000d1';
 const L = '018f0000-0000-7000-8000-0000000000b1';
@@ -130,5 +130,41 @@ describe('recordTransferAction', () => {
     expect(await recordTransferAction({}, form({ ...base, toLocationId: L2 }, [[P1, '2']]))).toMatchObject({ shortages: [{ productId: P1, available: 1, shortBy: 1 }] });
     post.mockResolvedValue(fail(409, 'ARCHIVED'));
     expect((await recordTransferAction({}, form({ ...base, toLocationId: L2 }, [[P1, '2']]))).error).toMatch(/archivado/);
+  });
+});
+
+describe('reverseDocumentAction', () => {
+  const R = '018f0000-0000-7000-8000-0000000000d2';
+  const reversal = (fields: Record<string, string>) => form({ id: R, documentId: ID, ...fields }, []);
+
+  it('posts the reversal with its client id and opens the reversal document', async () => {
+    post.mockResolvedValue(ok());
+    await expect(reverseDocumentAction({}, reversal({ notes: ' error de carga ' }))).rejects.toThrow(`REDIRECT:/inventario/movimientos/${R}?revertido=1`);
+    expect(post).toHaveBeenCalledWith('/inventory/documents/{id}/reversal', expect.objectContaining({ params: { path: { id: ID } }, body: { id: R, notes: 'error de carga' } }));
+    expect(revalidatePath).toHaveBeenCalledWith('/inventario', 'layout');
+    expect(revalidatePath).toHaveBeenCalledWith('/catalogo', 'layout');
+  });
+
+  it('omits empty notes, and an idempotent retry (200) also ends on the reversal', async () => {
+    post.mockResolvedValue(ok(200));
+    await expect(reverseDocumentAction({}, reversal({ notes: '  ' }))).rejects.toThrow(/REDIRECT/);
+    expect(post.mock.calls[0]![1].body).toEqual({ id: R });
+  });
+
+  it('rejects invalid ids and long notes before calling the API', async () => {
+    expect((await reverseDocumentAction({}, reversal({ id: 'nope' }))).error).toBeTruthy();
+    expect((await reverseDocumentAction({}, reversal({ documentId: 'nope' }))).error).toBeTruthy();
+    expect((await reverseDocumentAction({}, reversal({ notes: 'x'.repeat(501) }))).error).toMatch(/500/);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('explains ALREADY_REVERSED and lists the shortages of INSUFFICIENT_STOCK', async () => {
+    post.mockResolvedValue(fail(409, 'ALREADY_REVERSED'));
+    const state = await reverseDocumentAction({}, reversal({}));
+    expect(state.error).toMatch(/ya fue revertido/);
+    expect(state.error).not.toContain('English');
+    post.mockResolvedValue(fail(409, 'INSUFFICIENT_STOCK', [{ path: P1, message: 'Available 0, short by 2' }]));
+    expect(await reverseDocumentAction({}, reversal({}))).toMatchObject({ shortages: [{ productId: P1, available: 0, shortBy: 2 }] });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

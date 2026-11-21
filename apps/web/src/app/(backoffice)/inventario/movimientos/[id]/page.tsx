@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { uuidv7 } from '@monaco/contracts';
 import { ErrorNotice, NoAccess } from '@/components/admin/page-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { callApi, requestInit } from '@/lib/api/admin';
@@ -7,17 +8,22 @@ import { getMe } from '@/lib/api/me';
 import { parseId } from '@/lib/admin/form-ids';
 import { formatDateTime } from '@/lib/audit-labels';
 import { DOCUMENT_KIND_LABELS, EXIT_REASON_LABELS, MOVEMENT_KIND_LABELS, OTHER_LOCATION, formatAverageCost, formatSignedQuantity } from '@/lib/inventory/format';
+import { canReverseDocument } from '@/lib/inventory/reversal';
 import { canReadInventory } from '@/lib/permissions';
+import { reverseDocumentAction } from '../../actions';
 import { productInfo, productLabel } from '../../data';
+import { ReverseDocument } from './reverse-document';
 
 export const metadata: Metadata = { title: 'Documento de inventario' };
 
 /**
  * One inventory document: header and the movements in locations the user reads. A location the user
- * cannot see comes back without id or name and is shown as "Otro punto". Read-only (revert: T8b).
+ * cannot see comes back without id or name and is shown as "Otro punto". "Revertir" appears only with
+ * the original document's permission in every location it touched (`canReverseDocument`).
  */
-export default async function InventoryDocumentPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InventoryDocumentPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ revertido?: string }> }) {
   const id = parseId((await params).id);
+  const reversed = (await searchParams)?.revertido === '1';
   if (!id) return <ErrorNotice message="El documento indicado no existe." />;
   const me = await getMe();
   if (!me.ok) return <ErrorNotice message={me.message} />;
@@ -40,7 +46,23 @@ export default async function InventoryDocumentPage({ params }: { params: Promis
       <Link href={back} className="text-sm underline">
         ← Movimientos
       </Link>
-      <h1 className="text-2xl font-semibold">{DOCUMENT_KIND_LABELS[doc.kind]}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold">{DOCUMENT_KIND_LABELS[doc.kind]}</h1>
+        {canReverseDocument(me.data.permissions, doc) ? (
+          <ReverseDocument
+            documentId={doc.id}
+            reversalId={uuidv7()}
+            products={[...products].map(([productId, p]) => ({ id: productId, ...p }))}
+            action={reverseDocumentAction}
+          />
+        ) : null}
+      </div>
+
+      {reversed ? (
+        <p role="status" className="rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-800">
+          Documento revertido.
+        </p>
+      ) : null}
 
       <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[max-content_1fr]">
         <dt className="font-medium">{isTransfer ? 'Origen' : 'Punto de venta'}</dt>
