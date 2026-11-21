@@ -87,7 +87,11 @@ export interface NewMovement extends PairKey {
  * ordered creation and `FOR UPDATE` of the pairs, sum, write.
  */
 export interface InventoryLedger {
-  /** `INSERT ... ON CONFLICT (id) DO NOTHING`: false when the id already exists (also in another tenant). */
+  /**
+   * `INSERT ... ON CONFLICT DO NOTHING` without a target, so every unique index arbitrates:
+   * false when the id already exists (also in another tenant). A reversal must not reuse it,
+   * or a `(tenant_id, reverses_document_id)` conflict would look like an idempotency replay.
+   */
   insertDocumentHeader(header: NewDocumentHeader): Promise<boolean>;
   /** The document with its movements, or null when missing or of another tenant (RLS). */
   findDocument(id: string): Promise<StoredDocument | null>;
