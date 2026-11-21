@@ -105,10 +105,10 @@ T2 (contracts + perms) ──┘            │                                 
 
 ### T6 · Transferencias y reversiones `L` · `Difícil` · **crítica de datos** (depende de T5a)
 
-- [ ] `POST /inventory/transfers`: un documento, `transfer_out` + `transfer_in` por línea, `inventory:transfer` en origen y destino, locks de los dos puntos en el orden global, costo promedio del destino mezclando el del origen (`transfer_in`). `transfer_out` desde un punto archivado pasa; `transfer_in` hacia uno archivado da `ARCHIVED` (D15).
-- [ ] `POST /inventory/documents/:id/reversal`: líneas opuestas en todos los puntos del original, permiso del original en cada punto, una sola vez (`ALREADY_REVERSED`, incluida la violación 23505 con otro `id`), regla de stock no negativo y recálculo con `replayAverageCost` al revertir entradas o transferencias (el costo del destino queda como si la transferencia no hubiera existido).
-- [ ] Auditoría (`inventory_transfer_recorded`, `inventory_document_reversed`).
-- [ ] Tests de integración:
+- [x] `POST /inventory/transfers`: un documento, `transfer_out` + `transfer_in` por línea, `inventory:transfer` en origen y destino, locks de los dos puntos en el orden global, costo promedio del destino mezclando el del origen (`transfer_in`). `transfer_out` desde un punto archivado pasa; `transfer_in` hacia uno archivado da `ARCHIVED` (D15).
+- [x] `POST /inventory/documents/:id/reversal`: líneas opuestas en todos los puntos del original, permiso del original en cada punto, una sola vez (`ALREADY_REVERSED`, incluida la violación 23505 con otro `id`), regla de stock no negativo y recálculo con `replayAverageCost` al revertir entradas o transferencias (el costo del destino queda como si la transferencia no hubiera existido).
+- [x] Auditoría (`inventory_transfer_recorded`, `inventory_document_reversed`).
+- [x] Tests de integración:
   - transferencias simultáneas A→B y B→A del mismo producto: sin deadlock y con stock final correcto;
   - transferencia sin permiso en el destino: 403 y sin efectos;
   - transferencia que dejaría el origen negativo: 409 y nada se mueve (atomicidad);
