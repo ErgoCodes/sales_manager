@@ -2,6 +2,8 @@
 
 **Estado: SP1 completo (en `main`) · SP2 completo (en `main`, T1–T8): ver [docs/21](21-estado-sp2-y-continuacion-local.md)**
 
+**SP3 (catálogo e inventario), en cierre:** API de catálogo e inventario completa (entradas, salidas, ajustes, transferencias y reversión, con stock no negativo bajo concurrencia, RLS y permisos por punto); web de catálogo e inventario (T7, T8a); `db:seed` con catálogo, precios por punto y movimientos demo en los dos puntos (base de los KPIs de SP4); E2E de entrada, salida sin stock y alcance del Cashier; [ADR 0006](adr/0006-libro-de-inventario.md) aceptado. **Pendiente:** web de transferencias y reversión (T8b) y su E2E. Plan y casillas: [plans/2026-11-16-sp3-catalogo-inventario.md](superpowers/plans/2026-11-16-sp3-catalogo-inventario.md).
+
 > Este doc baja a ejecución el [spec de la Etapa 2](superpowers/specs/2026-07-11-etapa2-plataforma-multinegocio-design.md): orden, calendario, criterios de salida de cada sub-proyecto y las decisiones que el spec dejó abiertas. El *qué* y el *por qué* siguen en el spec; el estado de cada tarea vive en Notion ([PRJ «Plataforma multi-negocio»](https://app.notion.com/39a19c33c39081b99f1dc6a2cfdfa957)). El plan detallado de SP1 está en [superpowers/plans/2026-11-04-sp1-fundaciones.md](superpowers/plans/2026-11-04-sp1-fundaciones.md).
 
 ## Decisiones de planificación (2026-11-04)
