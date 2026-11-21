@@ -120,11 +120,11 @@ T2 (contracts + perms) ──┘            │                                 
 
 ### T7 · Web: catálogo `L` · `Media` (depende de T4; en paralelo con T5a, T5b y T6)
 
-- [ ] Pantallas `/catalogo` (listado, búsqueda, filtros, archivados) y `/catalogo/[id]` (detalle, edición, archivar, precios por punto), con Server Actions y el cliente tipado.
-- [ ] Propuesta del precio de transferencia con la función de `@monaco/domain` (la web pasa a depender de `@monaco/domain`); la API sigue siendo la autoridad.
-- [ ] Navegación: entrada "Catálogo" en `navItemsFor` según `catalog:view`; acciones de producto solo con `catalog:write` tenant; edición de precio solo en los puntos permitidos.
-- [ ] Errores 403, 404, 409 y 422 como mensajes en español.
-- [ ] Tests de componentes de los formularios de producto y de precio por punto.
+- [x] Pantallas `/catalogo` (listado, búsqueda, filtros, archivados) y `/catalogo/[id]` (detalle, edición, archivar, precios por punto), con Server Actions y el cliente tipado.
+- [x] Propuesta del precio de transferencia con la función de `@monaco/domain` (la web pasa a depender de `@monaco/domain`); la API sigue siendo la autoridad.
+- [x] Navegación: entrada "Catálogo" en `navItemsFor` según `catalog:view`; acciones de producto solo con `catalog:write` tenant; edición de precio solo en los puntos permitidos.
+- [x] Errores 403, 404, 409 y 422 como mensajes en español.
+- [x] Tests de componentes de los formularios de producto y de precio por punto.
 
 **Hecho cuando:** el Owner del seed crea, edita y archiva un producto y fija un precio por punto desde la web; un Cashier ve el catálogo de su punto sin acciones de escritura ni costos.
 

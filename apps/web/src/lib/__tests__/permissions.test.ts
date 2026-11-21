@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PERMISSIONS } from '@monaco/contracts';
-import { PERMISSION_GROUPS, PERMISSION_LABELS, canAny, canAt, canTenantWide } from '../permissions';
+import { PERMISSION_GROUPS, PERMISSION_LABELS, canAny, canAt, canReadCatalog, canSeeCatalogCosts, canTenantWide } from '../permissions';
 
 const tenant = { type: 'tenant' } as const;
 const at = (...ids: string[]) => ({ type: 'locations', locationIds: ids }) as const;
@@ -29,6 +29,30 @@ describe('permission checks (UI hints only, the API is the authority)', () => {
 
   it('handles an empty grant list', () => {
     expect(canAny([], 'users:manage')).toBe(false);
+  });
+});
+
+describe('catalog hints (D9 read implication, D10 cost visibility)', () => {
+  const cashier = [{ permission: 'catalog:view', scope: at('a') }] as const;
+  const manager = [{ permission: 'catalog:write', scope: at('a') }] as const;
+  const owner = [{ permission: 'catalog:write', scope: tenant }] as const;
+  const stocker = [{ permission: 'inventory:write', scope: at('a') }] as const;
+
+  it('canReadCatalog: catalog:view or catalog:write, anywhere or at a location', () => {
+    expect(canReadCatalog(cashier)).toBe(true);
+    expect(canReadCatalog(cashier, 'a')).toBe(true);
+    expect(canReadCatalog(cashier, 'b')).toBe(false);
+    expect(canReadCatalog(manager, 'a')).toBe(true);
+    expect(canReadCatalog(stocker)).toBe(false);
+    expect(canReadCatalog([{ permission: 'sales:create', scope: tenant }])).toBe(false);
+  });
+
+  it('canSeeCatalogCosts: catalog:write or inventory:write at the location, or tenant-wide without one', () => {
+    expect(canSeeCatalogCosts(cashier, 'a')).toBe(false);
+    expect(canSeeCatalogCosts(manager, 'a')).toBe(true);
+    expect(canSeeCatalogCosts(manager)).toBe(false);
+    expect(canSeeCatalogCosts(stocker, 'a')).toBe(true);
+    expect(canSeeCatalogCosts(owner)).toBe(true);
   });
 });
 

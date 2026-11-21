@@ -11,9 +11,13 @@ const BY_CODE: Record<string, string> = {
   invalid_scope: 'El alcance no es válido: los permisos administrativos solo valen para todo el negocio.',
   permission_denied: 'No tienes permiso para realizar esta acción.',
   conflict: 'Ya existe un registro con esos datos (conflicto).',
+  ARCHIVED: 'El registro está archivado y no admite esta operación.',
+  CURRENCY_MISMATCH:
+    'No se pudo aplicar la moneda: los importes deben estar en la moneda del producto. Para cambiar la moneda hay que volver a ingresar todos los precios base, quitar antes los precios por punto, y no es posible si el producto ya tiene movimientos de inventario.',
 };
 
 const BY_STATUS: Record<number, string> = {
+  400: 'Los datos no son válidos. Revísalos e inténtalo de nuevo.',
   401: 'Tu sesión terminó. Inicia sesión de nuevo.',
   403: 'No tienes permiso para realizar esta acción.',
   404: 'El registro no existe o ya no está disponible.',

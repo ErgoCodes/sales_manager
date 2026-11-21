@@ -16,4 +16,10 @@ describe('navItemsFor', () => {
     expect(labels(['audit:view'])).toContain('Auditoría');
     expect(labels(['users:manage'])).not.toContain('Roles');
   });
+
+  it('shows "Catálogo" with catalog:view, or catalog:write (D9), after "Puntos de venta"', () => {
+    expect(labels(['catalog:view'])).toEqual(['Inicio', 'Puntos de venta', 'Catálogo', 'Dispositivos']);
+    expect(labels(['catalog:write'])).toContain('Catálogo');
+    expect(labels(['inventory:write'])).not.toContain('Catálogo');
+  });
 });
