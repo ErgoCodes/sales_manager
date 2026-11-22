@@ -24,15 +24,20 @@ import { seedReportVolume } from './reports-volume';
 import { SalesFixtures } from './sales-fixtures';
 
 /*
- * Performance budget of the reports (SP4 spec, "Presupuesto de rendimiento"; ADR 0007 §6):
- * with 10× the demo volume (≈ 200 000 sale lines over 90 days, 2 locations, 40 products),
- * every endpoint answers in p95 < 300 ms in the integration container, and EXPLAIN shows
- * no Seq Scan on sale_lines or inventory_movements. Asserted for the dashboard periods up
- * to 30 days (latency) and up to 7 days (plans); the longer ranges are measured and
- * recorded, with the gap documented in ADR 0007. The documented way out is the daily
- * projection of ADR 0007 or a covering index, never a cache.
+ * Performance budget of the reports (SP4 spec, "Presupuesto de rendimiento"; ADR 0007,
+ * "Resultados medidos"): with 10× the demo volume (≈ 200 000 sale lines over 90 days,
+ * 2 locations, 40 products), every endpoint answers in p95 < 300 ms in the integration
+ * container, and EXPLAIN shows no Seq Scan on sale_lines or inventory_movements, for the
+ * dashboard windows up to 30 days. 90-day windows are allowed but outside the budget: they
+ * are measured and recorded. The way out when real volume demands it is the daily
+ * projection of ADR 0007, never a cache.
+ *
+ * The EXPLAIN checks always run (the CI gate). The latency measurements depend on the
+ * machine, so they run only with REPORTS_PERF=1:
+ *   REPORTS_PERF=1 pnpm --filter api test:integration reports-performance
  */
 
+const PERF = process.env.REPORTS_PERF === '1';
 const RUNS = 20;
 const BUDGET_MS = 300;
 const BIG_TABLES = ['sale_lines', 'inventory_movements'];
@@ -90,7 +95,7 @@ async function measure(label: string, range: string): Promise<Record<string, num
 }
 
 describe('reports at 10× the demo volume', () => {
-  it(`answers every endpoint in p95 < ${BUDGET_MS} ms over HTTP for today, 7 and 30 days`, async () => {
+  it.skipIf(!PERF)(`answers every endpoint in p95 < ${BUDGET_MS} ms over HTTP for today, 7 and 30 days`, async () => {
     const today = await localDay(0);
     const results = {
       ...(await measure('today', '')),
@@ -101,8 +106,8 @@ describe('reports at 10× the demo volume', () => {
     for (const [key, value] of Object.entries(results)) expect(value, key).toBeLessThan(BUDGET_MS);
   }, 300_000);
 
-  // Recorded, not asserted: 90 days is the whole history of this volume (see the plans below and ADR 0007).
-  it('records the p95 of a 90-day range', async () => {
+  // Recorded, not asserted: 90 days is outside the budget (and the whole history of this volume).
+  it.skipIf(!PERF)('records the p95 of a 90-day range', async () => {
     const results = await measure('90 days', `from=${await localDay(-89)}&to=${await localDay(0)}`);
     console.info('reports p95 over 90 days (ms):', JSON.stringify(results, null, 1));
     expect(Object.keys(results)).toHaveLength(10);
@@ -124,6 +129,8 @@ describe('reports at 10× the demo volume', () => {
               get(target, property, receiver) {
                 if (property !== 'execute') return Reflect.get(target, property, receiver) as unknown;
                 return async (query: SQL) => {
+                  // The unit of work's own `set local` is not a statement to explain.
+                  if (/^set local /.test(dialect.sqlToQuery(query).sql)) return target.execute(query);
                   const explained = await target.execute(sql`explain (format json) ${query}`);
                   const plan = (explained.rows[0] as { 'QUERY PLAN': unknown })['QUERY PLAN'];
                   plans.push({ query: dialect.sqlToQuery(query).sql.replace(/\s+/g, ' ').slice(0, 90), tables: BIG_TABLES.filter((table) => seqScanOn(plan, table)) });
@@ -163,25 +170,15 @@ describe('reports at 10× the demo volume', () => {
     return plans.filter((plan) => plan.tables.length > 0);
   }
 
-  it('plans no Seq Scan on sale_lines or inventory_movements for today and the last 7 days', async () => {
-    expect(await seqScansOver(await localDay(0), await localDay(0))).toEqual([]);
-    expect(await seqScansOver(await localDay(-6), await localDay(0))).toEqual([]);
-  }, 120_000);
+  it('plans no Seq Scan on sale_lines or inventory_movements for today, 7 and 30 days', async () => {
+    for (const days of [1, 7, 30]) expect(await seqScansOver(await localDay(1 - days), await localDay(0)), `${days} days`).toEqual([]);
+  }, 180_000);
 
-  /*
-   * Recorded, not asserted (ADR 0007, "Resultados medidos"): over 30 days (a third of this
-   * volume) the ranking reads product_id and quantity, which sale_lines_kpi_idx does not
-   * include, so the planner prefers a Seq Scan; over 90 days (the whole history) every
-   * sale_lines aggregate does, which is the cheapest plan for reading the whole table.
-   * Closing it needs a covering index (a migration, outside T6) or the daily projection.
-   */
-  it('records the plans of the 30- and 90-day ranges', async () => {
-    const found = {
-      '30 days': await seqScansOver(await localDay(-29), await localDay(0)),
-      '90 days': await seqScansOver(await localDay(-89), await localDay(0)),
-    };
-    console.info('reports Seq Scans:', JSON.stringify(found, null, 1));
-    expect(found['30 days'].flatMap((plan) => plan.tables)).not.toContain('inventory_movements');
+  // Recorded, not asserted: 90 days is outside the budget (ADR 0007, "Resultados medidos").
+  it('records the plans of a 90-day range', async () => {
+    const found = await seqScansOver(await localDay(-89), await localDay(0));
+    console.info('reports Seq Scans over 90 days:', JSON.stringify(found, null, 1));
+    expect(found.flatMap((plan) => plan.tables)).not.toContain('inventory_movements');
   }, 120_000);
 });
 

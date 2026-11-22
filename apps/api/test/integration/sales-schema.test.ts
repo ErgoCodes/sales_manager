@@ -353,7 +353,7 @@ describe('report indexes (spec "Consultas e índices")', () => {
 
   it('sale_lines has the covering KPI index and the product index', async () => {
     expect(await definition('sale_lines_kpi_idx')).toContain(
-      '(tenant_id, location_id, occurred_at) INCLUDE (currency, payment_method, line_total, profit, sale_id)',
+      '(tenant_id, location_id, occurred_at) INCLUDE (currency, payment_method, line_total, profit, sale_id, product_id, quantity)',
     );
     expect(await definition('sale_lines_tenant_id_location_id_product_id_occurred_at_idx')).toContain(
       '(tenant_id, location_id, product_id, occurred_at)',

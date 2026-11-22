@@ -57,8 +57,9 @@ export const sales = pgTable(
  * the header, written once in the same transaction and enforced by
  * sale_lines_sale_fk, so the KPIs read only this table through
  * the covering index `sale_lines_kpi_idx` (tenant_id, location_id, occurred_at)
- * INCLUDE (currency, payment_method, line_total, profit, sale_id), which is in
- * the custom migration: drizzle-kit does not model INCLUDE.
+ * INCLUDE (currency, payment_method, line_total, profit, sale_id, product_id,
+ * quantity), which is in the custom migrations 0016 and 0017: drizzle-kit does
+ * not model INCLUDE.
  */
 export const saleLines = pgTable(
   'sale_lines',
