@@ -27,6 +27,17 @@ export async function withOwnerDatabase<T>(env: Readonly<Record<string, string |
   }
 }
 
+/**
+ * Runs `fn` in one transaction on `db`, handing it the transaction as a `Database`: the use
+ * cases' own `withTenant` blocks become savepoints of it (Drizzle nests transactions that way),
+ * so the seed and `demo:reset` commit everything or nothing. The tenant setting is transaction-local to
+ * the outer transaction, and every `withTenant` sets it again, so the tenant never leaks.
+ */
+export function inOneTransaction<T>(db: Database, fn: (tx: Database) => Promise<T>): Promise<T> {
+  // A transaction has the query API of the database it came from (no `$client`): reviewable cast.
+  return db.transaction((tx) => fn(tx as unknown as Database));
+}
+
 /** Loads apps/api/.env for local runs, as main.ts and drizzle.config.ts do. */
 export function loadLocalEnv(): void {
   if (process.env.NODE_ENV !== 'production') {

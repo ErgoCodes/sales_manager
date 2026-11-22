@@ -110,7 +110,13 @@ pnpm --filter api db:seed
 
 To try the back-office, run `pnpm dev`, open http://localhost:3000/login and sign in with any of these users. The owner can manage locations, users, roles and assignments; the cashier sees none of the admin actions.
 
-The seed also stocks a demo catalog (five products in CUP, with price overrides in P2) and inventory documents in both locations: entries, a shrinkage and an owner withdrawal, and one transfer from P1 to P2. It writes them as the demo owner through the same use cases as the API (stock and average cost from `@monaco/domain`, audit events included), with fixed document ids, so running it again changes nothing. To walk through the inventory flow:
+The seed also stocks a demo catalog (40 products in CUP across the catalog categories, with price overrides in P2) and a history of the last 14 days, today included and in full: weekly entries, shrinkage, owner withdrawals, a transfer from P1 to P2 every two weeks and 25–60 sales a day per location (1–4 lines each, weekly seasonality). Days are local to the tenant's time zone; reports cut at the current time, so "today" fills up during the day. A few products are left stagnant, low on stock or near their expiration date. Everything is written as the demo owner through the same use cases as the API (`RecordSale` for sales; stock and average cost from `@monaco/domain`, audit events included) with a fixed-seed generator and deterministic UUIDv7 ids, all in one transaction. Running it again changes nothing: once the tenant has sales the history is left alone. Pass `--history-days <1..366>` for a longer one:
+
+```bash
+pnpm --filter api db:seed --history-days 30
+```
+
+To walk through the inventory flow:
 
 1. Sign in as the **manager** and open **Inventario**: the stock of P1 (the only location the manager has), with the average cost.
 2. **Registrar entrada**: pick a product, a quantity and a unit cost; after saving, the stock row shows the new quantity. A double click on "Guardar" still records one document (the form carries its id).
@@ -118,6 +124,16 @@ The seed also stocks a demo catalog (five products in CUP, with price overrides 
 4. **Movimientos** lists the ledger of the location; each document opens its detail.
 5. Sign in as the **cashier**: the same stock page for P1 only, without average costs or write actions.
 6. Sign in as the **owner** to see both locations and the catalog (`/catalogo`), including the P2 price overrides.
+
+### Public demo reset
+
+`demo:reset` regenerates the public demo (ADR 0008): it connects as the schema owner (`DATABASE_MIGRATION_URL`) and, in **one** transaction, empties every tenant table (sessions included), recreates the `demo` tenant with `read_only = true` and seeds 90 days of history the same way as `db:seed` (about 7 000 sales, under a minute locally). It refuses unless `DEMO_RESET_CONFIRM=demo` is set and every tenant in the database is read-only, so it never wipes a real tenant or a `db:seed` database. Run it only against the dedicated demo database:
+
+```bash
+DEMO_RESET_CONFIRM=demo pnpm --filter api demo:reset
+```
+
+The API refuses writes to a read-only tenant in its `AuthGuard` (`403 DEMO_READ_ONLY`); the reset calls the use cases directly, outside HTTP, so that guard is not in its path. Requests that arrive during a reset (about a minute) wait on its locks and, with the API's 5 s statement timeout, fail with an error: they never see a half-reset state. The reset also refuses to run if the database holds any tenant other than the read-only demo tenant.
 
 ### End-to-end tests
 
