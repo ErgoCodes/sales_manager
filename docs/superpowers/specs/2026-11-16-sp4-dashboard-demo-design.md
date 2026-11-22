@@ -189,7 +189,7 @@ La caja sigue **local y sin cambios de comportamiento** (docs/20). SP4 agrega un
 - **Idempotente:** `db:seed` no vuelve a sembrar la historia si el tenant demo ya tiene ventas. `demo:reset` es la única forma de regenerarla.
 - **Día de hoy completo:** la historia incluye las ventas de todo el día del reset; como los reportes se cortan en `now()`, "Hoy" crece a lo largo del día (D14).
 - **Seguro para una demo pública:** nombres de productos genéricos, emails `@demo.example`, contraseñas de demo que solo valen en el tenant `read_only`. `db:seed` sigue negándose a correr con `NODE_ENV=production`.
-- **`demo:reset`:** corre con `monaco_owner`, se niega si la base tiene algún tenant con `read_only = false` (la base de la demo solo contiene el tenant demo) y exige `DEMO_RESET_CONFIRM=<slug>`. En una sola transacción hace `TRUNCATE` de las tablas de tenant, recrea el tenant demo (`read_only = true`) y siembra. Los visitantes ven los datos viejos o los nuevos, nunca un estado intermedio; sus sesiones se cierran (las tablas de refresh se vacían).
+- **`demo:reset`:** corre con `monaco_owner`, se niega si la base tiene algún tenant con `read_only = false` o cualquier tenant que no sea el demo (la base de la demo solo contiene el tenant demo) y exige `DEMO_RESET_CONFIRM=<slug>`. En una sola transacción hace `TRUNCATE` de las tablas de tenant, recrea el tenant demo (`read_only = true`) y siembra. Los visitantes nunca ven un estado intermedio: durante el reset (alrededor de un minuto) sus peticiones esperan los locks y fallan por el `statement_timeout` de 5 s, y después ven los datos nuevos; sus sesiones se cierran (las tablas de refresh se vacían).
 
 ## Despliegue de la demo pública
 

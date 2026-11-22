@@ -76,6 +76,17 @@ describe('demo:reset refusals', () => {
     expect(await snapshot()).toEqual(before);
   });
 
+  it('refuses a read-only tenant that is not the demo tenant, and leaves it untouched', async () => {
+    await runTenantCreate(['--name', 'Acme Store', '--slug', 'acme', '--owner-email', 'boss@acme.example'], { DATABASE_MIGRATION_URL: urls().owner }, quiet);
+    await admin.query('alter table tenants no force row level security');
+    await admin.query(`update tenants set read_only = true where slug = 'acme'`);
+    await admin.query('alter table tenants force row level security');
+    const before = await snapshot();
+    await expect(reset()).rejects.toThrow(/acme.*not the demo tenant/);
+    expect(await snapshot()).toEqual(before);
+    expect(await unforcedTables()).toEqual([]);
+  });
+
   it('refuses when only one of several tenants is writable', { timeout: 120_000 }, async () => {
     await reset();
     await runTenantCreate(['--name', 'Acme Store', '--slug', 'acme', '--owner-email', 'boss@acme.example'], { DATABASE_MIGRATION_URL: urls().owner }, quiet);

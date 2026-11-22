@@ -133,7 +133,7 @@ To walk through the inventory flow:
 DEMO_RESET_CONFIRM=demo pnpm --filter api demo:reset
 ```
 
-The API refuses writes to a read-only tenant in its `AuthGuard` (`403 DEMO_READ_ONLY`); the reset calls the use cases directly, outside HTTP, so that guard is not in its path. Requests that arrive during a reset wait on its locks and then see the new data, never a half-reset state.
+The API refuses writes to a read-only tenant in its `AuthGuard` (`403 DEMO_READ_ONLY`); the reset calls the use cases directly, outside HTTP, so that guard is not in its path. Requests that arrive during a reset (about a minute) wait on its locks and, with the API's 5 s statement timeout, fail with an error: they never see a half-reset state. The reset also refuses to run if the database holds any tenant other than the read-only demo tenant.
 
 ### End-to-end tests
 
