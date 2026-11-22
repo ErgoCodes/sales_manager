@@ -112,12 +112,20 @@ export interface ValuedMovement {
 }
 
 /**
- * Value of loss outflows (shrinkage, owner withdrawals): `Σ |quantityDelta| × unitCost`,
- * the same rule as mobile's `sumLossOutflowsValue`. Minor units, rounded half up to
- * 6 decimals once over the whole sum.
+ * `Σ |quantityDelta| × unitCost` in minor units, rounded half up to 6 decimals once over
+ * the whole sum, in integer arithmetic. The value of valued entries and of the
+ * inventory (stock × average cost), and the rule behind `lossValue`.
  */
-export function lossValue(movements: readonly ValuedMovement[]): number {
+export function costValue(movements: readonly ValuedMovement[]): number {
   let nano = 0n;
   for (const movement of movements) nano += rawCostNano(movement.quantityDelta, movement.unitCost);
   return toSafeNumber(divideHalfUp(nano, QUANTITY_SCALE)) / COST_SCALE + 0;
+}
+
+/**
+ * Value of loss outflows (shrinkage, owner withdrawals): `Σ |quantityDelta| × unitCost`,
+ * the same rule as mobile's `sumLossOutflowsValue` (`costValue`).
+ */
+export function lossValue(movements: readonly ValuedMovement[]): number {
+  return costValue(movements);
 }

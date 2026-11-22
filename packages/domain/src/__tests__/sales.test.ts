@@ -6,6 +6,7 @@ import {
   PAYMENT_METHODS,
   averageTicket,
   isLowStock,
+  costValue,
   lossValue,
   marginRatio,
   saleLineAmounts,
@@ -173,6 +174,19 @@ describe('averageTicket', () => {
     expect(() => averageTicket(-10, 2)).toThrow(InvalidQuantityError);
     expect(() => averageTicket(10, 1.5)).toThrow(InvalidQuantityError);
     expect(() => averageTicket(10, -1)).toThrow(InvalidQuantityError);
+  });
+});
+
+describe('costValue', () => {
+  it('values quantities at their cost (valued entries, inventory value), exactly and rounded once', () => {
+    expect(costValue([])).toBe(0);
+    expect(costValue([{ quantityDelta: 10, unitCost: 0.1 }, { quantityDelta: 20, unitCost: 0.2 }])).toBe(5);
+    expect(costValue([{ quantityDelta: 0.333, unitCost: 33.333333 }])).toBe(11.1); // 11.099999889
+  });
+
+  it('is the rule lossValue applies', () => {
+    const movements = [{ quantityDelta: -1.5, unitCost: 12.345678 }, { quantityDelta: -0.25, unitCost: 3 }];
+    expect(lossValue(movements)).toBe(costValue(movements));
   });
 });
 

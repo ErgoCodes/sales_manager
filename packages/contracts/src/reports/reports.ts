@@ -67,6 +67,10 @@ export const ReportRangeQuery = z
   .meta({ id: 'ReportRangeQuery', description: RANGE_RULES });
 export type ReportRangeQuery = z.infer<typeof ReportRangeQuery>;
 
+/** `GET /reports/inventory-health`: at the moment, so only the optional location. */
+export const InventoryHealthQuery = z.object({ locationId: rangeShape.locationId }).meta({ id: 'InventoryHealthQuery' });
+export type InventoryHealthQuery = z.infer<typeof InventoryHealthQuery>;
+
 export const TOP_PRODUCTS_ORDERS = ['revenue', 'quantity', 'profit'] as const;
 export const TopProductsOrder = z.enum(TOP_PRODUCTS_ORDERS).meta({ id: 'TopProductsOrder' });
 export type TopProductsOrder = z.infer<typeof TopProductsOrder>;
