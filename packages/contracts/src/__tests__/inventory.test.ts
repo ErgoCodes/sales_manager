@@ -12,6 +12,7 @@ import {
   StockQuery,
   UpdateProductRequest,
   CreateReversalRequest,
+  INVENTORY_DOCUMENT_KINDS,
   INVENTORY_MOVEMENT_KINDS,
   INVENTORY_ERROR_CODES,
   PERMISSIONS,
@@ -149,10 +150,13 @@ describe('catalog and stock queries and updates', () => {
 });
 
 describe('shared lists', () => {
-  it('movement kinds are the seven of the ledger', () => {
+  it('movement kinds are the eight of the ledger (SP4 adds sale)', () => {
     expect([...INVENTORY_MOVEMENT_KINDS].sort()).toEqual(
-      ['adjustment', 'entry', 'owner_withdrawal', 'reversal', 'shrinkage', 'transfer_in', 'transfer_out'].sort(),
+      ['adjustment', 'entry', 'owner_withdrawal', 'reversal', 'sale', 'shrinkage', 'transfer_in', 'transfer_out'].sort(),
     );
+  });
+  it('a sale is also a document kind (SP4 spec, D1)', () => {
+    expect([...INVENTORY_DOCUMENT_KINDS].sort()).toEqual(['adjustment', 'entry', 'exit', 'reversal', 'sale', 'transfer'].sort());
   });
   it('error codes cover every SP3 code', () => {
     expect([...INVENTORY_ERROR_CODES].sort()).toEqual(

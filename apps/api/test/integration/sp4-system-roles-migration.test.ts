@@ -126,12 +126,16 @@ beforeAll(async () => {
   await admin.query(`drop database if exists ${DATABASE}`);
   await admin.query(`create database ${DATABASE}`);
   target = new Pool({ connectionString: urlFor(urls().admin), max: 1 });
+  // afterAll drops this database `with (force)` while an ended client may still be closing (57P01).
+  target.on('error', () => undefined);
   await target.query(initSql);
   preFolder = partialFolder(PRE_SP4_MIGRATIONS);
   await migrateAsOwner(preFolder);
   await seedSp3Tenant(TENANT_OLD, 'sp3-tenant');
   policiesBefore = await policies();
   owner = new Pool({ connectionString: urlFor(urls().owner), max: 1 });
+  // afterAll drops this database `with (force)` while an ended client may still be closing (57P01).
+  owner.on('error', () => undefined);
 });
 afterAll(async () => {
   await owner.end();

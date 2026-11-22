@@ -129,12 +129,22 @@ describe('ReportSummary', () => {
         .success,
     ).toBe(true);
   });
-  it('rejects an unknown scope, a negative sale, a fractional ticket count and an invalid time zone', () => {
+  it('rejects an unknown scope, a negative sale, a fractional ticket count and an empty time zone', () => {
     const ok = { scope: 'location', locationIds: [LOCATION], ...range, currencies: [totals] };
     expect(ReportSummary.safeParse({ ...ok, scope: 'tenant' }).success).toBe(false);
     expect(ReportSummary.safeParse({ ...ok, currencies: [{ ...totals, cashSales: -1 }] }).success).toBe(false);
     expect(ReportSummary.safeParse({ ...ok, currencies: [{ ...totals, tickets: 1.5 }] }).success).toBe(false);
-    expect(ReportSummary.safeParse({ ...ok, timeZone: 'Mars/Olympus' }).success).toBe(false);
+    expect(ReportSummary.safeParse({ ...ok, timeZone: '' }).success).toBe(false);
+  });
+  it('echoes the stored time zone without re-validating it: an alias the runtime ICU does not list never fails a read', () => {
+    // Time zones are validated on write only (tenant:create). Node's ICU list changes between versions
+    // (it lists Europe/Kiev, not Europe/Kyiv), so a response must not depend on it.
+    const ok = { scope: 'location', locationIds: [LOCATION], ...range, currencies: [totals] };
+    for (const timeZone of ['Europe/Kyiv', 'Europe/Kiev', 'America/Havana']) {
+      expect(ReportSummary.safeParse({ ...ok, timeZone }).success, timeZone).toBe(true);
+      expect(DailySeries.shape.timeZone.safeParse(timeZone).success, timeZone).toBe(true);
+      expect(InventoryHealth.shape.timeZone.safeParse(timeZone).success, timeZone).toBe(true);
+    }
   });
 });
 

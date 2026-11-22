@@ -19,7 +19,7 @@ import { createdAt, primaryId } from './types';
  * CHECK.
  */
 
-/** A header: one command (entry, exit, adjustment, transfer or reversal). `id` comes from the client. */
+/** A header: one command (entry, exit, adjustment, transfer, reversal or sale). `id` comes from the client. */
 export const inventoryDocuments = pgTable(
   'inventory_documents',
   {
@@ -49,6 +49,8 @@ export const inventoryDocuments = pgTable(
     check('inventory_documents_reverses_shape_check', sql`(${t.kind} = 'reversal') = (${t.reversesDocumentId} is not null)`),
     check('inventory_documents_notes_length_check', sql.raw(`char_length(notes) <= ${MAX_NOTES_LENGTH}`)),
     unique('inventory_documents_id_tenant_id_unique').on(t.id, t.tenantId),
+    // Target of sales_document_fk: a sale has the location and instant of its document (SP4).
+    unique('inventory_documents_id_tenant_id_location_id_occurred_at_unique').on(t.id, t.tenantId, t.locationId, t.occurredAt),
     // A document is reversed once; the use case turns the 23505 into ALREADY_REVERSED.
     unique('inventory_documents_tenant_id_reverses_document_id_unique').on(t.tenantId, t.reversesDocumentId),
     foreignKey({ name: 'inventory_documents_location_fk', columns: [t.locationId, t.tenantId], foreignColumns: [locations.id, locations.tenantId] }),
@@ -64,6 +66,10 @@ export const inventoryDocuments = pgTable(
       foreignColumns: [t.id, t.tenantId],
     }),
     index('inventory_documents_tenant_id_location_id_created_at_id_idx').on(t.tenantId, t.locationId, t.createdAt, t.id),
+    // Losses and reversed entries in the reports (SP4 spec, "Consultas e índices").
+    index('inventory_documents_tenant_id_location_id_occurred_at_idx')
+      .on(t.tenantId, t.locationId, t.occurredAt)
+      .where(sql`${t.kind} in ('exit', 'entry')`),
     tenantIsolationPolicy('inventory_documents'),
   ],
 );
@@ -100,6 +106,7 @@ export const inventoryMovements = pgTable(
         when 'shrinkage' then ${t.quantityDelta} < 0
         when 'owner_withdrawal' then ${t.quantityDelta} < 0
         when 'transfer_out' then ${t.quantityDelta} < 0
+        when 'sale' then ${t.quantityDelta} < 0
         else true
       end`,
     ),

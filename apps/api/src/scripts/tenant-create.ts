@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 
+import { TimeZone } from '@monaco/contracts';
 import { z } from 'zod';
 
 import { withTenant } from '../infrastructure/db/with-tenant';
@@ -18,9 +19,11 @@ const Args = z.object({
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug must be lowercase letters, digits and single hyphens')
     .max(60),
   'owner-email': z.email('--owner-email must be a valid email address'),
+  // Validated on write only (SP4 · D3); without it the column default, America/Havana, applies.
+  'time-zone': TimeZone.optional(),
 });
 
-export const USAGE = 'Usage: pnpm --filter api tenant:create --name <name> --slug <slug> --owner-email <email>';
+export const USAGE = 'Usage: pnpm --filter api tenant:create --name <name> --slug <slug> --owner-email <email> [--time-zone <IANA zone, default America/Havana>]';
 
 /**
  * `tenant:create`: creates a tenant, its system roles and its owner with a
@@ -34,12 +37,12 @@ export async function runTenantCreate(
 ): Promise<void> {
   const { values } = parseArgs({
     args: [...argv],
-    options: { name: { type: 'string' }, slug: { type: 'string' }, 'owner-email': { type: 'string' } },
+    options: { name: { type: 'string' }, slug: { type: 'string' }, 'owner-email': { type: 'string' }, 'time-zone': { type: 'string' } },
     strict: true,
   });
   const parsed = Args.safeParse(values);
-  if (!parsed.success) throw new Error(`${parsed.error.issues.map((issue) => issue.message).join('; ')}\n${USAGE}`);
-  const { name, slug, 'owner-email': ownerEmail } = parsed.data;
+  if (!parsed.success) throw new Error(`${parsed.error.issues.map((issue) => (issue.path[0] === 'time-zone' ? `--time-zone: ${issue.message}` : issue.message)).join('; ')}\n${USAGE}`);
+  const { name, slug, 'owner-email': ownerEmail, 'time-zone': timeZone } = parsed.data;
 
   const hasher = new Argon2PasswordHasher();
   const issue = await issueTemporaryPassword(new RandomTemporaryPasswordGenerator(), hasher, systemClock);
@@ -49,7 +52,7 @@ export async function runTenantCreate(
     await withOwnerDatabase(env, (db) =>
       // `tenants` is keyed on its own id by RLS: the new id is the tenant context for the whole transaction.
       withTenant(db, tenantId, async (tx) => {
-        await tx.insert(tenants).values({ id: tenantId, name, slug });
+        await tx.insert(tenants).values({ id: tenantId, name, slug, ...(timeZone === undefined ? {} : { timeZone }) });
         const roleIds = await ensureSystemRoles(tx, tenantId);
         const ownerId = await insertUser(tx, tenantId, {
           email: ownerEmail,
@@ -69,6 +72,7 @@ export async function runTenantCreate(
   }
 
   out(`Tenant created: ${name} (${slug}), id ${tenantId}`);
+  out(`Time zone: ${timeZone ?? 'America/Havana'}`);
   out(`Owner: ${ownerEmail}`);
   out(`Temporary password: ${issue.temporaryPassword}`);
   out(`It is shown only once and expires at ${issue.expiresAt.toISOString()}; the owner must change it at first login.`);

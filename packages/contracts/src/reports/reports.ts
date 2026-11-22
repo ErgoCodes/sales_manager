@@ -122,11 +122,21 @@ export const ReportScope = z
   .meta({ id: 'ReportScope', description: "'own': only the actor's sales of the location, without costs (reports:view_own)" });
 export type ReportScope = z.infer<typeof ReportScope>;
 
+/**
+ * The tenant time zone as a response echoes it. `TimeZone` validates on write only (tenant:create):
+ * Node's ICU zone list changes between versions (it lists Europe/Kiev and omits Europe/Kyiv), so a
+ * stored zone is never re-validated against it on a read, where a mismatch would be a 500 (ADR 0007).
+ */
+const StoredTimeZone = z
+  .string()
+  .min(1)
+  .meta({ description: 'IANA time zone stored for the tenant (validated when it was written)', example: 'America/Havana' });
+
 /** What every ranged report echoes back: the resolved range and the cut-off instant. */
 const rangeEcho = {
   from: LocalDate,
   to: LocalDate,
-  timeZone: TimeZone,
+  timeZone: StoredTimeZone,
   /** Database now(): later occurrences are not counted. */
   asOf: IsoDateTime,
 };
@@ -201,7 +211,7 @@ function healthList<T extends z.ZodRawShape>(extra: T) {
 export const InventoryHealth = z
   .object({
     locationIds,
-    timeZone: TimeZone,
+    timeZone: StoredTimeZone,
     asOf: IsoDateTime,
     lowStock: healthList({ threshold: z.number().meta({ description: 'Effective threshold (getProductThreshold)' }) }),
     stagnant: healthList({ lastSaleDate: LocalDate.nullable().meta({ description: 'Local day of the last sale; null if never sold' }) }),

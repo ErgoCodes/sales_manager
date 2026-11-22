@@ -49,7 +49,7 @@ describe('schema tenancy convention', () => {
     expect(config.columns.map((column) => column.name)).not.toContain('tenant_id');
   });
 
-  it('includes every SP2 and SP3 table (the guards are not vacuous)', () => {
+  it('includes every SP2, SP3 and SP4 table (the guards are not vacuous)', () => {
     expect(tables.map((table) => getTableConfig(table).name).sort()).toEqual([
       'audit_events',
       'devices',
@@ -64,6 +64,8 @@ describe('schema tenancy convention', () => {
       'role_assignments',
       'role_permissions',
       'roles',
+      'sale_lines',
+      'sales',
       'tenants',
       'users',
     ]);

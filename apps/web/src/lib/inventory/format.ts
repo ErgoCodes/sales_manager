@@ -26,6 +26,7 @@ export const MOVEMENT_KIND_LABELS: Record<InventoryMovementKind, string> = {
   transfer_out: 'Transferencia enviada',
   transfer_in: 'Transferencia recibida',
   reversal: 'Reversión',
+  sale: 'Venta',
 };
 
 export const DOCUMENT_KIND_LABELS: Record<InventoryDocumentKind, string> = {
@@ -34,6 +35,7 @@ export const DOCUMENT_KIND_LABELS: Record<InventoryDocumentKind, string> = {
   adjustment: 'Ajuste',
   transfer: 'Transferencia',
   reversal: 'Reversión',
+  sale: 'Venta',
 };
 
 export const EXIT_REASON_LABELS: Record<ExitReason, string> = {

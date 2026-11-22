@@ -50,6 +50,14 @@ La plataforma es multi-negocio: varios tenants comparten la misma API y la misma
    | `inventory_movements` | `SELECT`, `INSERT` | Libro append-only (ADR 0006) |
 
    El índice cubriente de la suma de stock (`INCLUDE (quantity_delta)`) está en la migración custom porque drizzle-kit no modela `INCLUDE`.
+12. **Ventas y columnas nuevas de `tenants` (SP4 · T4, migraciones `0014`–`0016`).** `sales` y `sale_lines` siguen la convención: `tenant_id`, política de aislamiento, `FORCE` (en la migración custom `0016`) y FK compuestas: `sales (id, tenant_id, location_id, occurred_at) → inventory_documents` (la venta *es* su documento `sale`, en su mismo punto e instante; destino: `UNIQUE (id, tenant_id, location_id, occurred_at)` en `inventory_documents`), `locations`, `users` (cajero) y `devices`; `sale_lines (sale_id, tenant_id, location_id, occurred_at, cashier_user_id) → sales` (las copias de la cabecera no pueden diferir; destino: el `UNIQUE` de esas cinco columnas en `sales`) y `(tenant_id, location_id, product_id) → location_products`. Los `CHECK` de moneda y método de pago se generan desde `CURRENCIES` (contracts) y `PAYMENT_METHODS` (dominio). Privilegios de `monaco_app`:
+
+   | Tabla | `monaco_app` | Por qué |
+   |---|---|---|
+   | `sales` | `SELECT`, `INSERT` | Append-only, como el libro (ADR 0006, ADR 0007) |
+   | `sale_lines` | `SELECT`, `INSERT` | Append-only; los montos se congelan al escribir |
+
+   `tenants.time_zone` (default `America/Havana`) y `tenants.read_only` (default `false`) no reciben ningún privilegio de columna: `monaco_app` sigue con `UPDATE` solo sobre `name` (punto 9), así que ni la zona horaria ni el modo de solo lectura se cambian desde la API; los fija el owner (CLI o `demo:reset`). `schema-guards.test.ts`, `sales-schema.test.ts` y `migrations.test.ts` (base con datos de SP3) lo verifican. El índice cubriente de los KPIs (`sale_lines_kpi_idx`, con `INCLUDE`) también está en la migración custom.
 
 ## Alternativas descartadas
 

@@ -4,7 +4,7 @@ import { join, relative, resolve } from 'node:path';
 import { is } from 'drizzle-orm';
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import { EXIT_REASONS, INVENTORY_DOCUMENT_KINDS, PERMISSIONS } from '@monaco/contracts';
-import { CATEGORIES, INVENTORY_MOVEMENT_KINDS, UNITS_OF_MEASURE } from '@monaco/domain';
+import { CATEGORIES, INVENTORY_MOVEMENT_KINDS, movementDelta, UNITS_OF_MEASURE } from '@monaco/domain';
 import { describe, expect, it } from 'vitest';
 
 import * as schema from '../schema';
@@ -71,5 +71,12 @@ describe('tenancy guards', () => {
     expect(listed('inventory_movements', 'inventory_movements_kind_check')).toEqual(sorted(INVENTORY_MOVEMENT_KINDS));
     expect(listed('inventory_documents', 'inventory_documents_kind_check')).toEqual(sorted(INVENTORY_DOCUMENT_KINDS));
     expect(listed('inventory_documents', 'inventory_documents_reason_check')).toEqual(sorted(EXIT_REASONS));
+    // Every kind with a fixed sign in the domain has its sign in the CHECK (defence in depth).
+    const sign: string = tables['public.inventory_movements'].checkConstraints.inventory_movements_sign_check.value;
+    for (const kind of INVENTORY_MOVEMENT_KINDS) {
+      if (kind === 'adjustment' || kind === 'reversal') continue;
+      const expected = movementDelta(kind, 1) > 0 ? '> 0' : '< 0';
+      expect(sign, kind).toMatch(new RegExp(`when '${kind}' then "inventory_movements"\\."quantity_delta" ${expected}`));
+    }
   });
 });

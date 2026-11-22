@@ -9,6 +9,7 @@ export const INVENTORY_MOVEMENT_KINDS = [
   'transfer_out',
   'transfer_in',
   'reversal',
+  'sale',
 ] as const;
 export type InventoryMovementKind = (typeof INVENTORY_MOVEMENT_KINDS)[number];
 
@@ -70,7 +71,12 @@ export function addQuantities(a: number, b: number): number {
 }
 
 const POSITIVE_KINDS: ReadonlySet<InventoryMovementKind> = new Set(['entry', 'transfer_in']);
-const NEGATIVE_KINDS: ReadonlySet<InventoryMovementKind> = new Set(['shrinkage', 'owner_withdrawal', 'transfer_out']);
+const NEGATIVE_KINDS: ReadonlySet<InventoryMovementKind> = new Set([
+  'shrinkage',
+  'owner_withdrawal',
+  'transfer_out',
+  'sale',
+]);
 
 /** Signed stock delta of a movement. `adjustment` and `reversal` carry their own non-zero sign. */
 export function movementDelta(kind: InventoryMovementKind, quantity: number): number {

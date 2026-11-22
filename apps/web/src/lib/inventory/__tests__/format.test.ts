@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { counterpartName, formatAverageCost, formatQuantity, formatSignedQuantity, MOVEMENT_KIND_LABELS } from '../format';
+import { counterpartName, DOCUMENT_KIND_LABELS, formatAverageCost, formatQuantity, formatSignedQuantity, MOVEMENT_KIND_LABELS } from '../format';
 
 describe('inventory formatting', () => {
   it('formats quantities with up to 3 decimals, with a sign for deltas', () => {
@@ -17,6 +17,8 @@ describe('inventory formatting', () => {
   it('labels every movement kind in Spanish', () => {
     expect(MOVEMENT_KIND_LABELS.transfer_out).toMatch(/Transferencia/);
     expect(Object.values(MOVEMENT_KIND_LABELS).every((l) => l.length > 0)).toBe(true);
+    expect(MOVEMENT_KIND_LABELS.sale).toBe('Venta');
+    expect(DOCUMENT_KIND_LABELS.sale).toBe('Venta');
   });
 
   it('masks the other location of a transfer as "Otro punto"', () => {

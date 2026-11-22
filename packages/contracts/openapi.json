@@ -3188,7 +3188,8 @@
           "exit",
           "adjustment",
           "transfer",
-          "reversal"
+          "reversal",
+          "sale"
         ]
       },
       "ExitReason": {
@@ -3286,7 +3287,8 @@
           "adjustment",
           "transfer_out",
           "transfer_in",
-          "reversal"
+          "reversal",
+          "sale"
         ]
       },
       "AverageCost": {
@@ -3406,7 +3408,8 @@
           "exit",
           "adjustment",
           "transfer",
-          "reversal"
+          "reversal",
+          "sale"
         ]
       },
       "ExitReason_Output": {
@@ -3505,7 +3508,8 @@
           "adjustment",
           "transfer_out",
           "transfer_in",
-          "reversal"
+          "reversal",
+          "sale"
         ]
       },
       "AverageCost_Output": {

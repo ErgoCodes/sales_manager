@@ -14,11 +14,13 @@ export const INVENTORY_MOVEMENT_KINDS = [
   'transfer_out',
   'transfer_in',
   'reversal',
+  'sale',
 ] as const;
 export const InventoryMovementKind = z.enum(INVENTORY_MOVEMENT_KINDS).meta({ id: 'InventoryMovementKind' });
 export type InventoryMovementKind = z.infer<typeof InventoryMovementKind>;
 
-export const INVENTORY_DOCUMENT_KINDS = ['entry', 'exit', 'adjustment', 'transfer', 'reversal'] as const;
+/** `sale`: written only by `RecordSale` (SP4), with the same id as its `sales` row; no HTTP route writes it in SP4. */
+export const INVENTORY_DOCUMENT_KINDS = ['entry', 'exit', 'adjustment', 'transfer', 'reversal', 'sale'] as const;
 export const InventoryDocumentKind = z.enum(INVENTORY_DOCUMENT_KINDS).meta({ id: 'InventoryDocumentKind' });
 export type InventoryDocumentKind = z.infer<typeof InventoryDocumentKind>;
 

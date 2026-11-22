@@ -98,7 +98,7 @@ pnpm --filter api tenant:create --name "Acme" --slug acme --owner-email boss@acm
 pnpm --filter api db:seed
 ```
 
-`tenant:create` creates the tenant, its system roles and an owner with a temporary password (72 h, must be changed at first login). The password is printed once; save it, it cannot be recovered.
+`tenant:create` creates the tenant, its system roles and an owner with a temporary password (72 h, must be changed at first login). The password is printed once; save it, it cannot be recovered. Reports group sales by day in the tenant's time zone: pass `--time-zone <IANA zone>` (for example `--time-zone America/Havana`, the default when omitted); it is validated when written and cannot be changed by the API.
 
 `db:seed` is idempotent and only runs with `NODE_ENV` unset, `development` or `test`; any other value (including `production`) is refused. It creates the `demo` tenant with two locations (`P1`, `P2`) and three **development-only** users:
 

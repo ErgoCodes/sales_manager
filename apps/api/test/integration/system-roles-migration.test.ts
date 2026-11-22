@@ -115,6 +115,8 @@ beforeAll(async () => {
   await admin.query(`drop database if exists ${DATABASE}`);
   await admin.query(`create database ${DATABASE}`);
   target = new Pool({ connectionString: urlFor(urls().admin), max: 1 });
+  // afterAll drops this database `with (force)` while an ended client may still be closing (57P01).
+  target.on('error', () => undefined);
   await target.query(initSql);
   preFolder = partialFolder(PRE_SP3_MIGRATIONS);
   await migrateAsOwner(preFolder);
@@ -127,6 +129,8 @@ beforeAll(async () => {
   await target.query(`insert into role_permissions (role_id, permission, tenant_id) values ($1, 'catalog:write', $2)`, [custom.rows[0]!.id, TENANT_OLD]);
   policiesBefore = await policies();
   owner = new Pool({ connectionString: urlFor(urls().owner), max: 1 });
+  // afterAll drops this database `with (force)` while an ended client may still be closing (57P01).
+  owner.on('error', () => undefined);
 });
 afterAll(async () => {
   await owner.end();

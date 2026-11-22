@@ -9,7 +9,7 @@ import type { Pool } from 'pg';
  *  - every other kind in `location_id`;
  *  - and every movement kind is one its document kind can hold (entry: entry; exit: shrinkage or
  *    owner_withdrawal matching the reason; adjustment: adjustment; transfer: transfer_out and
- *    transfer_in; reversal: reversal).
+ *    transfer_in; reversal: reversal; sale: sale).
  * Comparisons against a NULL location (a reversed document that is not a transfer, a transfer_in
  * in a document without target) are violations, never "unknown": hence the coalesce.
  * An empty result means the invariant holds. T5a and T6 call it after every
@@ -34,10 +34,30 @@ export async function movementsOutsideDocumentLocations(admin: Pool): Promise<st
          when 'adjustment' then m.kind = 'adjustment'
          when 'transfer' then m.kind in ('transfer_out', 'transfer_in')
          when 'reversal' then m.kind = 'reversal'
+         when 'sale' then m.kind = 'sale'
          else false
        end,
        false)
      order by m.id`,
+  );
+  return rows.map((row) => row.id);
+}
+
+/**
+ * Sales invariant (SP4 spec, D1): every `sale` document has exactly its `sales` row (same id) and
+ * every `sales` row hangs off a `sale` document. The schema cannot say it without a kind column on
+ * `sales`, so this query is the check. Returns the ids of the offending documents or sales; empty
+ * means the invariant holds. T5 calls it after every RecordSale it tests.
+ */
+export async function salesOutsideTheirDocuments(admin: Pool): Promise<string[]> {
+  const { rows } = await admin.query<{ id: string }>(
+    `select d.id from inventory_documents d
+     where d.kind = 'sale' and not exists (select 1 from sales s where s.id = d.id and s.tenant_id = d.tenant_id)
+     union
+     select s.id from sales s
+     join inventory_documents d on d.id = s.id and d.tenant_id = s.tenant_id
+     where d.kind <> 'sale'
+     order by id`,
   );
   return rows.map((row) => row.id);
 }

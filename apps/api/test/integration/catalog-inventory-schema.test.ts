@@ -167,7 +167,10 @@ describe('CHECKs reject impossible rows', () => {
     for (const [kind, quantity_delta] of [['entry', '-1'], ['transfer_in', '-1'], ['shrinkage', '1'], ['owner_withdrawal', '1'], ['transfer_out', '1'], ['adjustment', '0']] as const) {
       expect(await failure(insertMov(admin, mov(own.id, { kind, quantity_delta }))), `${kind} ${quantity_delta}`).toMatchObject({ code: '23514' });
     }
-    expect(await failure(insertMov(admin, mov(own.id, { kind: 'sale' })))).toMatchObject({ code: '23514', constraint: 'inventory_movements_kind_check' });
+    // SP4: a sale takes stock out, so a positive sale violates the sign CHECK.
+    expect(await failure(insertMov(admin, mov(own.id, { kind: 'sale', quantity_delta: '1' })))).toMatchObject({ code: '23514', constraint: 'inventory_movements_sign_check' });
+    expect(await failure(insertMov(admin, mov(own.id, { kind: 'refund', quantity_delta: '1' })))).toMatchObject({ code: '23514', constraint: 'inventory_movements_kind_check' });
+    await insertMov(admin, mov(own.id, { kind: 'sale', quantity_delta: '-1.5' }));
     // Signed kinds accept both signs.
     await insertMov(admin, mov(own.id, { kind: 'adjustment', quantity_delta: '-2' }));
     await insertMov(admin, mov(own.id, { kind: 'reversal', quantity_delta: '2' }));
@@ -176,7 +179,9 @@ describe('CHECKs reject impossible rows', () => {
 
   it('rejects a document whose shape does not match its kind', async () => {
     const bad: Record<string, unknown>[] = [
-      { kind: 'sale' },
+      { kind: 'refund' },
+      { kind: 'sale', reason: 'shrinkage' },
+      { kind: 'sale', target_location_id: ids.locA2 },
       { kind: 'exit', reason: null },
       { kind: 'exit', reason: 'theft' },
       { kind: 'entry', reason: 'shrinkage' },
@@ -193,6 +198,7 @@ describe('CHECKs reject impossible rows', () => {
     await insertDoc(admin, doc({ kind: 'exit', reason: 'owner_withdrawal' }));
     await insertDoc(admin, doc({ kind: 'transfer', target_location_id: ids.locA2 }));
     await insertDoc(admin, doc({ notes: 'x'.repeat(MAX_NOTES_LENGTH) }));
+    await insertDoc(admin, doc({ kind: 'sale' }));
   });
 
   it('rejects negative amounts and unknown units, categories and currencies on products', async () => {
@@ -244,8 +250,10 @@ describe('invariant: every movement is in a location of its document (used by T5
     const entry = doc();
     const transfer = doc({ kind: 'transfer', target_location_id: ids.locA2 });
     const reversal = doc({ kind: 'reversal', reverses_document_id: transfer.id });
-    for (const d of [entry, transfer, reversal]) await insertDoc(admin, d);
+    const sale = doc({ kind: 'sale' });
+    for (const d of [entry, transfer, reversal, sale]) await insertDoc(admin, d);
     await insertMov(admin, mov(entry.id));
+    await insertMov(admin, mov(sale.id, { kind: 'sale', quantity_delta: '-1' }));
     await insertMov(admin, mov(transfer.id, { kind: 'transfer_out', quantity_delta: '-1' }));
     await insertMov(admin, mov(transfer.id, { kind: 'transfer_in', quantity_delta: '1', location_id: ids.locA2 }));
     await insertMov(admin, mov(reversal.id, { kind: 'reversal', quantity_delta: '1' }));
@@ -295,11 +303,14 @@ describe('invariant helper: NULL comparisons and kind mismatches are violations'
     const entry = doc();
     const exit = doc({ kind: 'exit', reason: 'shrinkage' });
     for (const d of [entry, exit]) await insertDoc(admin, d);
+    const sale = doc({ kind: 'sale' });
+    await insertDoc(admin, sale);
     const wrongKind = mov(entry.id, { kind: 'adjustment', quantity_delta: '1' });
     const wrongExit = mov(exit.id, { kind: 'entry' });
-    await insertMov(admin, wrongKind);
-    await insertMov(admin, wrongExit);
-    expect(await movementsOutsideDocumentLocations(admin)).toEqual([wrongKind.id, wrongExit.id].sort());
+    const saleInEntry = mov(entry.id, { kind: 'sale', quantity_delta: '-1' });
+    const shrinkageInSale = mov(sale.id, { kind: 'shrinkage', quantity_delta: '-1' });
+    for (const m of [wrongKind, wrongExit, saleInEntry, shrinkageInSale]) await insertMov(admin, m);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([wrongKind.id, wrongExit.id, saleInEntry.id, shrinkageInSale.id].sort());
   });
 });
 

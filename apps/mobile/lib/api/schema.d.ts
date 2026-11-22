@@ -843,7 +843,7 @@ export interface components {
             }[];
         };
         /** @enum {string} */
-        InventoryDocumentKind: "entry" | "exit" | "adjustment" | "transfer" | "reversal";
+        InventoryDocumentKind: "entry" | "exit" | "adjustment" | "transfer" | "reversal" | "sale";
         /** @enum {string} */
         ExitReason: "shrinkage" | "owner_withdrawal";
         InventoryMovement: {
@@ -864,7 +864,7 @@ export interface components {
             createdAt: components["schemas"]["IsoDateTime"];
         };
         /** @enum {string} */
-        InventoryMovementKind: "entry" | "shrinkage" | "owner_withdrawal" | "adjustment" | "transfer_out" | "transfer_in" | "reversal";
+        InventoryMovementKind: "entry" | "shrinkage" | "owner_withdrawal" | "adjustment" | "transfer_out" | "transfer_in" | "reversal" | "sale";
         AverageCost: {
             /** @description Minor units, up to 6 decimals */
             amount: number;
@@ -890,7 +890,7 @@ export interface components {
             movements: components["schemas"]["InventoryMovement"][];
         };
         /** @enum {string} */
-        InventoryDocumentKind_Output: "entry" | "exit" | "adjustment" | "transfer" | "reversal";
+        InventoryDocumentKind_Output: "entry" | "exit" | "adjustment" | "transfer" | "reversal" | "sale";
         /** @enum {string} */
         ExitReason_Output: "shrinkage" | "owner_withdrawal";
         InventoryMovement_Output: {
@@ -911,7 +911,7 @@ export interface components {
             createdAt: components["schemas"]["IsoDateTime_Output"];
         };
         /** @enum {string} */
-        InventoryMovementKind_Output: "entry" | "shrinkage" | "owner_withdrawal" | "adjustment" | "transfer_out" | "transfer_in" | "reversal";
+        InventoryMovementKind_Output: "entry" | "shrinkage" | "owner_withdrawal" | "adjustment" | "transfer_out" | "transfer_in" | "reversal" | "sale";
         AverageCost_Output: {
             /** @description Minor units, up to 6 decimals */
             amount: number;
