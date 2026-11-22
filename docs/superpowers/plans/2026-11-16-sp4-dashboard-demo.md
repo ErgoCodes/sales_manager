@@ -91,7 +91,7 @@ T10a (mobile sesión) ───────────────────�
 - [x] Rango por defecto (hoy en la zona del tenant), conversión de días locales a `timestamptz` en SQL, corte en `now()`, exclusión de documentos revertidos, agregación por moneda. Las reglas por fila se aplican con las funciones de `@monaco/domain`.
 - [x] `Cache-Control: private, no-store` y throttler `ip` en `/reports/*`.
 - [x] *Fixture builder* de tests que inserta ventas y documentos por SQL como owner (para no depender de T5).
-- [ ] Tests de integración: oráculo de KPIs (mermas, entrada revertida, venta a costo, dos monedas, venta futura); `America/Havana` cruzando los cambios de horario y serie = total; fuga entre tenants y entre puntos por endpoint; `view_own` solo ve sus ventas y nunca la utilidad; volumen ×10 con p95 < 300 ms y sin `Seq Scan` en `sale_lines` ni `inventory_movements`.
+- [x] Tests de integración: oráculo de KPIs (mermas, entrada revertida, venta a costo, dos monedas, venta futura); `America/Havana` cruzando los cambios de horario y serie = total; fuga entre tenants y entre puntos por endpoint; `view_own` solo ve sus ventas y nunca la utilidad; volumen ×10 con p95 < 300 ms y sin `Seq Scan` en `sale_lines` ni `inventory_movements` para ventanas de hasta 30 días (90 días se mide sin afirmar; el owner eligió la opción B el 2026-11-22: `sale_lines_kpi_idx` ampliado en la migración 0017). El `EXPLAIN` corre siempre en CI; la latencia, solo con `REPORTS_PERF=1`.
 - [x] Regenerar `openapi.json` y `apps/web/src/lib/api/schema.d.ts`. ADR 0007 con los resultados medidos.
 
 **Hecho cuando:** pasan los tests, el presupuesto de rendimiento se cumple, `/docs` muestra los endpoints y los archivos generados están commiteados.
