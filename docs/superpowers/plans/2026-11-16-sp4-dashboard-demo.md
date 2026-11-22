@@ -78,10 +78,10 @@ T10a (mobile sesión) ───────────────────�
 
 ### T5 · Caso de uso `RecordSale` `M` · `Difícil` · **crítica de datos** (depende de T4; en paralelo con T6 y T7)
 
-- [ ] Módulo `apps/api/src/modules/sales/` (dominio, aplicación e infraestructura; **sin `http/`**) con `SalesUnitOfWork` sobre `withTenant`.
-- [ ] `RecordSale` con el guion del ADR 0006: validar, `authorize(actor, 'sales:create', punto)`, idempotencia por id + `payload_hash`, locks ordenados de los pares, `assertStockNotNegative`, `unit_cost` con `effectiveUnitCost` bajo el lock, montos con `saleLineAmounts`, escritura de documento `sale`, movimientos, `sales`, `sale_lines` y `audit_event` `sale_recorded` (sin montos).
-- [ ] Tests unitarios con fakes (autorización antes de tocar datos, orden de locks pedido al puerto, idempotencia).
-- [ ] Tests de integración: una venta baja el stock derivado y deja montos iguales al dominio; un reintento con el mismo id da el mismo resultado y uno con otro contenido da `IDEMPOTENCY_CONFLICT`; ventas concurrentes con salidas de inventario del mismo par terminan con stock ≥ 0 y sin deadlock; una venta que no cabe da `INSUFFICIENT_STOCK` sin efectos.
+- [x] Módulo `apps/api/src/modules/sales/` (dominio, aplicación e infraestructura; **sin `http/`**) con `SalesUnitOfWork` sobre `withTenant`.
+- [x] `RecordSale` con el guion del ADR 0006: validar, `authorize(actor, 'sales:create', punto)`, idempotencia por id + `payload_hash`, locks ordenados de los pares, `assertStockNotNegative`, `unit_cost` con `effectiveUnitCost` bajo el lock, montos con `saleLineAmounts`, escritura de documento `sale`, movimientos, `sales`, `sale_lines` y `audit_event` `sale_recorded` (sin montos).
+- [x] Tests unitarios con fakes (autorización antes de tocar datos, orden de locks pedido al puerto, idempotencia).
+- [x] Tests de integración: una venta baja el stock derivado y deja montos iguales al dominio; un reintento con el mismo id da el mismo resultado y uno con otro contenido da `IDEMPOTENCY_CONFLICT`; ventas concurrentes con salidas de inventario del mismo par terminan con stock ≥ 0 y sin deadlock; una venta que no cabe da `INSUFFICIENT_STOCK` sin efectos.
 
 **Hecho cuando:** pasan los tests y la cobertura de la API sigue sobre sus umbrales; no existe ninguna ruta HTTP que escriba ventas.
 
