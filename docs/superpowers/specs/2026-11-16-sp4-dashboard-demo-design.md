@@ -281,6 +281,8 @@ Las claves JWT se generan con `keys:generate` y se rotan con el procedimiento de
 
 ## Decisiones abiertas
 
+**Confirmadas por el dueño el 2026-11-21:** D2, D3, D4, D5, D9 y D10 quedan con su default (D9 sigue condicionada al spike de T1). El resto también queda con su default.
+
 El spec de la Etapa 2 y docs/20 no fijan estos puntos. El resto del documento **asume el default recomendado**; si se elige otra opción, cambian las secciones indicadas. **[Dueño]** marca las decisiones de producto o de costo que debe tomar el dueño.
 
 | # | Decisión | Opciones y tradeoffs | Default recomendado (supuesto) |
