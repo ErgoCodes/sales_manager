@@ -98,11 +98,11 @@ T10a (mobile sesión) ───────────────────�
 
 ### T7 · IP detrás del proxy y tenant de solo lectura `M` · `Difícil` · **crítica de seguridad** (depende de T4; en paralelo con T5 y T6)
 
-- [ ] `TRUSTED_PROXY_HOPS` en `apps/api/src/config/env.ts` (default `0`) y en el middleware `common/http/client-ip.ts`: el header firmado gana; sin él, la entrada de `X-Forwarded-For` contada desde la derecha; con `0`, el socket como hoy.
+- [x] `TRUSTED_PROXY_HOPS` en `apps/api/src/config/env.ts` (default `0`) y en el middleware `common/http/client-ip.ts`: el header firmado gana; sin él, la entrada de `X-Forwarded-For` contada desde la derecha; con `0`, el socket como hoy.
 - [x] Guard de solo lectura: el `AuthGuard` lee `tenants.read_only` en la misma consulta por petición; con `true`, toda ruta que no sea `GET`/`HEAD` responde `403 DEMO_READ_ONLY`, salvo la lista permitida (`POST /auth/login`, `/auth/refresh`, `/auth/logout`). El login de un usuario de tenant `read_only` no exige ni permite cambiar la contraseña.
-- [ ] Tests unitarios de la IP (falsificación a la izquierda ignorada, `0` sin cambios, header firmado prioritario).
+- [x] Tests unitarios de la IP (falsificación a la izquierda ignorada, `0` sin cambios, header firmado prioritario).
 - [x] Test de integración que **recorre todas las rutas registradas** de la app con un usuario de tenant `read_only` y verifica `403 DEMO_READ_ONLY` en cada mutación, y que login, refresh, logout y los `GET` funcionan. Una ruta nueva sin cubrir hace fallar el test.
-- [ ] Actualizar ADR 0004 (§7 IP con `TRUSTED_PROXY_HOPS`).
+- [x] Actualizar ADR 0004 (§7 IP con `TRUSTED_PROXY_HOPS`).
 
 **Hecho cuando:** pasan los tests, y con `TRUSTED_PROXY_HOPS=0` el comportamiento de la API es idéntico al de antes (comparación de las respuestas de `client-ip` contra la versión de `main`).
 

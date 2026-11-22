@@ -41,6 +41,8 @@ Desde SP2 cada petición a la API tiene que llegar autenticada, aislada por tena
 - `AuthGuard` es `APP_GUARD`: **toda ruta exige `Authorization: Bearer`** salvo las marcadas con `@Public()` (hoy `GET /health`, `POST /auth/login` y `POST /auth/refresh`). `/docs` es una ruta de Express montada por Swagger, fuera de los controllers, y sigue igual (solo fuera de producción).
 - Tras verificar el JWT, el caso de uso `Authenticate` abre `withTenant(tid)` y ejecuta **una** consulta (`ActorStateRepository`): `users` ⋈ `devices` (el dispositivo tiene que ser de ese usuario) con `status`, `must_change_password`, `devices.revoked_at IS NULL`, un `EXISTS` sobre `refresh_tokens` que comprueba que la familia `sid` de ese dispositivo tiene algún token sin revocar (índice `(tenant_id, family_id)`), y las asignaciones con los permisos de cada rol y sus puntos **no archivados** agregados con `json_agg`. Con eso arma el `AuthenticatedActor` (`userId`, `tenantId`, `deviceId`, `sessionId`, `assignments`, permisos efectivos). Desactivar, revocar o cerrar sesión corta el acceso en la petición siguiente; está probado de punta a punta.
 - Si `must_change_password` está activo, todo responde `403 PASSWORD_CHANGE_REQUIRED` salvo las rutas con `@AllowPendingPasswordChange()`: `POST /auth/password`, `POST /auth/logout` y `GET /me`.
+- **Tenant de solo lectura (demo pública, SP4 · D10).** La misma consulta hace además `JOIN tenants` y lee `tenants.read_only` (sin un viaje extra a la base); el actor lleva `tenantReadOnly`. Con `true`, el guard responde `403 DEMO_READ_ONLY` a toda ruta que no sea `GET`/`HEAD` salvo las marcadas con `@AllowOnReadOnlyTenant()`, que hoy es solo `POST /auth/logout` (`POST /auth/login` y `POST /auth/refresh` son `@Public()` y el guard no las mira). Es **denegación por defecto**: una ruta nueva que muta queda bloqueada sin que nadie se acuerde, y `read-only-tenant.e2e.test.ts` recorre todas las rutas registradas en el router de Express para comprobarlo (falla también si aparece una mutación `@Public()` fuera de la lista). El chequeo va antes del de contraseña pendiente y nunca reemplaza al de permisos.
+- En un tenant de solo lectura **no se exige ni se permite cambiar la contraseña**: `Authenticate`, el login y `GET /me` informan `mustChangePassword: false` aunque la fila diga `true`, `POST /auth/password` responde `403 DEMO_READ_ONLY`, y una contraseña temporal vencida no bloquea el login (ahí no hay cambio posible, así que tampoco vencimiento). `tenantReadOnly` es opcional en el tipo `AuthenticatedActor` solo para que los scripts de confianza (seeds) armen un actor sin él; `Authenticate`, la única fuente del guard, lo pone siempre desde la base.
 - `@RequirePermission(p)` es el chequeo grueso del ADR 0005 (el permiso en algún alcance); la autoridad sigue siendo el caso de uso.
 - `AllExceptionsFilter` respeta un `code` explícito de un 4xx (`{ code, message }`, con forma `^[A-Z][A-Z_]+$`), para que el BFF distinga `PASSWORD_CHANGE_REQUIRED` de un 403 de permisos.
 
@@ -57,7 +59,7 @@ Desde SP2 cada petición a la API tiene que llegar autenticada, aislada por tena
 
 Contraseñas: argon2id con `@node-rs/argon2` y los parámetros de OWASP (m = 19 MiB, t = 2, p = 1). Un hash almacenado corrupto cuenta como contraseña incorrecta, no como 500.
 
-### 7. IP del cliente firmada por el BFF
+### 7. IP del cliente: header firmado del BFF o `TRUSTED_PROXY_HOPS`
 
 Header único, firmado con `CLIENT_IP_HMAC_SECRET` (≥ 32 caracteres, compartido con la web, obligatorio en producción):
 
@@ -66,7 +68,9 @@ x-monaco-client-ip: v1;<ip>;<unix segundos>;<base64url(HMAC-SHA256(secret, "v1\n
 ```
 
 - El middleware (`src/common/http/client-ip.ts`) corre antes de los guards. Acepta el header solo si la versión es `v1`, la IP es válida (`net.isIP`), el timestamp está a **±30 s** del reloj de la API y el MAC coincide (comparación en tiempo constante). El MAC cubre **método y path**: un header capturado no sirve en otro endpoint ni pasado medio minuto.
-- En cualquier otro caso se ignora y se usa la dirección del socket (normalizando `::ffff:a.b.c.d`). **`X-Forwarded-For` nunca se lee** y Express no tiene `trust proxy`.
+- Si no hay header firmado válido (mobile habla directo con la API) y `TRUSTED_PROXY_HOPS` > 0 (enmienda de SP4 · D12), la IP es la entrada de `X-Forwarded-For` que está **`TRUSTED_PROXY_HOPS` posiciones desde la derecha**: la que agregó el proxy de confianza más externo (1 = el proxy del proveedor delante de la API). Las entradas de la izquierda las escribe el cliente y nunca se usan. Si la lista es más corta que el número de saltos o la entrada en esa posición no es una IP (`net.isIP`, sin puerto), los proxies no son los configurados: se usa el socket, nunca una entrada más a la izquierda. Es el mismo algoritmo que el BFF (`clientIpFromHeaders`), sin `x-real-ip`. El valor va de 0 a 10.
+- Con `TRUSTED_PROXY_HOPS=0` (el default) o en cualquier otro caso se usa la dirección del socket (normalizando `::ffff:a.b.c.d`), y **`X-Forwarded-For` no se lee**, exactamente como antes de SP4 (comparado contra la versión de `main` en T7). Express no tiene `trust proxy` en ningún caso: el cálculo es solo del middleware.
+- Configurar más saltos de los reales deja la IP en manos del cliente (podría elegir su propia clave de rate limiting); configurar menos hace que todos compartan la IP de un proxy. Detrás del proxy del proveedor de la demo va `1`.
 - Riesgo aceptado: dentro de esos 30 s, quien pueda ver el tráfico BFF → API podría repetir el header en el mismo endpoint; ese tramo va por TLS o red privada y ya transporta el bearer, que vale más.
 
 ### 8. Rate limiting con store en Postgres
