@@ -155,11 +155,15 @@ export class InventoryLedgerRepository implements InventoryLedger {
   }
 
   async lockProducts(ids: readonly string[]): Promise<ProductState[]> {
-    const found = await rows<{ id: string; currency: ProductState['currency']; archivedAt: Dated | null }>(
+    const found = await rows<{ id: string; currency: ProductState['currency']; costPrice: string | number | null; archivedAt: Dated | null }>(
       this.tx,
-      sql`select id, currency, archived_at as "archivedAt" from products where id = any(${uuids(ids)}) order by id for share`,
+      sql`select id, currency, cost_price as "costPrice", archived_at as "archivedAt" from products where id = any(${uuids(ids)}) order by id for share`,
     );
-    return found.map((product) => ({ ...product, archivedAt: toDate(product.archivedAt) }));
+    return found.map((product) => ({
+      ...product,
+      costPrice: product.costPrice === null ? null : Number(product.costPrice),
+      archivedAt: toDate(product.archivedAt),
+    }));
   }
 
   async ensureLocationProducts(pairs: readonly PairKey[]): Promise<void> {

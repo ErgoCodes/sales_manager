@@ -22,7 +22,7 @@ import { type DocumentPlan, type RecordedDocument, recordDocument, writeDocument
 const FUTURE_TOLERANCE_MS = 5 * 60_000;
 
 /** The business date (D13): now by default, never in the future. */
-function businessDate(clock: Clock, occurredAt: string | undefined): Date {
+export function businessDate(clock: Clock, occurredAt: string | undefined): Date {
   const now = clock.now();
   const date = occurredAt === undefined ? now : new Date(occurredAt);
   if (date.getTime() > now.getTime() + FUTURE_TOLERANCE_MS) throw new FutureOccurredAt();

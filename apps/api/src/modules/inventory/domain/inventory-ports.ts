@@ -71,6 +71,8 @@ export interface StoredDocument {
 export interface ProductState {
   readonly id: string;
   readonly currency: Currency;
+  /** Catalog cost price in minor units, null when unset: the fallback of `effectiveUnitCost` (sales). */
+  readonly costPrice: number | null;
   readonly archivedAt: Date | null;
 }
 
