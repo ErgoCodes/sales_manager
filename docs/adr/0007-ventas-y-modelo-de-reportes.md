@@ -35,3 +35,18 @@ El spec de la Etapa 2 pide un dashboard de KPIs en la web y una vista "Hoy" en m
 - **`RecordSale` reutiliza el guion de escritura del libro** (`inventory/application/record-document.ts`) en lugar de escribir un segundo: la línea de venta tiene su propia valoración (`sold`), que toma `effectiveUnitCost` del par bajo el lock (el promedio, o `products.cost_price` mientras el promedio es 0) y no mezcla el promedio. `writeDocument` acepta una extensión que escribe `sales` y `sale_lines` en la misma transacción, después de los movimientos y antes del evento de auditoría, con el costo de cada línea tal como quedó en su movimiento. El cajero es el `Actor`; `sale_recorded` solo guarda punto y cantidad de líneas.
 - **Supuestos de T5 (el spec no los fija):** como las salidas (D15), una venta puede vaciar un punto o un producto archivado; el precio aplicado (`Money`) debe estar en la moneda del producto (`CURRENCY_MISMATCH`); un producto aparece una sola vez por venta, como en todo documento del libro. El comando vive en `apps/api/src/modules/sales/domain/sale-command.ts` hasta que SP5 lo exponga por HTTP y lo mueva a `packages/contracts`.
 - **Una venta no se revierte por `POST /inventory/documents/:id/reversal`** (403 `permission_denied` para cualquier actor): anularla también tiene que anular su fila de `sales`, y la anulación es de SP5, con su propio permiso. Sin este bloqueo, alguien con `inventory:write` podría devolver el stock y dejar la venta contando en los reportes.
+
+## Resultados medidos (SP4 · T6, 2026-11-21)
+
+Medido en el contenedor de integración (`postgres:17-alpine`, Testcontainers, `work_mem` por defecto de 4 MB) con `test/integration/reports-performance.e2e.test.ts`: 80 000 ventas y ≈ 200 000 líneas en 90 días, 2 puntos, 40 productos, entradas semanales, mermas y 1 % de ventas revertidas. p95 de 20 peticiones HTTP por endpoint (con autenticación y throttler), "todos mis puntos" / un punto:
+
+| Rango | summary | daily-series | top-products | by-location | inventory-health |
+|---|---|---|---|---|---|
+| Hoy | 17 / 12 ms | 9 / 8 ms | 10 / 9 ms | 14 / 11 ms | 37 / 21 ms |
+| 7 días | 27 / 23 ms | 21 / 14 ms | 24 / 17 ms | 42 / 18 ms | 37 / 21 ms |
+| 30 días | 95 / 49 ms | 71 / 39 ms | 73 / 41 ms | 154 / 61 ms | 35 / 22 ms |
+| 90 días (toda la historia) | 261 / 251 ms | 161 / 87 ms | 91 / 104 ms | **352 / 321 ms** | 34 / 21 ms |
+
+- **Se cumple** el presupuesto (p95 < 300 ms y sin `Seq Scan` en `sale_lines` ni `inventory_movements`) para hoy y 7 días, y la latencia también para 30 días; el test lo afirma en esos rangos.
+- **No se cumple todavía** en dos casos, que el test registra sin afirmar: (1) con 30 días, `top-products` planifica `Seq Scan` en `sale_lines` porque necesita `product_id` y `quantity`, que `sale_lines_kpi_idx` no incluye (el índice `(tenant_id, location_id, product_id, occurred_at)` no sirve para filtrar por fecha); (2) con 90 días, que aquí es toda la tabla, todos los agregados de `sale_lines` usan `Seq Scan` (el plan más barato para leerla entera) y `by-location` supera los 300 ms. Cerrarlos exige un índice cubriente nuevo (una migración, fuera de T6) o la proyección diaria de "Alternativas"; queda como decisión abierta.
+- **Dos hallazgos de implementación:** bajo RLS, Postgres solo usa como condición de índice los predicados *leakproof*, y `AT TIME ZONE` y `now()` no lo son; por eso los límites del rango y el corte se calculan en una sentencia aparte y se pasan como parámetros `timestamptz` (sin eso, todo reporte recorría el punto entero). Y los tickets se cuentan agrupando primero por venta, no con `count(distinct sale_id)`, que siempre ordena y desbordaba a disco.

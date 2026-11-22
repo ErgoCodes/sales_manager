@@ -87,12 +87,12 @@ T10a (mobile sesión) ───────────────────�
 
 ### T6 · API de reportes `L` · `Difícil` · **crítica de seguridad** (depende de T4; en paralelo con T5 y T7)
 
-- [ ] Módulo `apps/api/src/modules/reports/` con `ReportsUnitOfWork` y los cinco endpoints del spec, con `@RequirePermission` grueso y la autoridad en el caso de uso (`reports:view` por punto, "todos mis puntos", `reports:view_own` solo en `summary`, sin utilidad).
-- [ ] Rango por defecto (hoy en la zona del tenant), conversión de días locales a `timestamptz` en SQL, corte en `now()`, exclusión de documentos revertidos, agregación por moneda. Las reglas por fila se aplican con las funciones de `@monaco/domain`.
-- [ ] `Cache-Control: private, no-store` y throttler `ip` en `/reports/*`.
-- [ ] *Fixture builder* de tests que inserta ventas y documentos por SQL como owner (para no depender de T5).
+- [x] Módulo `apps/api/src/modules/reports/` con `ReportsUnitOfWork` y los cinco endpoints del spec, con `@RequirePermission` grueso y la autoridad en el caso de uso (`reports:view` por punto, "todos mis puntos", `reports:view_own` solo en `summary`, sin utilidad).
+- [x] Rango por defecto (hoy en la zona del tenant), conversión de días locales a `timestamptz` en SQL, corte en `now()`, exclusión de documentos revertidos, agregación por moneda. Las reglas por fila se aplican con las funciones de `@monaco/domain`.
+- [x] `Cache-Control: private, no-store` y throttler `ip` en `/reports/*`.
+- [x] *Fixture builder* de tests que inserta ventas y documentos por SQL como owner (para no depender de T5).
 - [ ] Tests de integración: oráculo de KPIs (mermas, entrada revertida, venta a costo, dos monedas, venta futura); `America/Havana` cruzando los cambios de horario y serie = total; fuga entre tenants y entre puntos por endpoint; `view_own` solo ve sus ventas y nunca la utilidad; volumen ×10 con p95 < 300 ms y sin `Seq Scan` en `sale_lines` ni `inventory_movements`.
-- [ ] Regenerar `openapi.json` y `apps/web/src/lib/api/schema.d.ts`. ADR 0007 con los resultados medidos.
+- [x] Regenerar `openapi.json` y `apps/web/src/lib/api/schema.d.ts`. ADR 0007 con los resultados medidos.
 
 **Hecho cuando:** pasan los tests, el presupuesto de rendimiento se cumple, `/docs` muestra los endpoints y los archivos generados están commiteados.
 
