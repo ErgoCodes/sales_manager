@@ -31,6 +31,8 @@ export const AUDIT_EVENT_TYPES = [
   'inventory_adjustment_recorded',
   'inventory_transfer_recorded',
   'inventory_document_reversed',
+  // SP4: RecordSale (no amounts in the metadata).
+  'sale_recorded',
 ] as const;
 
 export const AuditEventType = z.enum(AUDIT_EVENT_TYPES).meta({ id: 'AuditEventType' });

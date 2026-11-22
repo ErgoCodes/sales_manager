@@ -4554,7 +4554,8 @@
           "inventory_exit_recorded",
           "inventory_adjustment_recorded",
           "inventory_transfer_recorded",
-          "inventory_document_reversed"
+          "inventory_document_reversed",
+          "sale_recorded"
         ]
       },
       "PaginatedAuditEvents_Output": {
