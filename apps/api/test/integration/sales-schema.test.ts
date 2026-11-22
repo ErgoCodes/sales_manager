@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { uuidv7 } from '../../src/infrastructure/db/uuidv7';
 import { adminPool, resetTenants, seedTenants, TENANT_A, TENANT_B, urls } from './helpers';
+import { salesOutsideTheirDocuments } from './inventory-invariants';
 
 // SP4 · T4: sales and sale_lines (spec "Ventas en el servidor"), tenants.time_zone and tenants.read_only.
 let admin: Pool;
@@ -23,6 +24,7 @@ const ids = {
   locA2: uuidv7(),
   locB: uuidv7(),
   userA: uuidv7(),
+  userA2: uuidv7(),
   userB: uuidv7(),
   deviceA: uuidv7(),
   deviceB: uuidv7(),
@@ -48,6 +50,9 @@ function insertRow(pool: Pool, table: string, row: Record<string, unknown>) {
   );
 }
 
+/** One instant for documents, headers and lines: the copies must match their header exactly. */
+const AT = new Date('2026-11-21T15:00:00Z');
+
 /** A `sale` inventory document of tenant A in location A (its id is the sale's id). */
 async function saleDocument(overrides: Record<string, unknown> = {}): Promise<string> {
   const id = uuidv7();
@@ -56,7 +61,7 @@ async function saleDocument(overrides: Record<string, unknown> = {}): Promise<st
     tenant_id: TENANT_A,
     kind: 'sale',
     location_id: ids.locA,
-    occurred_at: new Date(),
+    occurred_at: AT,
     payload_hash: 'h',
     created_by: ids.userA,
     ...overrides,
@@ -70,7 +75,7 @@ const sale = (id: string, overrides: Record<string, unknown> = {}) => ({
   location_id: ids.locA,
   cashier_user_id: ids.userA,
   device_id: null,
-  occurred_at: new Date(),
+  occurred_at: AT,
   payload_hash: 'h',
   ...overrides,
 });
@@ -81,7 +86,7 @@ const line = (saleId: string, overrides: Record<string, unknown> = {}) => ({
   sale_id: saleId,
   location_id: ids.locA,
   product_id: ids.prodA,
-  occurred_at: new Date(),
+  occurred_at: AT,
   cashier_user_id: ids.userA,
   currency: 'CUP',
   quantity: '2',
@@ -138,13 +143,17 @@ describe('sales and sale_lines: composite FKs keep every reference inside the te
 
   it('a sale rejects a foreign location, cashier or device', async () => {
     const cases: [Record<string, unknown>, string][] = [
-      [{ location_id: ids.locB }, 'sales_location_fk'],
       [{ cashier_user_id: ids.userB }, 'sales_cashier_user_fk'],
       [{ device_id: ids.deviceB }, 'sales_device_fk'],
     ];
     for (const [overrides, constraint] of cases) {
       expect(await failure(insertRow(admin, 'sales', sale(await saleDocument(), overrides))), constraint).toMatchObject({ code: '23503', constraint });
     }
+    // A foreign location also differs from the document's: either FK rejects it.
+    expect(await failure(insertRow(admin, 'sales', sale(await saleDocument(), { location_id: ids.locB })))).toMatchObject({
+      code: '23503',
+      constraint: expect.stringMatching(/^sales_(document|location)_fk$/),
+    });
     await insertRow(admin, 'sales', sale(await saleDocument(), { device_id: ids.deviceA }));
   });
 
@@ -156,14 +165,55 @@ describe('sales and sale_lines: composite FKs keep every reference inside the te
     const missing = await failure(insertRow(admin, 'sale_lines', line(uuidv7())));
     expect(crossTenant).toMatchObject({ code: '23503', constraint: 'sale_lines_sale_fk' });
     expect({ code: missing.code, constraint: missing.constraint }).toEqual({ code: crossTenant.code, constraint: crossTenant.constraint });
-    // A pair without location_products (product B in location A, or product A in location A2).
-    for (const overrides of [{ product_id: ids.prodB }, { location_id: ids.locA2 }, { location_id: ids.locB }]) {
+    // A pair without location_products: product B in location A, or product A in location A2 (a sale there).
+    expect(await failure(insertRow(admin, 'sale_lines', line(own, { product_id: ids.prodB })))).toMatchObject({
+      code: '23503',
+      constraint: 'sale_lines_location_product_fk',
+    });
+    const inA2 = await saleDocument({ location_id: ids.locA2 });
+    await insertRow(admin, 'sales', sale(inA2, { location_id: ids.locA2 }));
+    expect(await failure(insertRow(admin, 'sale_lines', line(inA2, { location_id: ids.locA2 })))).toMatchObject({
+      code: '23503',
+      constraint: 'sale_lines_location_product_fk',
+    });
+    await insertRow(admin, 'sale_lines', line(own));
+  });
+});
+
+describe('copied columns match their source (SP4 review, N2)', () => {
+  it('a sale line whose location, occurred_at or cashier differs from its header is rejected', async () => {
+    const own = await ownSale();
+    // locA2 has the pair for this test, so only the header FK can reject the line.
+    await admin.query(`insert into location_products (tenant_id, location_id, product_id) values ($1, $2, $3)`, [TENANT_A, ids.locA2, ids.prodA]);
+    await admin.query(`insert into users (id, tenant_id, email, display_name, password_hash) values ($1, $2, 'ua2@x.test', 'UA2', 'x')`, [ids.userA2, TENANT_A]);
+    for (const overrides of [{ location_id: ids.locA2 }, { occurred_at: new Date(AT.getTime() + 1) }, { cashier_user_id: ids.userA2 }]) {
       expect(await failure(insertRow(admin, 'sale_lines', line(own, overrides))), JSON.stringify(overrides)).toMatchObject({
         code: '23503',
-        constraint: 'sale_lines_location_product_fk',
+        constraint: 'sale_lines_sale_fk',
       });
     }
     await insertRow(admin, 'sale_lines', line(own));
+  });
+
+  it("a sale whose location or occurred_at differs from its document's is rejected", async () => {
+    const id = await saleDocument();
+    for (const overrides of [{ location_id: ids.locA2 }, { occurred_at: new Date(AT.getTime() - 1) }]) {
+      expect(await failure(insertRow(admin, 'sales', sale(id, overrides))), JSON.stringify(overrides)).toMatchObject({
+        code: '23503',
+        constraint: 'sales_document_fk',
+      });
+    }
+    await insertRow(admin, 'sales', sale(id));
+  });
+
+  it('invariant helper: flags a sale document without its sales row and a sales row on a document of another kind', async () => {
+    const complete = await ownSale();
+    await insertRow(admin, 'sale_lines', line(complete));
+    expect(await salesOutsideTheirDocuments(admin)).toEqual([]);
+    const orphan = await saleDocument();
+    const wrongKind = await saleDocument({ kind: 'entry' });
+    await insertRow(admin, 'sales', sale(wrongKind));
+    expect(await salesOutsideTheirDocuments(admin)).toEqual([orphan, wrongKind].sort());
   });
 });
 

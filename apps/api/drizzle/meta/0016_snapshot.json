@@ -1,6 +1,6 @@
 {
-  "id": "2cb69a33-6353-4d39-9f1e-d500908b24ab",
-  "prevId": "b5292c95-aa2b-480e-9205-5bc7f164bfb4",
+  "id": "526b9ed5-8dba-4c67-86a9-87540fc3bf7f",
+  "prevId": "24af7327-90c2-4de0-a7c3-c7b7d2c0ecea",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1885,6 +1885,16 @@
           ],
           "nullsNotDistinct": false
         },
+        "inventory_documents_id_tenant_id_location_id_occurred_at_unique": {
+          "name": "inventory_documents_id_tenant_id_location_id_occurred_at_unique",
+          "columns": [
+            "id",
+            "tenant_id",
+            "location_id",
+            "occurred_at"
+          ],
+          "nullsNotDistinct": false
+        },
         "inventory_documents_tenant_id_reverses_document_id_unique": {
           "name": "inventory_documents_tenant_id_reverses_document_id_unique",
           "columns": [
@@ -2294,12 +2304,18 @@
           "tableFrom": "sale_lines",
           "columnsFrom": [
             "sale_id",
-            "tenant_id"
+            "tenant_id",
+            "location_id",
+            "occurred_at",
+            "cashier_user_id"
           ],
           "tableTo": "sales",
           "columnsTo": [
             "id",
-            "tenant_id"
+            "tenant_id",
+            "location_id",
+            "occurred_at",
+            "cashier_user_id"
           ],
           "onUpdate": "no action",
           "onDelete": "no action"
@@ -2442,12 +2458,16 @@
           "tableFrom": "sales",
           "columnsFrom": [
             "id",
-            "tenant_id"
+            "tenant_id",
+            "location_id",
+            "occurred_at"
           ],
           "tableTo": "inventory_documents",
           "columnsTo": [
             "id",
-            "tenant_id"
+            "tenant_id",
+            "location_id",
+            "occurred_at"
           ],
           "onUpdate": "no action",
           "onDelete": "no action"
@@ -2505,6 +2525,17 @@
           "columns": [
             "id",
             "tenant_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "sales_id_tenant_id_location_id_occurred_at_cashier_unique": {
+          "name": "sales_id_tenant_id_location_id_occurred_at_cashier_unique",
+          "columns": [
+            "id",
+            "tenant_id",
+            "location_id",
+            "occurred_at",
+            "cashier_user_id"
           ],
           "nullsNotDistinct": false
         }

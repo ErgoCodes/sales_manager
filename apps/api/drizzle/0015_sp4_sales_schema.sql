@@ -35,17 +35,20 @@ CREATE TABLE "sales" (
 	"occurred_at" timestamp with time zone NOT NULL,
 	"payload_hash" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "sales_id_tenant_id_unique" UNIQUE("id","tenant_id")
+	CONSTRAINT "sales_id_tenant_id_unique" UNIQUE("id","tenant_id"),
+	CONSTRAINT "sales_id_tenant_id_location_id_occurred_at_cashier_unique" UNIQUE("id","tenant_id","location_id","occurred_at","cashier_user_id")
 );
 --> statement-breakpoint
 ALTER TABLE "sales" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "tenants" ADD COLUMN "time_zone" text DEFAULT 'America/Havana' NOT NULL;--> statement-breakpoint
 ALTER TABLE "tenants" ADD COLUMN "read_only" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+-- Moved by hand before the FKs: sales_document_fk references this UNIQUE.
+ALTER TABLE "inventory_documents" ADD CONSTRAINT "inventory_documents_id_tenant_id_location_id_occurred_at_unique" UNIQUE("id","tenant_id","location_id","occurred_at");--> statement-breakpoint
 ALTER TABLE "sale_lines" ADD CONSTRAINT "sale_lines_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sale_lines" ADD CONSTRAINT "sale_lines_sale_fk" FOREIGN KEY ("sale_id","tenant_id") REFERENCES "public"."sales"("id","tenant_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sale_lines" ADD CONSTRAINT "sale_lines_sale_fk" FOREIGN KEY ("sale_id","tenant_id","location_id","occurred_at","cashier_user_id") REFERENCES "public"."sales"("id","tenant_id","location_id","occurred_at","cashier_user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sale_lines" ADD CONSTRAINT "sale_lines_location_product_fk" FOREIGN KEY ("tenant_id","location_id","product_id") REFERENCES "public"."location_products"("tenant_id","location_id","product_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sales" ADD CONSTRAINT "sales_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sales" ADD CONSTRAINT "sales_document_fk" FOREIGN KEY ("id","tenant_id") REFERENCES "public"."inventory_documents"("id","tenant_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sales" ADD CONSTRAINT "sales_document_fk" FOREIGN KEY ("id","tenant_id","location_id","occurred_at") REFERENCES "public"."inventory_documents"("id","tenant_id","location_id","occurred_at") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sales" ADD CONSTRAINT "sales_location_fk" FOREIGN KEY ("location_id","tenant_id") REFERENCES "public"."locations"("id","tenant_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sales" ADD CONSTRAINT "sales_cashier_user_fk" FOREIGN KEY ("cashier_user_id","tenant_id") REFERENCES "public"."users"("id","tenant_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sales" ADD CONSTRAINT "sales_device_fk" FOREIGN KEY ("device_id","tenant_id") REFERENCES "public"."devices"("id","tenant_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

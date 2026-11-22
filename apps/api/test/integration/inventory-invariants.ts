@@ -42,3 +42,22 @@ export async function movementsOutsideDocumentLocations(admin: Pool): Promise<st
   );
   return rows.map((row) => row.id);
 }
+
+/**
+ * Sales invariant (SP4 spec, D1): every `sale` document has exactly its `sales` row (same id) and
+ * every `sales` row hangs off a `sale` document. The schema cannot say it without a kind column on
+ * `sales`, so this query is the check. Returns the ids of the offending documents or sales; empty
+ * means the invariant holds. T5 calls it after every RecordSale it tests.
+ */
+export async function salesOutsideTheirDocuments(admin: Pool): Promise<string[]> {
+  const { rows } = await admin.query<{ id: string }>(
+    `select d.id from inventory_documents d
+     where d.kind = 'sale' and not exists (select 1 from sales s where s.id = d.id and s.tenant_id = d.tenant_id)
+     union
+     select s.id from sales s
+     join inventory_documents d on d.id = s.id and d.tenant_id = s.tenant_id
+     where d.kind <> 'sale'
+     order by id`,
+  );
+  return rows.map((row) => row.id);
+}

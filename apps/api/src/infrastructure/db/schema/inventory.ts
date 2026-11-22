@@ -49,6 +49,8 @@ export const inventoryDocuments = pgTable(
     check('inventory_documents_reverses_shape_check', sql`(${t.kind} = 'reversal') = (${t.reversesDocumentId} is not null)`),
     check('inventory_documents_notes_length_check', sql.raw(`char_length(notes) <= ${MAX_NOTES_LENGTH}`)),
     unique('inventory_documents_id_tenant_id_unique').on(t.id, t.tenantId),
+    // Target of sales_document_fk: a sale has the location and instant of its document (SP4).
+    unique('inventory_documents_id_tenant_id_location_id_occurred_at_unique').on(t.id, t.tenantId, t.locationId, t.occurredAt),
     // A document is reversed once; the use case turns the 23505 into ALREADY_REVERSED.
     unique('inventory_documents_tenant_id_reverses_document_id_unique').on(t.tenantId, t.reversesDocumentId),
     foreignKey({ name: 'inventory_documents_location_fk', columns: [t.locationId, t.tenantId], foreignColumns: [locations.id, locations.tenantId] }),
