@@ -1,5 +1,4 @@
 import { AuthTokens, MeResponse, PERMISSIONS } from '@monaco/contracts';
-import { averageCostAfterEntry } from '@monaco/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Pool } from 'pg';
 import request from 'supertest';
@@ -7,11 +6,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { CLIENT_IP_HEADER } from '../../src/common/http/client-ip';
 import { Argon2PasswordHasher } from '../../src/modules/iam/infrastructure/argon2-password-hasher';
-import { DEMO_DOCUMENTS, DEMO_LOCATION_PRICES, DEMO_PRODUCTS } from '../../src/scripts/demo-inventory-seed';
+import { DEMO_LOCATION_PRICES, DEMO_PRODUCTS } from '../../src/scripts/demo-history';
 import { DEMO_USERS } from '../../src/scripts/demo-seed';
 import { runSeed } from '../../src/scripts/seed';
 import { runTenantCreate } from '../../src/scripts/tenant-create';
 import { createAuthApp, freshIp, signedIpHeader } from './auth-fixtures';
+import { negativeStockPairs, salesByLocalDay, salesTotal } from './demo-fixtures';
+import { movementsOutsideDocumentLocations, salesOutsideTheirDocuments } from './inventory-invariants';
 import { adminPool, resetTenants, urls } from './helpers';
 
 let admin: Pool;
@@ -35,6 +36,8 @@ function capture() {
 }
 
 const OWNER_URL = () => ({ DATABASE_MIGRATION_URL: urls().owner });
+/** Tests that are not about the history seed one day of it, to keep the suite fast. */
+const ONE_DAY = ['--history-days', '1'];
 const ARGS = ['--name', 'Acme Store', '--slug', 'acme', '--owner-email', 'boss@acme.example'];
 
 describe('tenant:create', () => {
@@ -116,8 +119,8 @@ describe('tenant:create', () => {
 
 describe('db:seed', () => {
   it('is idempotent and creates the demo tenant with 2 locations and 3 users', async () => {
-    await runSeed(OWNER_URL(), capture().write);
-    await runSeed(OWNER_URL(), capture().write);
+    await runSeed(OWNER_URL(), capture().write, ONE_DAY);
+    await runSeed(OWNER_URL(), capture().write, ONE_DAY);
 
     expect(await count('tenants')).toBe(1);
     expect(await count('locations')).toBe(2);
@@ -139,69 +142,94 @@ describe('db:seed', () => {
     ]);
   });
 
-  it('seeds the demo catalog, P2 prices and inventory once, through the use cases (a re-run changes nothing)', async () => {
+  it('seeds the catalog, P2 prices and the default 14 days of history once, through the use cases (a re-run changes nothing)', async () => {
     await runSeed(OWNER_URL(), capture().write);
     const snapshot = async () => ({
       products: await count('products'),
-      documents: await count('inventory_documents'),
+      documents: (await admin.query('select kind, count(*)::int as n from inventory_documents group by kind order by kind')).rows,
       movements: await count('inventory_movements'),
+      sales: await count('sales'),
+      saleLines: await count('sale_lines'),
       locationProducts: (await admin.query('select * from location_products order by location_id, product_id')).rows,
       audit: (await admin.query('select type, count(*)::int as n from audit_events group by type order by type')).rows,
     });
     const first = await snapshot();
-    await runSeed(OWNER_URL(), capture().write);
+    const out = capture();
+    await runSeed(OWNER_URL(), out.write);
     expect(await snapshot()).toEqual(first);
+    expect(out.lines.at(-1)).toMatch(/already has sales/);
 
     expect(first.products).toBe(DEMO_PRODUCTS.length);
-    expect(first.documents).toBe(DEMO_DOCUMENTS.length);
-    expect(first.movements).toBe(DEMO_DOCUMENTS.reduce((n, doc) => n + doc.lines.length * (doc.kind === 'transfer' ? 2 : 1), 0));
-    // One audit event per write: the use cases ran (and the re-run was a replay, not a second write).
+    const documents = Object.fromEntries(first.documents.map((row: { kind: string; n: number }) => [row.kind, row.n]));
+    expect(documents.entry).toBeGreaterThanOrEqual(4);
+    expect(documents.exit).toBeGreaterThanOrEqual(1);
+    expect(documents.transfer).toBeGreaterThanOrEqual(1);
+    expect(first.sales).toBe(documents.sale);
+    expect(first.sales).toBeGreaterThan(14 * 2 * 25 * 0.9);
+    // One audit event per write: the use cases ran (and the re-run wrote nothing).
+    const exits = (await admin.query(`select reason, count(*)::int as n from inventory_documents where kind = 'exit' group by reason`)).rows;
     expect(first.audit).toEqual(
       expect.arrayContaining([
         { type: 'product_created', n: DEMO_PRODUCTS.length },
         { type: 'location_price_set', n: DEMO_LOCATION_PRICES.length },
-        { type: 'inventory_entry_recorded', n: 3 },
-        { type: 'inventory_exit_recorded', n: 2 },
-        { type: 'inventory_transfer_recorded', n: 1 },
+        { type: 'inventory_entry_recorded', n: documents.entry },
+        { type: 'inventory_exit_recorded', n: exits.reduce((n: number, row: { n: number }) => n + row.n, 0) },
+        { type: 'inventory_transfer_recorded', n: documents.transfer },
+        { type: 'sale_recorded', n: first.sales },
       ]),
     );
-
-    const stock = await admin.query(
-      `select l.code, p.name, sum(m.quantity_delta)::text as quantity
-         from inventory_movements m join locations l on l.id = m.location_id join products p on p.id = m.product_id
-        group by l.code, p.name order by l.code, p.name`,
-    );
-    expect(stock.rows).toEqual([
-      { code: 'P1', name: 'Arroz', quantity: '73.500' },
-      { code: 'P1', name: 'Detergente 1 kg', quantity: '24.000' },
-      { code: 'P1', name: 'Frijoles negros', quantity: '30.000' },
-      { code: 'P1', name: 'Leche en polvo 1 kg', quantity: '15.000' },
-      { code: 'P1', name: 'Refresco de cola 1.5 L', quantity: '69.000' },
-      { code: 'P2', name: 'Arroz', quantity: '30.000' },
-      { code: 'P2', name: 'Detergente 1 kg', quantity: '10.000' },
-      { code: 'P2', name: 'Frijoles negros', quantity: '10.000' },
-      { code: 'P2', name: 'Leche en polvo 1 kg', quantity: '5.000' },
-      { code: 'P2', name: 'Refresco de cola 1.5 L', quantity: '24.000' },
-    ]);
+    expect(await movementsOutsideDocumentLocations(admin)).toEqual([]);
+    expect(await salesOutsideTheirDocuments(admin)).toEqual([]);
 
     const pair = async (code: string, name: string) =>
       (
         await admin.query(
-          `select lp.average_cost::text as cost, lp.cash_price_override as cash, lp.transfer_price_override as transfer
+          `select lp.cash_price_override as cash, lp.transfer_price_override as transfer
              from location_products lp join locations l on l.id = lp.location_id join products p on p.id = lp.product_id
             where l.code = $1 and p.name = $2`,
           [code, name],
         )
       ).rows[0];
-    // Two entries blend the average (domain rule); the transfer brings the origin's average to P2.
-    expect((await pair('P1', 'Arroz')).cost).toBe(String(averageCostAfterEntry(50, 22000, 25, 23000).toFixed(6)));
-    expect(await pair('P2', 'Leche en polvo 1 kg')).toMatchObject({ cost: '180000.000000', cash: null, transfer: null });
     expect(await pair('P2', 'Arroz')).toMatchObject({ cash: '26000', transfer: '27000' });
     expect(await pair('P1', 'Arroz')).toMatchObject({ cash: null, transfer: null });
   });
 
-  it('seeds the Cashier with the SP3 read permissions and SP4 reports:view_own instead of reports:view', async () => {
+  it('never leaves a pair with negative stock, not even in the middle of the history', async () => {
     await runSeed(OWNER_URL(), capture().write);
+    expect(await negativeStockPairs(admin)).toEqual([]);
+    // The running balance of every pair, in ledger order, never dips under zero either.
+    const { rows } = await admin.query(
+      `select count(*)::int as n from (
+         select sum(m.quantity_delta) over (partition by m.location_id, m.product_id order by d.occurred_at, d.id rows unbounded preceding) as running
+           from inventory_movements m join inventory_documents d on d.id = m.document_id) t
+        where running < 0`,
+    );
+    expect(rows[0].n).toBe(0);
+  });
+
+  it('dates the history in the tenant zone: sales today and on each of the last 14 local days, and KPIs for today and 30 days', async () => {
+    await runSeed(OWNER_URL(), capture().write);
+    expect((await admin.query('select time_zone, read_only from tenants')).rows).toEqual([{ time_zone: 'America/Havana', read_only: false }]);
+    const days = await salesByLocalDay(admin, 30);
+    expect(days).toHaveLength(14);
+    expect(days.at(-1)!.day).toBe((await admin.query(`select (now() at time zone 'America/Havana')::date::text as d`)).rows[0].d);
+    for (const day of days) expect(day.locations).toBe(2);
+    // The KPIs cut at now() (D14): 30 days are never empty; today's sales are all there, whatever the hour.
+    expect(await salesTotal(admin, 30)).toBeGreaterThan(0);
+  });
+
+  it('seeds as many days as --history-days asks for, and rejects an invalid value before touching the database', async () => {
+    await runSeed(OWNER_URL(), capture().write, ['--history-days', '3']);
+    expect(await salesByLocalDay(admin, 30)).toHaveLength(3);
+    await resetTenants(admin);
+    for (const bad of [['--history-days', '0'], ['--history-days', 'x'], ['--nope']]) {
+      await expect(runSeed(OWNER_URL(), capture().write, bad)).rejects.toThrow();
+    }
+    expect(await count('tenants')).toBe(0);
+  });
+
+  it('seeds the Cashier with the SP3 read permissions and SP4 reports:view_own instead of reports:view', async () => {
+    await runSeed(OWNER_URL(), capture().write, ONE_DAY);
     const { rows } = await admin.query<{ permission: string }>(
       `select rp.permission from role_assignments a join users u on u.id = a.user_id
          join role_permissions rp on rp.role_id = a.role_id where u.email = $1`,
@@ -213,9 +241,9 @@ describe('db:seed', () => {
   });
 
   it('does not reset a password changed after the first seed', async () => {
-    await runSeed(OWNER_URL(), capture().write);
+    await runSeed(OWNER_URL(), capture().write, ONE_DAY);
     await admin.query(`update users set password_hash = 'changed' where email = $1`, [DEMO_USERS.owner.email]);
-    await runSeed(OWNER_URL(), capture().write);
+    await runSeed(OWNER_URL(), capture().write, ONE_DAY);
     expect((await admin.query(`select password_hash from users where email = $1`, [DEMO_USERS.owner.email])).rows[0].password_hash).toBe('changed');
   });
 
@@ -225,19 +253,19 @@ describe('db:seed', () => {
   });
 
   it.each([undefined, 'development', 'test'])('runs with NODE_ENV=%s', async (nodeEnv) => {
-    await runSeed({ ...OWNER_URL(), NODE_ENV: nodeEnv }, capture().write);
+    await runSeed({ ...OWNER_URL(), NODE_ENV: nodeEnv }, capture().write, ONE_DAY);
     expect(await count('tenants')).toBe(1);
   });
 
   it('fails clearly when a demo email already belongs to another tenant', async () => {
     await runTenantCreate(['--name', 'Mine', '--slug', 'mine', '--owner-email', DEMO_USERS.manager.email], OWNER_URL(), capture().write);
-    await expect(runSeed(OWNER_URL(), capture().write)).rejects.toThrow(new RegExp(`${DEMO_USERS.manager.email}.*another tenant`));
+    await expect(runSeed(OWNER_URL(), capture().write, ONE_DAY)).rejects.toThrow(new RegExp(`${DEMO_USERS.manager.email}.*another tenant`));
     expect(await count('tenants')).toBe(1);
   });
 
   it('fails clearly when the demo slug belongs to another tenant', async () => {
     await runTenantCreate(['--name', 'Mine', '--slug', 'demo', '--owner-email', 'x@y.example'], OWNER_URL(), capture().write);
-    await expect(runSeed(OWNER_URL(), capture().write)).rejects.toThrow(/demo/);
+    await expect(runSeed(OWNER_URL(), capture().write, ONE_DAY)).rejects.toThrow(/demo/);
     expect(await count('tenants')).toBe(1);
   });
 
@@ -251,7 +279,7 @@ describe('db:seed', () => {
     });
 
     it.each(Object.keys(DEMO_USERS) as (keyof typeof DEMO_USERS)[])('%s can log in with the documented password', async (role) => {
-      await runSeed(OWNER_URL(), capture().write);
+      await runSeed(OWNER_URL(), capture().write, ONE_DAY);
       const ip = freshIp();
       const res = await request(app.getHttpServer())
         .post('/auth/login')
@@ -262,7 +290,7 @@ describe('db:seed', () => {
     });
 
     it('GET /me: the seed Cashier has reports:view_own at its location and not reports:view (SP4 · D4)', async () => {
-      await runSeed(OWNER_URL(), capture().write);
+      await runSeed(OWNER_URL(), capture().write, ONE_DAY);
       const ip = freshIp();
       const login = await request(app.getHttpServer())
         .post('/auth/login')
