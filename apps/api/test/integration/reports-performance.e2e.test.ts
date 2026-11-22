@@ -58,13 +58,14 @@ beforeAll(async () => {
   const lines = await seedReportVolume(admin, fx, tenant);
   expect(lines).toBeGreaterThan(190_000);
   owner = await loginAs(app, `owner@perf.example`);
-}, 300_000);
+  // Seeding ≈ 200 000 lines takes 4–7 minutes on a CI runner.
+}, 600_000);
 afterAll(async () => {
   await app.close();
   await resetAll(admin);
   await fx.end();
   await admin.end();
-});
+}, 300_000);
 
 const localDay = async (offset: number) =>
   (await admin.query<{ day: string }>(`select ((now() at time zone 'America/Havana')::date + $1::int)::text as day`, [offset])).rows[0]!.day;
