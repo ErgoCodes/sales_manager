@@ -99,6 +99,13 @@
       "when": 1795309307814,
       "tag": "0013_sp4_system_roles_reports_view_own",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795311243755,
+      "tag": "0014_sp4_sale_kind",
+      "breakpoints": true
     }
   ]
 }

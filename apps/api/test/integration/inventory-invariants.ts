@@ -9,7 +9,7 @@ import type { Pool } from 'pg';
  *  - every other kind in `location_id`;
  *  - and every movement kind is one its document kind can hold (entry: entry; exit: shrinkage or
  *    owner_withdrawal matching the reason; adjustment: adjustment; transfer: transfer_out and
- *    transfer_in; reversal: reversal).
+ *    transfer_in; reversal: reversal; sale: sale).
  * Comparisons against a NULL location (a reversed document that is not a transfer, a transfer_in
  * in a document without target) are violations, never "unknown": hence the coalesce.
  * An empty result means the invariant holds. T5a and T6 call it after every
@@ -34,6 +34,7 @@ export async function movementsOutsideDocumentLocations(admin: Pool): Promise<st
          when 'adjustment' then m.kind = 'adjustment'
          when 'transfer' then m.kind in ('transfer_out', 'transfer_in')
          when 'reversal' then m.kind = 'reversal'
+         when 'sale' then m.kind = 'sale'
          else false
        end,
        false)

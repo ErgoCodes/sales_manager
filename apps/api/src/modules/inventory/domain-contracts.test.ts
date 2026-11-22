@@ -17,4 +17,9 @@ describe('contracts and @monaco/domain agree', () => {
   it('every document kind this module writes exists in the contract', () => {
     expect(INVENTORY_DOCUMENT_KINDS).toEqual(expect.arrayContaining(['entry', 'exit', 'adjustment']));
   });
+
+  it('a sale is its own document kind and its movements sign negative (SP4 spec, D1)', () => {
+    expect(INVENTORY_DOCUMENT_KINDS).toContain('sale');
+    expect(movementDelta('sale', 2)).toBe(-2);
+  });
 });

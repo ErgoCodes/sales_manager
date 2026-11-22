@@ -19,7 +19,7 @@ import { createdAt, primaryId } from './types';
  * CHECK.
  */
 
-/** A header: one command (entry, exit, adjustment, transfer or reversal). `id` comes from the client. */
+/** A header: one command (entry, exit, adjustment, transfer, reversal or sale). `id` comes from the client. */
 export const inventoryDocuments = pgTable(
   'inventory_documents',
   {
@@ -100,6 +100,7 @@ export const inventoryMovements = pgTable(
         when 'shrinkage' then ${t.quantityDelta} < 0
         when 'owner_withdrawal' then ${t.quantityDelta} < 0
         when 'transfer_out' then ${t.quantityDelta} < 0
+        when 'sale' then ${t.quantityDelta} < 0
         else true
       end`,
     ),
