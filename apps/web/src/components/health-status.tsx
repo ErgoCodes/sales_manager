@@ -22,19 +22,14 @@ export function HealthStatus({ result }: { result: HealthResult }) {
   const { status, db, version } = result.health;
   const healthy = status === 'ok' && db === 'up';
   return (
-    <div
-      role="status"
-      className={cn(
-        'rounded-lg border p-4',
-        healthy
-          ? 'border-green-300 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100'
-          : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100',
-      )}
-    >
-      <p className="font-medium">
-        API: {status} · DB: {db}
-      </p>
-      <p className="text-sm">Versión {version}</p>
+    <div role="status" className="flex max-w-md items-start gap-3 rounded-xl border bg-card p-4 shadow-xs">
+      <span aria-hidden className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', healthy ? 'bg-success' : 'bg-warning')} />
+      <div className="space-y-0.5">
+        <p className="font-medium">
+          API: {status} · DB: {db}
+        </p>
+        <p className="text-sm text-muted-foreground">Versión {version}</p>
+      </div>
     </div>
   );
 }

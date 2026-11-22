@@ -1,6 +1,9 @@
 'use client';
 
 import { useActionState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { DemoAccount } from '@/lib/demo';
 import { loginAction, type FormState } from './actions';
 
@@ -16,42 +19,38 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: readonly DemoA
   return (
     <div className="w-full max-w-sm space-y-6">
       {demoAccounts.length > 0 ? (
-        <section aria-labelledby="demo-accounts" className="space-y-2 rounded-md border p-3">
+        <section aria-labelledby="demo-accounts" className="space-y-2 rounded-lg border border-dashed p-3">
           <h2 id="demo-accounts" className="text-sm font-semibold">
             Cuentas de la demo
           </h2>
-          <p className="text-sm opacity-80">Demo de solo lectura: elige una cuenta para completar el formulario y luego inicia sesión.</p>
+          <p className="text-sm text-muted-foreground">Demo de solo lectura: elige una cuenta para completar el formulario y luego inicia sesión.</p>
           <div className="flex flex-wrap gap-2">
             {demoAccounts.map((account) => (
-              <button key={account.email} type="button" onClick={() => fill(account)} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
+              <Button key={account.email} type="button" variant="outline" size="sm" onClick={() => fill(account)}>
                 {account.label}
                 <span className="sr-only"> ({account.email})</span>
-              </button>
+              </Button>
             ))}
           </div>
         </section>
       ) : null}
       <form action={action} className="w-full space-y-4">
-        <div className="space-y-1">
-          <label htmlFor="email" className="text-sm font-medium">
-            Correo electrónico
-          </label>
-          <input ref={email} id="email" name="email" type="email" autoComplete="username" required className="w-full rounded-md border bg-background px-3 py-2" />
+        <div className="space-y-2">
+          <Label htmlFor="email">Correo electrónico</Label>
+          <Input ref={email} id="email" name="email" type="email" autoComplete="username" required />
         </div>
-        <div className="space-y-1">
-          <label htmlFor="password" className="text-sm font-medium">
-            Contraseña
-          </label>
-          <input ref={password} id="password" name="password" type="password" autoComplete="current-password" required className="w-full rounded-md border bg-background px-3 py-2" />
+        <div className="space-y-2">
+          <Label htmlFor="password">Contraseña</Label>
+          <Input ref={password} id="password" name="password" type="password" autoComplete="current-password" required />
         </div>
         {state.error ? (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {state.error}
           </p>
         ) : null}
-        <button type="submit" disabled={pending} className="w-full rounded-md bg-foreground px-3 py-2 text-background disabled:opacity-60">
+        <Button type="submit" disabled={pending} className="w-full">
           {pending ? 'Ingresando…' : 'Iniciar sesión'}
-        </button>
+        </Button>
       </form>
     </div>
   );

@@ -31,8 +31,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const key = JSON.stringify(filters);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Tablero</h1>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Tablero</h1>
+        <p className="text-sm text-muted-foreground">Ventas, utilidad e inventario del período elegido.</p>
+      </div>
       <DashboardFilters filters={filters} locations={locations.data} />
       <Suspense key={`summary${key}`} fallback={<CardLoading title={TITLES.summary} />}>
         <SummarySection {...props} />
