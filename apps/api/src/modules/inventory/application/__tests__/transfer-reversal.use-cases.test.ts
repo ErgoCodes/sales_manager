@@ -296,6 +296,13 @@ describe('ReverseDocument', () => {
     expect(f.ledger.insertDocumentHeader).not.toHaveBeenCalled();
   });
 
+  it('a sale cannot be reversed through the inventory route (voiding sales is SP5): 403 for everyone, nothing written', async () => {
+    const sale = stored({ kind: 'sale', movements: [movement({ id: 'm8', locationId: LOC_1, kind: 'sale', quantityDelta: -1, unitCost: 1 })] });
+    const f = fakeInventory(fakeState({ documents: [sale] }));
+    await expect(new ReverseDocument(f.uow, clock).execute(request, ORIGINAL_ID, reversal)).rejects.toBeInstanceOf(PermissionDenied);
+    expect(f.ledger.insertDocumentHeader).not.toHaveBeenCalled();
+  });
+
   it('a skipped header with a committed reversal under another id is ALREADY_REVERSED, not an idempotency conflict', async () => {
     const f = fakeInventory(fakeState({ documents: [storedEntry()], inserted: false, reversalOf: 'other-reversal' }));
     await expect(new ReverseDocument(f.uow, clock).execute(request, ORIGINAL_ID, reversal)).rejects.toBeInstanceOf(AlreadyReversed);

@@ -75,10 +75,15 @@ describe('InventoryLedgerRepository', () => {
   });
 
   it('share-locks locations and products in ascending id order', async () => {
-    const { tx, queries } = fakeTx([{ id: LOC, archivedAt: NOW_TEXT }], [{ id: PRODUCT, currency: 'USD', archivedAt: null }]);
+    // cost_price is a bigint: the driver hands it over as text; null when the catalog has none.
+    const products = [{ id: PRODUCT, currency: 'USD', costPrice: '1250', archivedAt: null }, { id: LOC, currency: 'CUP', costPrice: null, archivedAt: null }];
+    const { tx, queries } = fakeTx([{ id: LOC, archivedAt: NOW_TEXT }], products);
     const repo = new InventoryLedgerRepository(tx, TENANT);
     expect(await repo.lockLocations([LOC])).toEqual([{ id: LOC, archivedAt: new Date(NOW_TEXT) }]);
-    expect(await repo.lockProducts([PRODUCT])).toEqual([{ id: PRODUCT, currency: 'USD', archivedAt: null }]);
+    expect(await repo.lockProducts([PRODUCT])).toEqual([
+      { id: PRODUCT, currency: 'USD', costPrice: 1250, archivedAt: null },
+      { id: LOC, currency: 'CUP', costPrice: null, archivedAt: null },
+    ]);
     expect(queries[0]!.sql).toMatch(/order by id for share$/);
     expect(queries[1]!.sql).toMatch(/order by id for share$/);
     expect(queries[1]!.params).toEqual([[PRODUCT]]);

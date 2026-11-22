@@ -3,6 +3,7 @@ import {
   assertStockNotNegative,
   averageCostAfterEntry,
   averageCostAfterTransferIn,
+  effectiveUnitCost,
   InsufficientStockError,
   movementDelta,
   replayAverageCost,
@@ -24,6 +25,7 @@ import {
   type NewMovement,
   type PairKey,
   pairKey,
+  type ProductState,
   sortPairs,
 } from '../domain/inventory-ports';
 import { ledgerView, toDocument } from './document-mapper';
@@ -34,13 +36,17 @@ import { ledgerView, toDocument } from './document-mapper';
  *  - `average`: exits, adjustments and `transfer_out`, at the pair's average; no blend;
  *  - `transferred`: a `transfer_in`, at the origin pair's average; blends it in (`averageCostAfterTransferIn`);
  *  - `reversed`: a reversal line, at the cancelled movement's cost; `replay` recomputes the
- *    average with `replayAverageCost` once the line is written (the cancelled one blended).
+ *    average with `replayAverageCost` once the line is written (the cancelled one blended);
+ *  - `sold`: a `sale` line, at `effectiveUnitCost` of the pair under the lock (its average, or the
+ *    product's cost price while the average is 0; SP4 · D2); no blend. `price` is the applied unit
+ *    price: the script only checks its currency is the product's, the amounts are the caller's.
  */
 export type LineValuation =
   | { readonly type: 'paid'; readonly cost: Money }
   | { readonly type: 'average' }
   | { readonly type: 'transferred'; readonly fromLocationId: string }
-  | { readonly type: 'reversed'; readonly unitCost: number; readonly movementId: string; readonly replay: boolean };
+  | { readonly type: 'reversed'; readonly unitCost: number; readonly movementId: string; readonly replay: boolean }
+  | { readonly type: 'sold'; readonly price: Money };
 
 export interface PlannedLine {
   readonly locationId: string;
@@ -71,6 +77,20 @@ export interface DocumentPlan {
   readonly auditMetadata: Record<string, unknown>;
 }
 
+/** A line as the script wrote it: the `unit_cost` of its movement and the product's currency. */
+export interface WrittenLine {
+  readonly line: PlannedLine;
+  readonly unitCost: number;
+  readonly currency: ProductState['currency'];
+}
+
+/**
+ * Rows that belong to the document and must be written in its transaction, after its
+ * movements and before its audit event (the `sales` and `sale_lines` of a sale). It gets
+ * the written lines in the plan's order. Not called on an idempotent replay.
+ */
+export type WriteExtension = (written: readonly WrittenLine[]) => Promise<void>;
+
 export interface RecordedDocument {
   readonly document: InventoryDocument;
   /** False when the id already existed with the same content (idempotent retry, HTTP 200). */
@@ -94,7 +114,12 @@ export async function recordDocument(uow: InventoryUnitOfWork, request: AdminReq
  * location of a reversed document) are locked together in the one global order.
  * No sign, stock or cost arithmetic lives here: it is `@monaco/domain`.
  */
-export async function writeDocument(scope: InventoryScope, { actor, ip }: AdminRequest, plan: DocumentPlan): Promise<RecordedDocument> {
+export async function writeDocument(
+  scope: InventoryScope,
+  { actor, ip }: AdminRequest,
+  plan: DocumentPlan,
+  extend?: WriteExtension,
+): Promise<RecordedDocument> {
   const inserted = await scope.ledger.insertDocumentHeader({
     id: plan.id,
     kind: plan.kind,
@@ -109,7 +134,7 @@ export async function writeDocument(scope: InventoryScope, { actor, ip }: AdminR
   });
   if (!inserted) return replay(scope, plan, actor);
 
-  await lockParents(scope, plan);
+  const products = await lockParents(scope, plan);
   const unique = new Map(plan.lines.map((line) => [pairKey(line), { locationId: line.locationId, productId: line.productId }]));
   const pairs = sortPairs([...unique.values()]);
   await scope.ledger.ensureLocationProducts(pairs);
@@ -118,13 +143,17 @@ export async function writeDocument(scope: InventoryScope, { actor, ip }: AdminR
   // After the lock: nobody else can change these sums until we commit.
   const stock = await scope.ledger.sumStock(pairs);
 
-  const { movements, projections, replays, shortages } = compute(plan, stock, averageCost);
+  const { movements, projections, replays, shortages } = compute(plan, stock, averageCost, products);
   if (shortages.length > 0) throw new InsufficientStock(shortages);
 
   await scope.ledger.insertMovements(plan.id, movements);
   for (const projection of projections) await scope.ledger.setAverageCost(projection.pair, projection.averageCost);
   // A reversal of a blending line: the pair's cost is the replay of its ledger without the reversed document.
   for (const pair of replays) await scope.ledger.setAverageCost(pair, replayAverageCost(await scope.ledger.pairLedger(pair)));
+  // No shortages: `compute` returned one movement per planned line, in the plan's order.
+  if (extend) {
+    await extend(plan.lines.map((line, index) => ({ line, unitCost: movements[index]!.unitCost, currency: products.get(line.productId)!.currency })));
+  }
   await scope.audit.record({
     type: plan.auditType,
     actorUserId: actor.userId,
@@ -154,8 +183,8 @@ async function replay(scope: InventoryScope, plan: DocumentPlan, actor: AdminReq
   throw new IdempotencyConflict();
 }
 
-/** `FOR SHARE` on the locations and the products: a concurrent archive serializes with this document. */
-async function lockParents(scope: InventoryScope, plan: DocumentPlan): Promise<void> {
+/** `FOR SHARE` on the locations and the products: a concurrent archive serializes with this document. Returns the products by id. */
+async function lockParents(scope: InventoryScope, plan: DocumentPlan): Promise<ReadonlyMap<string, ProductState>> {
   const locationIds = [...new Set(plan.lines.map((line) => line.locationId))];
   const locations = new Map((await scope.ledger.lockLocations(locationIds)).map((location) => [location.id, location]));
   for (const id of locationIds) {
@@ -172,10 +201,17 @@ async function lockParents(scope: InventoryScope, plan: DocumentPlan): Promise<v
     if (!product) throw new ResourceNotFound('product');
     if (line.requiresActive && product.archivedAt !== null) throw new ArchivedResource('product');
     if (line.valuation.type === 'paid' && line.valuation.cost.currency !== product.currency) throw new CurrencyMismatch(product.id);
+    if (line.valuation.type === 'sold' && line.valuation.price.currency !== product.currency) throw new CurrencyMismatch(product.id);
   }
+  return products;
 }
 
-function compute(plan: DocumentPlan, stock: ReadonlyMap<string, number>, averageCost: ReadonlyMap<string, number>) {
+function compute(
+  plan: DocumentPlan,
+  stock: ReadonlyMap<string, number>,
+  averageCost: ReadonlyMap<string, number>,
+  products: ReadonlyMap<string, ProductState>,
+) {
   const movements: NewMovement[] = [];
   const projections: { pair: PairKey; averageCost: number }[] = [];
   const replays: PairKey[] = [];
@@ -213,6 +249,9 @@ function compute(plan: DocumentPlan, stock: ReadonlyMap<string, number>, average
       case 'reversed':
         movements.push({ ...movement, unitCost: valuation.unitCost, reversesMovementId: valuation.movementId });
         if (valuation.replay) replays.push(pair);
+        break;
+      case 'sold':
+        movements.push({ ...movement, unitCost: effectiveUnitCost({ averageCost: currentAverage, costPrice: products.get(line.productId)!.costPrice }) });
         break;
     }
   }

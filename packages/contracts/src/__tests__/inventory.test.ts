@@ -171,6 +171,9 @@ describe('shared lists', () => {
       'inventory_exit_recorded', 'inventory_adjustment_recorded', 'inventory_transfer_recorded', 'inventory_document_reversed',
     ]) expect(AUDIT_EVENT_TYPES).toContain(t);
   });
+  it('adds the SP4 sale_recorded audit event type (RecordSale)', () => {
+    expect(AUDIT_EVENT_TYPES).toContain('sale_recorded');
+  });
 });
 
 describe('uuidv7', () => {

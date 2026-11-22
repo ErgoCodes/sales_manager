@@ -29,6 +29,7 @@ export const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
   inventory_adjustment_recorded: 'Ajuste de inventario registrado',
   inventory_transfer_recorded: 'Transferencia de inventario registrada',
   inventory_document_reversed: 'Documento de inventario revertido',
+  sale_recorded: 'Venta registrada',
 };
 
 const formatter = new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });

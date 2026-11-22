@@ -39,9 +39,10 @@ export interface FakeState {
   calls: string[];
 }
 
-export const activeProduct = (id: string, currency: 'CUP' | 'USD' | 'MLC' = 'CUP', archived = false): ProductState => ({
+export const activeProduct = (id: string, currency: 'CUP' | 'USD' | 'MLC' = 'CUP', archived = false, costPrice: number | null = null): ProductState => ({
   id,
   currency,
+  costPrice,
   archivedAt: archived ? CREATED_AT : null,
 });
 
