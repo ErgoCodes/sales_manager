@@ -86,6 +86,8 @@ describe('real schema guards (ADR 0003)', () => {
       'role_assignments',
       'role_permissions',
       'roles',
+      'sale_lines',
+      'sales',
       'tenants',
       'users',
     ]);
@@ -121,7 +123,11 @@ describe('real schema guards (ADR 0003)', () => {
       role_assignments: crud,
       role_permissions: crud,
       roles: crud,
-      // Plus a column-level UPDATE on tenants.name only (auth-db.test.ts); no grant at all on rate_limits.
+      // Sales are append-only like the ledger (SP4 spec): no UPDATE, no DELETE.
+      sale_lines: ['INSERT', 'SELECT'],
+      sales: ['INSERT', 'SELECT'],
+      // Plus a column-level UPDATE on tenants.name only, not on time_zone or read_only (auth-db.test.ts,
+      // sales-schema.test.ts); no grant at all on rate_limits.
       tenants: ['SELECT'],
       users: noDelete,
     });

@@ -96,8 +96,9 @@ describe('migrations on a database that already has the SP1 schema', () => {
               (select array_agg(proowner::regrole::text) from pg_proc
                  where proname like 'auth\\_lookup\\_%' or proname = 'rate_limit_hit') as owners`,
     );
-    // 10 IAM tables + rate_limits (SP2·T3) + 4 catalog/inventory tables (SP3·T3); 2 auth lookups + rate_limit_hit.
-    expect(rows).toEqual([{ probe: null, forced: 15, owners: ['monaco_auth', 'monaco_auth', 'monaco_auth'] }]);
+    // 10 IAM tables + rate_limits (SP2·T3) + 4 catalog/inventory tables (SP3·T3) + sales and sale_lines (SP4·T4);
+    // 2 auth lookups + rate_limit_hit.
+    expect(rows).toEqual([{ probe: null, forced: 17, owners: ['monaco_auth', 'monaco_auth', 'monaco_auth'] }]);
     // monaco_auth only needed CREATE on public while the migration ran.
     expect((await target.query(`select has_schema_privilege('monaco_auth', 'public', 'CREATE') as can`)).rows).toEqual([{ can: false }]);
   });
@@ -159,5 +160,98 @@ describe('migrations on a database that already has the SP3·T2 schema', () => {
       { relname: 'products', forced: true, upd: true, del: false },
     ]);
     expect((await t2.query('select count(*)::int as n from locations')).rows[0].n).toBe(1);
+  });
+});
+
+describe('migrations on a database that already has SP3 data (SP4·T4)', () => {
+  const SP3_DATABASE = 'monaco_upgrade_sp3';
+  const sp3Url = (base: string) => urlFor(base).replace(`/${DATABASE}`, `/${SP3_DATABASE}`);
+  // 0000-0013: SP3 plus the SP4·T3 permission migrations, before the sales schema.
+  const PRE_T4_MIGRATIONS = 14;
+  const tenant = '44444444-4444-4444-8444-444444444444';
+  let sp3Folder: string;
+  let sp3: Pool;
+  beforeAll(async () => {
+    await admin.query(`drop database if exists ${SP3_DATABASE}`);
+    await admin.query(`create database ${SP3_DATABASE}`);
+    sp3 = new Pool({ connectionString: sp3Url(urls().admin), max: 1 });
+    sp3.on('error', () => undefined);
+    sp3Folder = partialFolder(PRE_T4_MIGRATIONS);
+  });
+  afterAll(async () => {
+    await sp3.end();
+    await admin.query(`drop database if exists ${SP3_DATABASE} with (force)`);
+    rmSync(sp3Folder, { recursive: true, force: true });
+  });
+  const migrateSp3 = async (folder: string) => {
+    const pool = new Pool({ connectionString: sp3Url(urls().owner), max: 1 });
+    try {
+      await migrate(drizzle({ client: pool }), { migrationsFolder: folder });
+    } finally {
+      await pool.end();
+    }
+  };
+
+  it('adds the sales tables and the tenant columns, keeping the ledger and its CHECKs valid', async () => {
+    await sp3.query(initSql);
+    await migrateSp3(sp3Folder);
+    expect((await sp3.query(`select to_regclass('public.sales') as sales`)).rows).toEqual([{ sales: null }]);
+    // SP3 data: a tenant with a location, a user, a product and two ledger documents.
+    const [location, user, product, entry, exit] = ['0001', '0002', '0003', '0004', '0005'].map((n) => `00000000-0000-4000-8000-00000000${n}`);
+    await sp3.query(`insert into tenants (id, name, slug) values ($1, 'T', 't')`, [tenant]);
+    await sp3.query(`insert into locations (id, tenant_id, name, code) values ($1, $2, 'L', 'l')`, [location, tenant]);
+    await sp3.query(`insert into users (id, tenant_id, email, display_name, password_hash) values ($1, $2, 'u@x.test', 'U', 'x')`, [user, tenant]);
+    await sp3.query(`insert into products (id, tenant_id, name, unit_of_measure, currency) values ($1, $2, 'P', 'ud', 'CUP')`, [product, tenant]);
+    await sp3.query(`insert into location_products (tenant_id, location_id, product_id) values ($1, $2, $3)`, [tenant, location, product]);
+    await sp3.query(
+      `insert into inventory_documents (id, tenant_id, kind, location_id, reason, occurred_at, payload_hash, created_by)
+       values ($1, $3, 'entry', $4, null, now(), 'h', $5), ($2, $3, 'exit', $4, 'shrinkage', now(), 'h', $5)`,
+      [entry, exit, tenant, location, user],
+    );
+    await sp3.query(
+      `insert into inventory_movements (id, tenant_id, document_id, location_id, product_id, kind, quantity_delta, unit_cost)
+       values (gen_random_uuid(), $1, $2, $4, $5, 'entry', 10, 100), (gen_random_uuid(), $1, $3, $4, $5, 'shrinkage', -2, 100)`,
+      [tenant, entry, exit, location, product],
+    );
+    await expect(
+      sp3.query(`insert into inventory_documents (id, tenant_id, kind, location_id, occurred_at, payload_hash, created_by) values (gen_random_uuid(), $1, 'sale', $2, now(), 'h', $3)`, [
+        tenant,
+        location,
+        user,
+      ]),
+    ).rejects.toThrow(/inventory_documents_kind_check/);
+
+    await migrateSp3(migrationsFolder);
+    expect((await sp3.query('select time_zone, read_only from tenants')).rows).toEqual([{ time_zone: 'America/Havana', read_only: false }]);
+    expect((await sp3.query('select sum(quantity_delta)::text as stock, count(*)::int as n from inventory_movements')).rows).toEqual([{ stock: '8.000', n: 2 }]);
+    const { rows } = await sp3.query(
+      `select c.relname, c.relrowsecurity and c.relforcerowsecurity as forced,
+              has_table_privilege('monaco_app', c.oid, 'SELECT') as sel, has_table_privilege('monaco_app', c.oid, 'INSERT') as ins,
+              has_table_privilege('monaco_app', c.oid, 'UPDATE') as upd, has_table_privilege('monaco_app', c.oid, 'DELETE') as del
+       from pg_class c where c.relnamespace = 'public'::regnamespace and c.relname in ('sales', 'sale_lines') order by c.relname`,
+    );
+    expect(rows).toEqual([
+      { relname: 'sale_lines', forced: true, sel: true, ins: true, upd: false, del: false },
+      { relname: 'sales', forced: true, sel: true, ins: true, upd: false, del: false },
+    ]);
+    expect(
+      (await sp3.query(`select has_column_privilege('monaco_app', 'tenants', 'time_zone', 'UPDATE') as tz, has_column_privilege('monaco_app', 'tenants', 'read_only', 'UPDATE') as ro`)).rows,
+    ).toEqual([{ tz: false, ro: false }]);
+    // The sale kind now fits, with a negative movement only.
+    const sale = '00000000-0000-4000-8000-000000000006';
+    await sp3.query(`insert into inventory_documents (id, tenant_id, kind, location_id, occurred_at, payload_hash, created_by) values ($1, $2, 'sale', $3, now(), 'h', $4)`, [
+      sale,
+      tenant,
+      location,
+      user,
+    ]);
+    await expect(
+      sp3.query(`insert into inventory_movements (id, tenant_id, document_id, location_id, product_id, kind, quantity_delta, unit_cost) values (gen_random_uuid(), $1, $2, $3, $4, 'sale', 1, 100)`, [
+        tenant,
+        sale,
+        location,
+        product,
+      ]),
+    ).rejects.toThrow(/inventory_movements_sign_check/);
   });
 });

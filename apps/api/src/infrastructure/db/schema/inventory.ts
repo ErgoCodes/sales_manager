@@ -64,6 +64,10 @@ export const inventoryDocuments = pgTable(
       foreignColumns: [t.id, t.tenantId],
     }),
     index('inventory_documents_tenant_id_location_id_created_at_id_idx').on(t.tenantId, t.locationId, t.createdAt, t.id),
+    // Losses and reversed entries in the reports (SP4 spec, "Consultas e índices").
+    index('inventory_documents_tenant_id_location_id_occurred_at_idx')
+      .on(t.tenantId, t.locationId, t.occurredAt)
+      .where(sql`${t.kind} in ('exit', 'entry')`),
     tenantIsolationPolicy('inventory_documents'),
   ],
 );

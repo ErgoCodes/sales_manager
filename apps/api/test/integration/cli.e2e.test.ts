@@ -91,6 +91,24 @@ describe('tenant:create', () => {
     expect(await count('tenants')).toBe(0);
   });
 
+  it('stores the time zone given with --time-zone, and America/Havana without it (SP4 · D3)', async () => {
+    const out = capture();
+    await runTenantCreate([...ARGS, '--time-zone', 'Europe/Madrid'], OWNER_URL(), out.write);
+    await runTenantCreate(['--name', 'B', '--slug', 'b', '--owner-email', 'b@b.example'], OWNER_URL(), capture().write);
+    expect((await admin.query('select slug, time_zone, read_only from tenants order by slug')).rows).toEqual([
+      { slug: 'acme', time_zone: 'Europe/Madrid', read_only: false },
+      { slug: 'b', time_zone: 'America/Havana', read_only: false },
+    ]);
+    expect(out.lines).toContain('Time zone: Europe/Madrid');
+  });
+
+  it.each(['Mars/Olympus', '+05:00', 'havana', ''])('rejects the time zone %j without touching the database', async (zone) => {
+    const out = capture();
+    await expect(runTenantCreate([...ARGS, '--time-zone', zone], OWNER_URL(), out.write)).rejects.toThrow(/time zone/i);
+    expect(out.lines).toEqual([]);
+    expect(await count('tenants')).toBe(0);
+  });
+
   it('requires the owner connection URL', async () => {
     await expect(runTenantCreate(ARGS, {}, capture().write)).rejects.toThrow(/DATABASE_MIGRATION_URL/);
   });
