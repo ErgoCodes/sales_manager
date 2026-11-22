@@ -75,6 +75,11 @@ jobs:
         run: |
           git diff --exit-code -- packages/contracts/openapi.json apps/web/src/lib/api/schema.d.ts \
             || { echo "::error::Generated OpenAPI artifacts are stale. Run 'pnpm openapi:generate && pnpm --filter web api:generate' and commit."; exit 1; }
+      - name: Fail if the mobile client types are out of date
+        run: |
+          pnpm --filter mobile api:generate
+          git diff --exit-code -- apps/mobile/lib/api/schema.d.ts \
+            || { echo "::error::apps/mobile/lib/api/schema.d.ts is stale. Run 'pnpm --filter mobile api:generate' and commit."; exit 1; }
 
   build:
     name: Build (web, api image)
