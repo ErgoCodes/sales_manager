@@ -20,7 +20,7 @@ test.beforeAll(async ({ browser }) => {
   owner = await browser.newContext();
   ownerPage = await owner.newPage();
   await login(ownerPage, demo.owner);
-  await expect(ownerPage).toHaveURL(/\/$/);
+  await expect(ownerPage).toHaveURL(/\/tablero$/); // reports:view lands on the dashboard
   for (const name of Object.values(products)) {
     const created = await apiFetch(owner, 'POST', '/products', { name, unitOfMeasure: 'ud', category: 'Otros', currency: 'CUP' });
     expect(created.status).toBe(201);
@@ -50,7 +50,7 @@ test.describe.serial('the manager records inventory documents in their location'
 
   test('an entry raises the stock of the location', async ({ page }) => {
     await login(page, demo.manager);
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/tablero$/); // reports:view lands on the dashboard
 
     await page.goto('/inventario');
     await expect(page.getByRole('heading', { name: 'Inventario' })).toBeVisible();
@@ -69,7 +69,7 @@ test.describe.serial('the manager records inventory documents in their location'
 
   test('an exit larger than the stock is refused with the shortage, and the stock does not change', async ({ page }) => {
     await login(page, demo.manager);
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/tablero$/); // reports:view lands on the dashboard
 
     await page.goto('/inventario');
     await page.getByRole('link', { name: 'Registrar salida' }).click();

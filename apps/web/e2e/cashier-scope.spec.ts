@@ -25,7 +25,7 @@ test('the cashier only sees its own location and gets 403 on location admin acti
   const owner = await context.browser()!.newContext();
   const ownerPage = await owner.newPage();
   await login(ownerPage, demo.owner);
-  await expect(ownerPage).toHaveURL(/\/$/);
+  await expect(ownerPage).toHaveURL(/\/tablero$/); // reports:view lands on the dashboard
   const all = (await (await apiFetch(owner, 'GET', '/locations')).json()) as { items: { id: string; code: string }[] };
   const p2 = all.items.find((l) => l.code === 'P2');
   expect(p2).toBeDefined();

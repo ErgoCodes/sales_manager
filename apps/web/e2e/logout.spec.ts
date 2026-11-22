@@ -5,7 +5,7 @@ import { apiFetchWithToken, cookieValue, demo, login, logout } from './support/s
 // token that was valid a moment ago is rejected by the API (immediate revocation).
 test('logout clears the session and revokes the access token', async ({ page, context }) => {
   await login(page, demo.manager);
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/tablero$/); // reports:view lands on the dashboard
   const accessToken = await cookieValue(context, '__Host-access');
   expect(accessToken).toBeTruthy();
   expect((await apiFetchWithToken(accessToken!, 'GET', '/me')).status).toBe(200);

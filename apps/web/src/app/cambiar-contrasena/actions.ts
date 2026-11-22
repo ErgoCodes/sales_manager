@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { describeApiError, errorCode } from '@/lib/api-errors';
 import { createAuthenticatedClient } from '@/lib/api/authenticated';
 import { applyTokens } from '@/lib/session/server';
 import type { FormState } from '../login/actions';
@@ -34,6 +35,8 @@ export async function changePasswordAction(_prev: FormState, formData: FormData)
     if (response.status === 401) redirect('/login');
     if (response.status === 429) return { error: 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.' };
     if (response.status >= 500) return { error: 'El servicio no está disponible. Inténtalo de nuevo en unos minutos.' };
+    const code = errorCode(result.error);
+    if (code === 'DEMO_READ_ONLY') return { error: describeApiError(response.status, code) };
     return { error: 'No se pudo cambiar la contraseña. Revisa los datos e inténtalo de nuevo.' };
   }
 

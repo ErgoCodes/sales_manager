@@ -3,6 +3,8 @@
  * the API's own message text is never echoed to the user.
  */
 const BY_CODE: Record<string, string> = {
+  // SP4 · D10: every mutation of the public demo tenant but login, refresh and logout.
+  DEMO_READ_ONLY: 'Demo de solo lectura: puedes recorrer todo, pero los cambios no se guardan.',
   owner_invariant_violation: 'La acción dejaría al negocio sin ningún propietario activo.',
   role_in_use: 'El rol está en uso: quita sus asignaciones antes de eliminarlo.',
   system_role_immutable: 'Los roles de sistema no se pueden editar ni eliminar.',

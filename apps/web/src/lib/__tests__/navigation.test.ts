@@ -29,4 +29,9 @@ describe('navItemsFor', () => {
     expect(labels(['inventory:transfer'])).toContain('Inventario');
     expect(labels(['catalog:write'])).not.toContain('Inventario');
   });
+
+  it('shows "Tablero" right after "Inicio" with reports:view, never with reports:view_own alone', () => {
+    expect(labels(['reports:view'])).toEqual(['Inicio', 'Tablero', 'Puntos de venta', 'Dispositivos']);
+    expect(labels(['reports:view_own', 'sales:create'])).not.toContain('Tablero');
+  });
 });

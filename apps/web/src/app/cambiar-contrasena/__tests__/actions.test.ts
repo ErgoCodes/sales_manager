@@ -57,6 +57,11 @@ describe('changePasswordAction', () => {
     expect((await changePasswordAction({}, form('old-password-123', NEW))).error).toMatch(message);
   });
 
+  it('explains a read-only demo tenant (403 DEMO_READ_ONLY)', async () => {
+    post.mockResolvedValue({ data: undefined, error: { error: { code: 'DEMO_READ_ONLY', message: 'x' } }, response: { status: 403 } });
+    expect((await changePasswordAction({}, form('old-password-123', NEW))).error).toMatch(/^Demo de solo lectura/);
+  });
+
   it('sends an expired session (401 after the refresh retry) to /login', async () => {
     post.mockResolvedValue({ data: undefined, response: { status: 401 } });
     await expect(changePasswordAction({}, form('old-password-123', NEW))).rejects.toThrow('REDIRECT:/login');
