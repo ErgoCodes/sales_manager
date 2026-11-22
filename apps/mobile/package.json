@@ -15,12 +15,13 @@
     "test:coverage": "jest --coverage",
     "pretypecheck": "pnpm --filter @monaco/domain build",
     "typecheck": "tsc --noEmit",
+    "api:generate": "openapi-typescript ../../packages/contracts/openapi.json -o lib/api/schema.d.ts",
     "prepare": "husky"
   },
   "dependencies": {
-    "@monaco/domain": "workspace:*",
     "@expo/vector-icons": "^15.0.3",
     "@hookform/resolvers": "^3.3.4",
+    "@monaco/domain": "workspace:*",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
@@ -38,6 +39,7 @@
     "expo-linking": "~8.0.12",
     "expo-notifications": "~0.32.17",
     "expo-router": "~6.0.23",
+    "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-sqlite": "~16.0.10",
@@ -45,6 +47,7 @@
     "expo-symbols": "~1.0.8",
     "expo-system-ui": "~6.0.9",
     "expo-web-browser": "~15.0.11",
+    "openapi-fetch": "^0.17.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.52.0",
@@ -73,6 +76,7 @@
     "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-expo": "^54.0.17",
+    "openapi-typescript": "^7.13.0",
     "typescript": "~5.9.2"
   },
   "private": true,
@@ -81,7 +85,8 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "<rootDir>/db/__tests__/helpers.ts",
-      "<rootDir>/db/__tests__/test-db.ts"
+      "<rootDir>/db/__tests__/test-db.ts",
+      "<rootDir>/lib/session/__tests__/fake-api.ts"
     ],
     "collectCoverageFrom": [
       "db/**/*.ts",
@@ -92,7 +97,10 @@
       "!lib/backup.ts",
       "!lib/excel.ts",
       "!lib/notifications.ts",
-      "!lib/__tests__/**"
+      "!lib/__tests__/**",
+      "!lib/**/__tests__/**",
+      "!lib/session/react.ts",
+      "!lib/session/index.ts"
     ],
     "coverageThreshold": {
       "global": {

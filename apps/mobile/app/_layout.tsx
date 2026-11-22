@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initDb } from '@/db/client';
+import { useSessionLifecycle } from '@/lib/session/react';
 import migrations from '../drizzle/migrations';
 
 const db = initDb();
@@ -19,6 +20,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
+  useSessionLifecycle();
 
   if (error) {
     return (
@@ -51,6 +53,7 @@ export default function RootLayout() {
             name="configuration"
             options={{ presentation: 'modal', title: 'Configuración' }}
           />
+          <Stack.Screen name="account" options={{ presentation: 'modal', headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
