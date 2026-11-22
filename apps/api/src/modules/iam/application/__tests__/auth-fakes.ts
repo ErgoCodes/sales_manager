@@ -50,6 +50,8 @@ export class FakeIam implements TenantUnitOfWork, PreAuthLookup {
   tokens: Token[] = [];
   audit: AuditEntry[] = [];
   actorState: ActorState | null = null;
+  /** `tenants.read_only` of the fake tenant (SP4 · D10). */
+  tenantReadOnly = false;
   runs: string[] = [];
 
   addUser(overrides: Partial<UserRecord> = {}): UserRecord {
@@ -110,7 +112,7 @@ export class FakeIam implements TenantUnitOfWork, PreAuthLookup {
           Object.assign(this.users.get(id)!, { passwordHash, mustChangePassword: false, passwordExpiresAt: null });
         },
       },
-      tenants: { findCurrent: async () => ({ id: TENANT, name: 'Tenant', slug: 'tenant' }) },
+      tenants: { findCurrent: async () => ({ id: TENANT, name: 'Tenant', slug: 'tenant', readOnly: this.tenantReadOnly }) },
       devices: {
         findActive: async (id, userId) => this.devices.find((d) => d.id === id && d.userId === userId && d.revokedAt === null) ?? null,
         create: async ({ userId, label, platform, now }) => {

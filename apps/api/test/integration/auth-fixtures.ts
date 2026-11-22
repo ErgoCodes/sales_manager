@@ -7,6 +7,7 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
 import { signClientIp } from '../../src/common/http/client-ip';
 import { TEST_IP_SECRET, testConfig } from '../../src/__tests__/test-config';
+import type { AppConfig } from '../../src/config/env';
 import { uuidv7 } from '../../src/infrastructure/db/uuidv7';
 import { Argon2PasswordHasher } from '../../src/modules/iam/infrastructure/argon2-password-hasher';
 import { urls } from './helpers';
@@ -81,8 +82,11 @@ export async function seedAuth(admin: Pool): Promise<AuthSeed> {
   return { owner, cashier, other, location };
 }
 
-export async function createAuthApp(extraControllers: NonNullable<Parameters<typeof Test.createTestingModule>[0]['controllers']> = []) {
-  const config = testConfig({ DATABASE_URL: urls().app, LOG_LEVEL: (process.env.IT_LOG_LEVEL as 'error' | undefined) ?? 'silent' });
+export async function createAuthApp(
+  extraControllers: NonNullable<Parameters<typeof Test.createTestingModule>[0]['controllers']> = [],
+  overrides: Partial<AppConfig> = {},
+) {
+  const config = testConfig({ DATABASE_URL: urls().app, LOG_LEVEL: (process.env.IT_LOG_LEVEL as 'error' | undefined) ?? 'silent', ...overrides });
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)], controllers: extraControllers }).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
   configureApp(app, config);

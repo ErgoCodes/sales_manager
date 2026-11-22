@@ -7,6 +7,7 @@ import type { AuthenticatedActor } from '../domain/actor';
 export const IS_PUBLIC = 'iam:isPublic';
 export const ALLOW_PENDING_PASSWORD_CHANGE = 'iam:allowPendingPasswordChange';
 export const REQUIRED_PERMISSION = 'iam:requiredPermission';
+export const ALLOW_ON_READ_ONLY_TENANT = 'iam:allowOnReadOnlyTenant';
 
 /**
  * The AuthGuard is global: every route needs a valid access token unless it is
@@ -16,6 +17,15 @@ export const Public = () => SetMetadata(IS_PUBLIC, true);
 
 /** Routes still reachable while `must_change_password` is set (password, logout, me). */
 export const AllowPendingPasswordChange = () => SetMetadata(ALLOW_PENDING_PASSWORD_CHANGE, true);
+
+/**
+ * The only authenticated mutation a read-only tenant (the public demo, SP4 ·
+ * D10) may call: POST /auth/logout. Every other non-GET/HEAD route answers
+ * 403 DEMO_READ_ONLY (deny by default). Login and refresh are `@Public()`, so
+ * the guard never blocks them. Do not add it anywhere else: the integration
+ * test that walks every route fails if you do.
+ */
+export const AllowOnReadOnlyTenant = () => SetMetadata(ALLOW_ON_READ_ONLY_TENANT, true);
 
 /**
  * Coarse, early check: the actor holds the permission somewhere (tenant-wide or

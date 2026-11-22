@@ -64,6 +64,8 @@ export interface TenantRecord {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
+  /** `tenants.read_only`: the public demo (SP4 · D10). */
+  readonly readOnly: boolean;
 }
 
 export interface TenantRepository {
@@ -141,6 +143,8 @@ export interface StoredAssignment {
 export interface ActorState {
   readonly userActive: boolean;
   readonly mustChangePassword: boolean;
+  /** `tenants.read_only` of the user's tenant (SP4 · D10). */
+  readonly tenantReadOnly: boolean;
   readonly deviceActive: boolean;
   readonly sessionActive: boolean;
   readonly assignments: readonly StoredAssignment[];

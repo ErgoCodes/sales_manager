@@ -59,9 +59,10 @@ describe('UsersRepository', () => {
 
 describe('TenantsRepository', () => {
   it('reads the only visible tenant', async () => {
-    const { tx } = fakeTx([{ id: TENANT, name: 'A', slug: 'a' }], []);
+    const { tx, queries } = fakeTx([{ id: TENANT, name: 'A', slug: 'a', readOnly: true }], []);
     const repo = new TenantsRepository(tx);
-    expect(await repo.findCurrent()).toEqual({ id: TENANT, name: 'A', slug: 'a' });
+    expect(await repo.findCurrent()).toEqual({ id: TENANT, name: 'A', slug: 'a', readOnly: true });
+    expect(queries[0]!.sql).toBe('select id, name, slug, read_only as "readOnly" from tenants');
     expect(await repo.findCurrent()).toBeNull();
   });
 
@@ -154,18 +155,20 @@ describe('ActorStateRepository', () => {
         {
           status: 'active',
           mustChangePassword: false,
+          tenantReadOnly: true,
           deviceActive: true,
           sessionActive: true,
           assignments: [{ roleId: 'r', roleKey: null, isSystem: false, scope: 'tenant', permissions: ['sales:create', 'bogus:perm'], locationIds: [] }],
         },
       ],
-      [{ status: 'disabled', mustChangePassword: true, deviceActive: false, sessionActive: false, assignments: [] }],
+      [{ status: 'disabled', mustChangePassword: true, tenantReadOnly: false, deviceActive: false, sessionActive: false, assignments: [] }],
       [],
     );
     const repo = new ActorStateRepository(tx);
     expect(await repo.load('u', 'd', 's')).toEqual({
       userActive: true,
       mustChangePassword: false,
+      tenantReadOnly: true,
       deviceActive: true,
       sessionActive: true,
       assignments: [{ roleId: 'r', roleKey: null, isSystem: false, scope: 'tenant', permissions: ['sales:create'], locationIds: [] }],

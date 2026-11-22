@@ -9,7 +9,7 @@ import { Login } from '../application/login.use-case';
 import { Logout } from '../application/logout.use-case';
 import { RefreshSession } from '../application/refresh-session.use-case';
 import type { AuthenticatedActor } from '../domain/actor';
-import { AllowPendingPasswordChange, ClientIp, CurrentActor, Public } from './auth.decorators';
+import { AllowOnReadOnlyTenant, AllowPendingPasswordChange, ClientIp, CurrentActor, Public } from './auth.decorators';
 import { AuthTokensDto, ChangePasswordRequestDto, LoginRequestDto, RefreshRequestDto, RefreshResponseDto } from './auth.dto';
 
 @ApiTags('auth')
@@ -56,6 +56,7 @@ export class AuthController {
 
   @Post('logout')
   @AllowPendingPasswordChange()
+  @AllowOnReadOnlyTenant()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({ operationId: 'logout', summary: 'Revoke the current session' })

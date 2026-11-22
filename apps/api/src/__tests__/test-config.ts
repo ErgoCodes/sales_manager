@@ -16,6 +16,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     JWT_ISSUER: 'monaco-api',
     JWT_AUDIENCE: 'monaco',
     CLIENT_IP_HMAC_SECRET: TEST_IP_SECRET,
+    TRUSTED_PROXY_HOPS: 0,
     ...overrides,
   };
 }

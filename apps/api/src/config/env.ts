@@ -80,6 +80,12 @@ export const EnvSchema = z.object({
    * Without it the signed header is always ignored; required in production.
    */
   CLIENT_IP_HMAC_SECRET: z.preprocess((value) => (value === '' ? undefined : value), z.string().min(32).optional()),
+  /**
+   * Proxies in front of the API that append to X-Forwarded-For (SP4 · D12). Without a
+   * valid signed header, the client IP is the entry this many positions from the right.
+   * 0 (default): X-Forwarded-For is never read and the socket address is used.
+   */
+  TRUSTED_PROXY_HOPS: z.preprocess((value) => (value === '' ? undefined : value), z.coerce.number().int().min(0).max(10).default(0)),
 })
   .refine((env) => env.NODE_ENV !== 'production' || env.CLIENT_IP_HMAC_SECRET !== undefined, {
     path: ['CLIENT_IP_HMAC_SECRET'],

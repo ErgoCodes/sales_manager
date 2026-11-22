@@ -54,11 +54,14 @@ export class Login {
 
     const outcome = await this.uow.run<Outcome>(found.tenantId, async (scope) => {
       const user = await scope.users.findById(found.id);
+      // The public demo (read-only tenant) has published passwords that nobody may
+      // change, so a pending change is neither required nor can it expire there.
+      const mustChangePassword = user !== null && user.mustChangePassword && !(await scope.tenants.findCurrent())?.readOnly;
       const reason = !passwordOk
         ? 'bad_password'
         : !user || user.status !== 'active'
           ? 'disabled'
-          : user.mustChangePassword && user.passwordExpiresAt !== null && user.passwordExpiresAt <= now
+          : mustChangePassword && user.passwordExpiresAt !== null && user.passwordExpiresAt <= now
             ? 'temporary_password_expired'
             : null;
       if (reason !== null || !user) {
@@ -94,7 +97,7 @@ export class Login {
         metadata: { deviceReused: reused !== null },
         ip: command.ip,
       });
-      return { ok: true, userId: user.id, deviceId, familyId, refreshToken: refresh.token, mustChangePassword: user.mustChangePassword };
+      return { ok: true, userId: user.id, deviceId, familyId, refreshToken: refresh.token, mustChangePassword };
     });
 
     if (!outcome.ok) throw new InvalidCredentials();
