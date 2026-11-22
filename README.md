@@ -125,6 +125,8 @@ To walk through the inventory flow:
 5. Sign in as the **cashier**: the same stock page for P1 only, without average costs or write actions.
 6. Sign in as the **owner** to see both locations and the catalog (`/catalogo`), including the P2 price overrides.
 
+To see the dashboard, sign in as the **owner**: with `reports:view` the login lands on **Tablero** (`/tablero`), with sales, profit and margin per currency, the daily series, the product ranking, the comparison by location and the inventory health. The filters live in the URL (`?punto`, `?periodo=7d|30d`, `?desde` + `?hasta`, `?moneda`, `?orden`), so a link reproduces the view; the presets stay within 30 days (the reports latency budget, ADR 0007). The **manager** sees only P1; the **cashier** (`reports:view_own` only) has no "Tablero". Each view makes at most five report calls and never polls (the API throttles `/reports/*` to 30 requests per minute per IP and endpoint).
+
 ### Public demo reset
 
 `demo:reset` regenerates the public demo (ADR 0008): it connects as the schema owner (`DATABASE_MIGRATION_URL`) and, in **one** transaction, empties every tenant table (sessions included), recreates the `demo` tenant with `read_only = true` and seeds 90 days of history the same way as `db:seed` (about 7 000 sales, under a minute locally). It refuses unless `DEMO_RESET_CONFIRM=demo` is set and every tenant in the database is read-only, so it never wipes a real tenant or a `db:seed` database. Run it only against the dedicated demo database:
@@ -134,6 +136,8 @@ DEMO_RESET_CONFIRM=demo pnpm --filter api demo:reset
 ```
 
 The API refuses writes to a read-only tenant in its `AuthGuard` (`403 DEMO_READ_ONLY`); the reset calls the use cases directly, outside HTTP, so that guard is not in its path. Requests that arrive during a reset (about a minute) wait on its locks and, with the API's 5 s statement timeout, fail with an error: they never see a half-reset state. The reset also refuses to run if the database holds any tenant other than the read-only demo tenant.
+
+On the web, `DEMO_MODE=true` (server-side env of `apps/web`) shows the accounts of `DEMO_ACCOUNTS` on `/login` as buttons that fill the form (no automatic login, nothing in the URL); see `apps/web/.env.example` for the format. Any action the API refuses with `DEMO_READ_ONLY` shows "Demo de solo lectura".
 
 ### End-to-end tests
 
