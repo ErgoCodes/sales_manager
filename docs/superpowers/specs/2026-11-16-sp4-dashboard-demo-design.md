@@ -112,7 +112,7 @@ Notación: `L` es el conjunto de puntos del reporte (ver "Alcance por punto"), `
 
 ## Zona horaria y corte de día
 
-- `tenants.time_zone text not null default 'America/Havana'` (D3). Se fija al crear el tenant (`tenant:create --time-zone`, validado contra `Intl.supportedValuesOf('timeZone')`) y en el seed. `monaco_app` sigue sin `UPDATE` sobre esa columna (ADR 0003 §9 solo permite `name`); cambiarla queda fuera de SP4.
+- `tenants.time_zone text not null default 'America/Havana'` (D3). Se fija al crear el tenant (`tenant:create --time-zone`, validado contra `Intl.supportedValuesOf('timeZone')`) y en el seed. Se valida solo al escribir: las respuestas devuelven la zona guardada sin revalidarla, porque la lista de ICU de Node cambia entre versiones (ADR 0007, punto 4). `monaco_app` sigue sin `UPDATE` sobre esa columna (ADR 0003 §9 solo permite `name`); cambiarla queda fuera de SP4.
 - Los parámetros de fecha son días locales `YYYY-MM-DD` (`from`, `to`, ambos inclusive). La API convierte a `[ (from::timestamp) AT TIME ZONE tz, ((to + 1)::timestamp) AT TIME ZONE tz )`, así el filtro usa el índice de `occurred_at`. La agrupación diaria usa `(occurred_at AT TIME ZONE tz)::date` sobre `generate_series` de días locales.
 - Sin `from`/`to`, el rango es **hoy** en la zona del tenant, calculado con `now()` de la DB. Toda respuesta devuelve `from`, `to`, `timeZone` y `asOf`.
 - Rango máximo: 366 días; un rango mayor, o con `from > to`, responde `400 VALIDATION_FAILED`.

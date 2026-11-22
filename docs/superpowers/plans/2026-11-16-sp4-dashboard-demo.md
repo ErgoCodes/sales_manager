@@ -55,7 +55,7 @@ T10a (mobile sesión) ───────────────────�
 
 ### T3 · Contratos de reportes, `reports:view_own` y migración de roles de sistema `M` · `Difícil` · **crítica de seguridad** (en paralelo con T1, T2 y T10a)
 
-- [x] `packages/contracts/src/reports/`: `LocalDate`, `TimeZone`, `ReportRangeQuery` (rango ≤ 366 días, `from ≤ to`), `MoneyByCurrency`, `ReportSummary` (con `scope`, `locationIds`, `from`, `to`, `timeZone`, `asOf`), `DailySeries`, `TopProducts`, `SummaryByLocation`, `InventoryHealth`, todos con `.meta({ id })`. Enum de tipos de movimiento con `sale` (el test que compara con el dominio sigue en verde): **pendiente**, se agrega en contracts cuando T2 (que lo agrega a `@monaco/domain`) y T3 estén mergeados.
+- [x] `packages/contracts/src/reports/`: `LocalDate`, `TimeZone`, `ReportRangeQuery` (rango ≤ 366 días, `from ≤ to`), `MoneyByCurrency`, `ReportSummary` (con `scope`, `locationIds`, `from`, `to`, `timeZone`, `asOf`), `DailySeries`, `TopProducts`, `SummaryByLocation`, `InventoryHealth`, todos con `.meta({ id })`. Enum de tipos de movimiento con `sale` (el test que compara con el dominio sigue en verde): agregado en T4, junto con el `CHECK` de signo.
 - [x] Código de error `DEMO_READ_ONLY` en `ErrorResponse`.
 - [x] `reports:view_own` en `PERMISSIONS` (no administrativo); `SYSTEM_ROLES`: Cashier sin `reports:view` y con `reports:view_own` (Owner y Manager también lo reciben: el Manager lo necesita por la regla de no escalada, ver ADR 0005 §10); etiqueta y grupo en `apps/web/src/lib/permissions.ts`.
 - [x] Migración del `CHECK` de `role_permissions` (`db:generate`) y migración de datos idempotente con el procedimiento de SP3 · D11, que además quita `reports:view` de los Cashier **de sistema**.
@@ -66,13 +66,13 @@ T10a (mobile sesión) ───────────────────�
 
 ### T4 · Esquema de ventas, zona horaria y modo solo lectura en Postgres `L` · `Difícil` · **crítica de datos y seguridad** (depende de T2 y T3)
 
-- [ ] Migraciones para `sales` y `sale_lines` según el spec: UUIDv7, `tenant_id`, política + `FORCE`, `UNIQUE (id, tenant_id)`, FK compuestas (incluida `sales (id, tenant_id) → inventory_documents`), `CHECK`s (cantidad > 0, importes ≥ 0, descuento 0–100, `payment_method` contra `PAYMENT_METHODS` del dominio), índices cubrientes del spec.
-- [ ] Privilegios: `monaco_app` solo `SELECT` e `INSERT` en `sales` y `sale_lines`.
-- [ ] `inventory_movements`/`inventory_documents`: `sale` en los `CHECK` de `kind` (signo negativo) e índice parcial `(tenant_id, location_id, occurred_at) WHERE kind IN ('exit','entry')`.
-- [ ] `tenants.time_zone text not null default 'America/Havana'` y `tenants.read_only boolean not null default false`, sin `UPDATE` para `monaco_app` (sigue limitado a `name`). `tenant:create --time-zone` validado con `TimeZone`.
-- [ ] Esquema Drizzle en `apps/api/src/infrastructure/db/schema/`.
-- [ ] Tests de integración: guard de RLS + `FORCE` y FK compuestas en las tablas nuevas; matriz de `schema-guards.test.ts` ampliada (ventas append-only); `monaco_app` no puede cambiar `time_zone` ni `read_only`; un `sale` positivo viola el `CHECK`.
-- [ ] Actualizar ADR 0003 (tablas y privilegios) y ADR 0006 (tipo `sale`).
+- [x] Migraciones para `sales` y `sale_lines` según el spec: UUIDv7, `tenant_id`, política + `FORCE`, `UNIQUE (id, tenant_id)`, FK compuestas (incluida `sales (id, tenant_id) → inventory_documents`), `CHECK`s (cantidad > 0, importes ≥ 0, descuento 0–100, `payment_method` contra `PAYMENT_METHODS` del dominio), índices cubrientes del spec.
+- [x] Privilegios: `monaco_app` solo `SELECT` e `INSERT` en `sales` y `sale_lines`.
+- [x] `inventory_movements`/`inventory_documents`: `sale` en los `CHECK` de `kind` (signo negativo) e índice parcial `(tenant_id, location_id, occurred_at) WHERE kind IN ('exit','entry')`.
+- [x] `tenants.time_zone text not null default 'America/Havana'` y `tenants.read_only boolean not null default false`, sin `UPDATE` para `monaco_app` (sigue limitado a `name`). `tenant:create --time-zone` validado con `TimeZone`.
+- [x] Esquema Drizzle en `apps/api/src/infrastructure/db/schema/`.
+- [x] Tests de integración: guard de RLS + `FORCE` y FK compuestas en las tablas nuevas; matriz de `schema-guards.test.ts` ampliada (ventas append-only); `monaco_app` no puede cambiar `time_zone` ni `read_only`; un `sale` positivo viola el `CHECK`.
+- [x] Actualizar ADR 0003 (tablas y privilegios) y ADR 0006 (tipo `sale`).
 
 **Hecho cuando:** las migraciones aplican sobre una base limpia y sobre una con datos de SP3, y todos los tests de arriba pasan en `test:integration`.
 
