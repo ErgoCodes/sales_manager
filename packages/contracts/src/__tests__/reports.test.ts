@@ -143,6 +143,7 @@ describe('ReportSummary', () => {
     for (const timeZone of ['Europe/Kyiv', 'Europe/Kiev', 'America/Havana']) {
       expect(ReportSummary.safeParse({ ...ok, timeZone }).success, timeZone).toBe(true);
       expect(DailySeries.shape.timeZone.safeParse(timeZone).success, timeZone).toBe(true);
+      expect(InventoryHealth.shape.timeZone.safeParse(timeZone).success, timeZone).toBe(true);
     }
   });
 });

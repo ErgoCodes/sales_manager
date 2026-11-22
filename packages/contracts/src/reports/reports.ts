@@ -211,7 +211,7 @@ function healthList<T extends z.ZodRawShape>(extra: T) {
 export const InventoryHealth = z
   .object({
     locationIds,
-    timeZone: TimeZone,
+    timeZone: StoredTimeZone,
     asOf: IsoDateTime,
     lowStock: healthList({ threshold: z.number().meta({ description: 'Effective threshold (getProductThreshold)' }) }),
     stagnant: healthList({ lastSaleDate: LocalDate.nullable().meta({ description: 'Local day of the last sale; null if never sold' }) }),
