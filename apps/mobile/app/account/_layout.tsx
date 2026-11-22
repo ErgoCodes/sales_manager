@@ -5,6 +5,7 @@ export default function AccountLayout() {
     <Stack>
       <Stack.Screen name="index" options={{ title: 'Cuenta en línea' }} />
       <Stack.Screen name="login" options={{ title: 'Iniciar sesión' }} />
+      <Stack.Screen name="today" options={{ title: 'Hoy' }} />
       <Stack.Screen name="change-password" options={{ title: 'Cambiar contraseña', gestureEnabled: false }} />
     </Stack>
   );

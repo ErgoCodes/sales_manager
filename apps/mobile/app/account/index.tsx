@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 
@@ -36,6 +37,7 @@ function AccountDetails() {
         <Text variant="overline">Negocio</Text>
         <Text variant="heading">{tenant.name}</Text>
       </Card>
+      <Button label="Hoy" icon="chart.bar.fill" onPress={() => router.push('/account/today')} />
       <Button label="Cerrar sesión" variant="destructive" onPress={handleLogout} loading={signingOut} />
     </ScrollView>
   );
