@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
@@ -290,6 +291,19 @@ export default function ConfigurationScreen() {
             </Text>
           </View>
         ) : null}
+
+        <Text variant="heading">Cuenta en línea</Text>
+        <Card style={{ gap: 12 }}>
+          <Text variant="caption">
+            Inicia sesión con tu cuenta del negocio para ver los datos del
+            servidor. La caja de este dispositivo no cambia.
+          </Text>
+          <Button
+            label="Abrir cuenta en línea"
+            variant="soft"
+            onPress={() => router.push("/account")}
+          />
+        </Card>
 
         <Text variant="heading">Respaldo</Text>
         <Card style={{ gap: 12 }}>
