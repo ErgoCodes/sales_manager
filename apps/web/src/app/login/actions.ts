@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { createAnonymousClient } from '@/lib/api/authenticated';
+import { createAnonymousClient, createAuthenticatedClient } from '@/lib/api/authenticated';
 import { applyTokens, clearSession, getSession } from '@/lib/session/server';
 import { cookies } from 'next/headers';
 
@@ -14,6 +14,20 @@ const GENERIC_ERROR = 'No se pudo iniciar sesión. Revisa tus datos e inténtalo
 
 function deviceLabel(userAgent: string | null): string {
   return (userAgent?.trim() || 'Navegador web').slice(0, 100);
+}
+
+/**
+ * Where a fresh session lands: `/tablero` for whoever holds `reports:view` (spec SP4, "Web: dashboard"),
+ * `/` otherwise. Reads `GET /me` with the new access token; any failure falls back to `/`.
+ */
+async function landingFor(accessToken: string): Promise<string> {
+  try {
+    const api = await createAuthenticatedClient({ canRefresh: false, accessToken });
+    const { data } = await api.GET('/me', { signal: AbortSignal.timeout(10_000), cache: 'no-store' });
+    return data?.permissions.some((grant) => grant.permission === 'reports:view') ? '/tablero' : '/';
+  } catch {
+    return '/';
+  }
 }
 
 export async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -51,5 +65,5 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
   const jar = await cookies();
   clearSession(jar);
   applyTokens(jar, data);
-  redirect(data.mustChangePassword ? '/cambiar-contrasena' : '/');
+  redirect(data.mustChangePassword ? '/cambiar-contrasena' : await landingFor(data.accessToken));
 }

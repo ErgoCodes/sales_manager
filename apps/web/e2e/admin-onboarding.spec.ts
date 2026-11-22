@@ -10,7 +10,7 @@ test.describe.serial('owner onboards a new user', () => {
 
   test('owner creates a location and a user, then assigns a role there', async ({ page }) => {
     await login(page, demo.owner);
-    await expect(page.getByRole('heading', { name: 'Estado del sistema' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tablero', level: 1 })).toBeVisible();
 
     await page.goto('/puntos-de-venta');
     await page.getByRole('button', { name: 'Nuevo punto de venta' }).click();

@@ -22,6 +22,10 @@ describe('describeApiError', () => {
     expect(describeApiError(422, 'invalid_scope')).toContain('alcance');
   });
 
+  it('shows the read-only demo notice for DEMO_READ_ONLY, whatever the action', () => {
+    expect(describeApiError(403, 'DEMO_READ_ONLY')).toMatch(/^Demo de solo lectura/);
+  });
+
   it('explains the catalog codes (ARCHIVED, CURRENCY_MISMATCH) and a 400', () => {
     expect(describeApiError(409, 'ARCHIVED')).toContain('archivado');
     const currency = describeApiError(422, 'CURRENCY_MISMATCH');

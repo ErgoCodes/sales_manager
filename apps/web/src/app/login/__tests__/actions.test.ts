@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const jar = new Map<string, { value: string; options?: Record<string, unknown> }>();
 const setSpy = vi.fn();
 const post = vi.fn();
+const getMe = vi.fn();
+const authenticatedWith = vi.fn();
 vi.mock('next/headers', () => ({
   cookies: async () => ({
     get: (n: string) => jar.get(n),
@@ -18,7 +20,13 @@ vi.mock('next/navigation', () => ({
     throw new Error(`REDIRECT:${to}`);
   },
 }));
-vi.mock('@/lib/api/authenticated', () => ({ createAnonymousClient: async () => ({ POST: post }) }));
+vi.mock('@/lib/api/authenticated', () => ({
+  createAnonymousClient: async () => ({ POST: post }),
+  createAuthenticatedClient: async (options: unknown) => {
+    authenticatedWith(options);
+    return { GET: getMe };
+  },
+}));
 
 import { loginAction } from '../actions';
 
@@ -34,6 +42,9 @@ beforeEach(() => {
   jar.clear();
   setSpy.mockReset();
   post.mockReset();
+  getMe.mockReset();
+  authenticatedWith.mockReset();
+  getMe.mockResolvedValue({ data: { permissions: [] }, response: { status: 200 } });
 });
 
 describe('loginAction', () => {
@@ -72,6 +83,30 @@ describe('loginAction', () => {
     const state = await loginAction({}, form('a@b.co', 'x'));
     expect(state.error).toMatch(message);
     expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it('lands a user with reports:view on /tablero, reading /me with the new access token', async () => {
+    post.mockResolvedValue({ data: { accessToken: 'fresh', refreshToken: 'r', expiresIn: 600, deviceId: DEVICE, mustChangePassword: false }, response: { status: 200 } });
+    getMe.mockResolvedValue({ data: { permissions: [{ permission: 'reports:view', scope: { type: 'locations', locationIds: [DEVICE] } }] }, response: { status: 200 } });
+    await expect(loginAction({}, form('a@b.co', 'x'))).rejects.toThrow('REDIRECT:/tablero');
+    expect(getMe).toHaveBeenCalledWith('/me', expect.anything());
+    expect(authenticatedWith).toHaveBeenCalledWith({ canRefresh: false, accessToken: 'fresh' });
+  });
+
+  it.each([
+    ['only reports:view_own (cashier)', async () => ({ data: { permissions: [{ permission: 'reports:view_own', scope: { type: 'tenant' } }] }, response: { status: 200 } })],
+    ['a failed /me', async () => ({ data: undefined, response: { status: 503 } })],
+    ['an unreachable API', async () => Promise.reject(new Error('down'))],
+  ])('lands on / with %s', async (_label, me) => {
+    post.mockResolvedValue({ data: { accessToken: 'a', refreshToken: 'r', expiresIn: 600, deviceId: DEVICE, mustChangePassword: false }, response: { status: 200 } });
+    getMe.mockImplementation(me);
+    await expect(loginAction({}, form('a@b.co', 'x'))).rejects.toThrow(/^REDIRECT:\/$/);
+  });
+
+  it('a user who must change the password goes there even with reports:view, without reading /me', async () => {
+    post.mockResolvedValue({ data: { accessToken: 'a', refreshToken: 'r', expiresIn: 600, deviceId: DEVICE, mustChangePassword: true }, response: { status: 200 } });
+    await expect(loginAction({}, form('a@b.co', 'x'))).rejects.toThrow('REDIRECT:/cambiar-contrasena');
+    expect(getMe).not.toHaveBeenCalled();
   });
 
   it('maps a network failure to a connection error', async () => {

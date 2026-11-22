@@ -117,14 +117,16 @@ T10a (mobile sesión) ───────────────────�
 
 ### T9 · Web: tablero `L` · `Media` (depende de T6; en paralelo con T8 y T10b)
 
-- [ ] `/tablero` en `(backoffice)` con filtros en la URL (punto, período, moneda), tarjetas, serie diaria, ranking, comparativa por punto y salud del inventario, cada tarjeta en su `<Suspense>` y sin `use cache` sobre datos del usuario.
-- [ ] Gráficos SVG propios con atributos de presentación y tabla equivalente; nada de atributos `style` (la CSP sigue igual, verificado con `next build && next start`).
-- [ ] Importes con `Intl.NumberFormat` y la moneda; estados vacío, de error (403/404/400 en español) y de carga.
-- [ ] Navegación: "Tablero" según `reports:view`; aterrizaje en `/tablero` tras el login para quien lo tiene.
-- [ ] `DEMO_MODE` (server-only): en `/login`, las tres cuentas demo con botones que completan el formulario; en toda acción que reciba `DEMO_READ_ONLY`, el mensaje "Demo de solo lectura".
-- [ ] Tests de componentes: filtros y URL, tarjeta con varias monedas, gráfico sin atributos `style`, aviso de solo lectura.
+- [x] `/tablero` en `(backoffice)` con filtros en la URL (punto, período, moneda), tarjetas, serie diaria, ranking, comparativa por punto y salud del inventario, cada tarjeta en su `<Suspense>` y sin `use cache` sobre datos del usuario.
+- [x] Gráficos SVG propios con atributos de presentación y tabla equivalente; nada de atributos `style` (la CSP sigue igual, verificado con `next build && next start`).
+- [x] Importes con `Intl.NumberFormat` y la moneda; estados vacío, de error (403/404/400 en español) y de carga.
+- [x] Navegación: "Tablero" según `reports:view`; aterrizaje en `/tablero` tras el login para quien lo tiene.
+- [x] `DEMO_MODE` (server-only): en `/login`, las tres cuentas demo con botones que completan el formulario; en toda acción que reciba `DEMO_READ_ONLY`, el mensaje "Demo de solo lectura".
+- [x] Tests de componentes: filtros y URL, tarjeta con varias monedas, gráfico sin atributos `style`, aviso de solo lectura.
 
 **Hecho cuando:** el Owner del seed ve el tablero con datos y cambia período y punto; el Manager solo ve su punto; el Cashier no ve "Tablero"; y la CSP no reporta violaciones en el build de producción.
+
+> **Notas de la implementación:** los períodos predefinidos son Hoy, 7 días y 30 días; "Este mes" queda fuera porque llega a 31 días y el presupuesto de los reportes cubre hasta 30 (enmienda del 2026-11-22); el rango a mano se manda tal cual y la API lo valida (`400` en español). Los 7 y 30 días terminan en el "hoy" del tenant, que sale de `timeZone`/`asOf` de `GET /reports/inventory-health` (`/me` no trae la zona). Las cuentas de `DEMO_MODE` vienen de `DEMO_ACCOUNTS` (JSON, env del servidor web), no del código. Los gráficos SVG son componentes de cliente: renderizados desde un Server Component, el stream RSC podía partir un `<svg>` y el SSR emitía `<svg style="display:none">`, que la CSP bloquea; verificado con `next build && next start` (suite e2e y una pasada por todos los períodos sin violaciones).
 
 ### T10a · Mobile: cliente API y sesión online `L` · `Difícil` · **crítica de seguridad** (sin dependencias de este plan; en paralelo con T1, T2 y T3)
 

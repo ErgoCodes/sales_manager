@@ -12,7 +12,7 @@ async function refresh(refreshToken: string): Promise<Response> {
 test('a reused refresh token closes the session', async ({ page, context }) => {
   test.setTimeout(90_000);
   await login(page, demo.owner);
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/tablero$/); // reports:view lands on the dashboard
   const stolen = await cookieValue(context, '__Host-refresh');
   expect(stolen).toBeTruthy();
 
