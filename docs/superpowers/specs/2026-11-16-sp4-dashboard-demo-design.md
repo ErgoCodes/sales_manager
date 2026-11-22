@@ -129,7 +129,7 @@ Notación: `L` es el conjunto de puntos del reporte (ver "Alcance por punto"), `
 | Rol de sistema | Cambia |
 |---|---|
 | Owner | + `reports:view_own` (tiene todos) |
-| Manager | sin cambios (`reports:view`) |
+| Manager | + `reports:view_own` (subconjunto de `reports:view`, que conserva; lo exige la regla de no escalada para seguir gestionando Cashiers) |
 | Cashier | − `reports:view`, + `reports:view_own` |
 
 ## API de reportes
