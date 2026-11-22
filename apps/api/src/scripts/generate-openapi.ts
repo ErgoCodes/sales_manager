@@ -26,6 +26,7 @@ const PLACEHOLDER_CONFIG: AppConfig = {
   JWT_PRIVATE_JWK: generateSigningJwk('openapi').privateJwk,
   JWT_ISSUER: 'monaco-api',
   JWT_AUDIENCE: 'monaco',
+  TRUSTED_PROXY_HOPS: 0,
 };
 
 async function main(): Promise<void> {

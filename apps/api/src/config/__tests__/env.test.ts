@@ -24,7 +24,16 @@ describe('loadConfig', () => {
       JWT_PRIVATE_JWK: privateJwk,
       JWT_ISSUER: 'monaco-api',
       JWT_AUDIENCE: 'monaco',
+      TRUSTED_PROXY_HOPS: 0,
     });
+  });
+
+  it('parses TRUSTED_PROXY_HOPS as a small non-negative integer', () => {
+    expect(loadConfig({ ...valid, TRUSTED_PROXY_HOPS: '2' }).TRUSTED_PROXY_HOPS).toBe(2);
+    expect(loadConfig({ ...valid, TRUSTED_PROXY_HOPS: '' }).TRUSTED_PROXY_HOPS).toBe(0);
+    for (const bad of ['-1', '1.5', 'one', '11']) {
+      expect(() => loadConfig({ ...valid, TRUSTED_PROXY_HOPS: bad })).toThrow(/TRUSTED_PROXY_HOPS/);
+    }
   });
 
   it('coerces PORT from a string', () => {

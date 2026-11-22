@@ -70,7 +70,7 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     // The client IP is resolved before any guard (AuthGuard, throttler) runs.
     consumer
-      .apply(...bodyParsers(), clientIpMiddleware(this.config.CLIENT_IP_HMAC_SECRET))
+      .apply(...bodyParsers(), clientIpMiddleware(this.config.CLIENT_IP_HMAC_SECRET, { trustedProxyHops: this.config.TRUSTED_PROXY_HOPS }))
       .forRoutes({ path: '{/*splat}', method: RequestMethod.ALL });
   }
 }
