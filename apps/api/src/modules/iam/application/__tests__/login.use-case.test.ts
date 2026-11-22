@@ -73,6 +73,14 @@ describe('Login', () => {
     expect((await login.execute({ email: user.email, password: PASSWORD, ip: null })).mustChangePassword).toBe(true);
   });
 
+  it('in a read-only tenant neither requires a password change nor expires the temporary password', async () => {
+    iam.tenantReadOnly = true;
+    const user = iam.addUser({ mustChangePassword: true, passwordExpiresAt: new Date('2026-11-05T11:59:59Z') });
+    const result = await login.execute({ email: user.email, password: PASSWORD, ip: null });
+    expect(result.mustChangePassword).toBe(false);
+    expect(iam.audit.map((e) => e.type)).toEqual(['login_succeeded']);
+  });
+
   it('pays the dummy hash for an unknown email and logs it without a tenant', async () => {
     await expect(login.execute({ email: 'ghost@example.com', password: PASSWORD, ip: '10.0.0.9' })).rejects.toBeInstanceOf(InvalidCredentials);
     expect(fakeHasher.dummyCalls).toBe(1);

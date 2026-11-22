@@ -16,7 +16,7 @@ export class GetMe {
     }));
     if (!user || !tenant) throw new InvalidSession();
     return {
-      user: { id: user.id, email: user.email, displayName: user.displayName, mustChangePassword: user.mustChangePassword },
+      user: { id: user.id, email: user.email, displayName: user.displayName, mustChangePassword: user.mustChangePassword && !tenant.readOnly },
       tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
       deviceId: actor.deviceId,
       permissions: toGrants(actor.effective).map((grant) => ({

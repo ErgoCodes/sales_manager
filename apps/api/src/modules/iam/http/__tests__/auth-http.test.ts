@@ -8,7 +8,7 @@ import type { AuthenticatedActor } from '../../domain/actor';
 import { InvalidCredentials, InvalidCurrentPassword, InvalidSession } from '../../domain/auth-errors';
 import { effectivePermissions } from '../../domain/permissions';
 import { AuthController } from '../auth.controller';
-import { AllowPendingPasswordChange, ClientIp, CurrentActor, Public, RequirePermission } from '../auth.decorators';
+import { AllowOnReadOnlyTenant, AllowPendingPasswordChange, ClientIp, CurrentActor, Public, RequirePermission } from '../auth.decorators';
 import { AuthGuard } from '../auth.guard';
 import { mapException } from '../../../../common/http/all-exceptions.filter';
 import {
@@ -28,7 +28,7 @@ import { MeController } from '../me.controller';
 const LOCATION = '0190a000-0000-7000-8000-0000000000aa';
 const actor = (overrides: Partial<AuthenticatedActor> = {}): AuthenticatedActor => {
   const assignments = [{ role: { id: 'r', key: null, isSystem: false, permissions: ['sales:create' as const] }, scope: { type: 'locations' as const, locationIds: [LOCATION] } }];
-  return { userId: 'u', tenantId: 't', deviceId: 'd', sessionId: 's', mustChangePassword: false, assignments, effective: effectivePermissions(assignments), ...overrides };
+  return { userId: 'u', tenantId: 't', deviceId: 'd', sessionId: 's', mustChangePassword: false, tenantReadOnly: false, assignments, effective: effectivePermissions(assignments), ...overrides };
 };
 
 class Routes {
@@ -37,10 +37,11 @@ class Routes {
   @AllowPendingPasswordChange() pending() {}
   @RequirePermission('sales:create') sell() {}
   @RequirePermission('users:manage') manageUsers() {}
+  @AllowOnReadOnlyTenant() @AllowPendingPasswordChange() logout() {}
 }
 
-function context(handler: keyof Routes, headers: Record<string, string> = {}) {
-  const request: { headers: Record<string, string>; actor?: AuthenticatedActor; clientIp?: string | null } = { headers };
+function context(handler: keyof Routes, headers: Record<string, string> = {}, method = 'POST') {
+  const request: { headers: Record<string, string>; method: string; actor?: AuthenticatedActor; clientIp?: string | null } = { headers, method };
   const ctx = {
     getHandler: () => Routes.prototype[handler],
     getClass: () => Routes,
@@ -92,6 +93,29 @@ describe('AuthGuard', () => {
     expect((error as HttpException).getStatus()).toBe(403);
     expect((error as HttpException).getResponse()).toEqual({ code: 'PASSWORD_CHANGE_REQUIRED', message: 'Password change required' });
     await expect(g.canActivate(context('pending', BEARER).ctx)).resolves.toBe(true);
+  });
+
+  it('answers 403 DEMO_READ_ONLY to every mutation of a read-only tenant but the allow-listed routes', async () => {
+    const { guard: g } = guard(actor({ tenantReadOnly: true }));
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'post']) {
+      for (const handler of ['closed', 'pending', 'sell'] as const) {
+        const error = await g.canActivate(context(handler, BEARER, method).ctx).catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getStatus()).toBe(403);
+        expect((error as HttpException).getResponse()).toEqual({ code: 'DEMO_READ_ONLY', message: 'This demo is read-only' });
+      }
+      await expect(g.canActivate(context('logout', BEARER, method).ctx)).resolves.toBe(true);
+    }
+    for (const method of ['GET', 'HEAD']) {
+      await expect(g.canActivate(context('closed', BEARER, method).ctx)).resolves.toBe(true);
+    }
+    // Read-only never lifts the permission check.
+    await expect(g.canActivate(context('manageUsers', BEARER, 'GET').ctx)).rejects.toThrow(new ForbiddenException('Forbidden'));
+  });
+
+  it('lets a writable tenant mutate', async () => {
+    const { guard: g } = guard(actor());
+    await expect(g.canActivate(context('closed', BEARER, 'DELETE').ctx)).resolves.toBe(true);
   });
 
   it('@RequirePermission passes with the permission anywhere and answers 403 otherwise', async () => {

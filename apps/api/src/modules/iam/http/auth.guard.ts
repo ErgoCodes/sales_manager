@@ -5,10 +5,11 @@ import type { Request } from 'express';
 
 import type { Authenticate } from '../application/authenticate.use-case';
 import { hasPermissionAnywhere } from '../domain/permissions';
-import { ALLOW_PENDING_PASSWORD_CHANGE, IS_PUBLIC, REQUIRED_PERMISSION } from './auth.decorators';
+import { ALLOW_ON_READ_ONLY_TENANT, ALLOW_PENDING_PASSWORD_CHANGE, IS_PUBLIC, REQUIRED_PERMISSION } from './auth.decorators';
 
 const BEARER = /^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/;
 const MAX_TOKEN_LENGTH = 4096;
+const READ_METHODS = new Set(['GET', 'HEAD']);
 
 /**
  * Global guard (APP_GUARD). Every route but the `@Public()` ones needs
@@ -16,6 +17,9 @@ const MAX_TOKEN_LENGTH = 4096;
  * is re-checked against the database on every request (see `Authenticate`).
  * While `must_change_password` is set, only `@AllowPendingPasswordChange()`
  * routes answer; the rest get 403 PASSWORD_CHANGE_REQUIRED.
+ * In a read-only tenant (the public demo, SP4 · D10) every route that is not
+ * GET/HEAD answers 403 DEMO_READ_ONLY unless it is `@AllowOnReadOnlyTenant()`
+ * (only logout): a new mutating route is blocked without anyone remembering to.
  */
 export class AuthGuard implements CanActivate {
   constructor(
@@ -35,6 +39,14 @@ export class AuthGuard implements CanActivate {
     const actor = await this.authenticate.execute(match[1]!);
     if (!actor) throw new UnauthorizedException('Invalid or expired token');
     request.actor = actor;
+
+    if (
+      actor.tenantReadOnly &&
+      !READ_METHODS.has(request.method?.toUpperCase()) &&
+      !this.reflector.getAllAndOverride<boolean>(ALLOW_ON_READ_ONLY_TENANT, targets)
+    ) {
+      throw new HttpException({ code: 'DEMO_READ_ONLY', message: 'This demo is read-only' }, HttpStatus.FORBIDDEN);
+    }
 
     if (actor.mustChangePassword && !this.reflector.getAllAndOverride<boolean>(ALLOW_PENDING_PASSWORD_CHANGE, targets)) {
       throw new HttpException({ code: 'PASSWORD_CHANGE_REQUIRED', message: 'Password change required' }, HttpStatus.FORBIDDEN);

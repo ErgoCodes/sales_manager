@@ -8,6 +8,7 @@ import { filterCatalogPermissions, rows } from '../sql-helpers';
 interface Row {
   status: string;
   mustChangePassword: boolean;
+  tenantReadOnly: boolean;
   deviceActive: boolean;
   sessionActive: boolean;
   assignments: {
@@ -22,8 +23,9 @@ interface Row {
 
 /**
  * The per-request check of the AuthGuard, in ONE indexed query: user state,
- * device not revoked, session (refresh family) still alive, and every
- * assignment with its role's permissions and its non-archived locations.
+ * whether the tenant is read-only (the public demo), device not revoked,
+ * session (refresh family) still alive, and every assignment with its role's
+ * permissions and its non-archived locations.
  */
 export class ActorStateRepository implements ActorStateReader {
   constructor(private readonly tx: TenantTransaction) {}
@@ -32,6 +34,7 @@ export class ActorStateRepository implements ActorStateReader {
     const [row] = await rows<Row>(
       this.tx,
       sql`select u.status, u.must_change_password as "mustChangePassword",
+                 t.read_only as "tenantReadOnly",
                  d.revoked_at is null as "deviceActive",
                  exists (select 1 from refresh_tokens r
                          where r.tenant_id = d.tenant_id and r.family_id = ${sessionId}
@@ -50,12 +53,14 @@ export class ActorStateRepository implements ActorStateReader {
                    where a.user_id = u.id and a.tenant_id = u.tenant_id), '[]'::json) as assignments
           from users u
           join devices d on d.id = ${deviceId} and d.user_id = u.id and d.tenant_id = u.tenant_id
+          join tenants t on t.id = u.tenant_id
           where u.id = ${userId}`,
     );
     if (!row) return null;
     return {
       userActive: row.status === 'active',
       mustChangePassword: row.mustChangePassword,
+      tenantReadOnly: row.tenantReadOnly,
       deviceActive: row.deviceActive,
       sessionActive: row.sessionActive,
       assignments: row.assignments.map(

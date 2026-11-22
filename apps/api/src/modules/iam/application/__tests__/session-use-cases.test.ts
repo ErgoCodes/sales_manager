@@ -34,6 +34,7 @@ describe('session use cases', () => {
       deviceId: result.deviceId,
       sessionId: claims.sid,
       mustChangePassword: true,
+      tenantReadOnly: false,
       assignments: [],
       effective: effectivePermissions([]),
     };
@@ -44,6 +45,7 @@ describe('session use cases', () => {
     const state = {
       userActive: true,
       mustChangePassword: false,
+      tenantReadOnly: false,
       deviceActive: true,
       sessionActive: true,
       assignments: [
@@ -55,10 +57,24 @@ describe('session use cases', () => {
     it('resolves the actor and its effective permissions from one read in the token tenant', async () => {
       iam.actorState = state;
       const resolved = await new Authenticate(tokens, iam).execute(accessToken);
-      expect(resolved).toMatchObject({ userId: actor.userId, tenantId: TENANT, deviceId: actor.deviceId, sessionId: actor.sessionId, mustChangePassword: false });
+      expect(resolved).toMatchObject({
+        userId: actor.userId,
+        tenantId: TENANT,
+        deviceId: actor.deviceId,
+        sessionId: actor.sessionId,
+        mustChangePassword: false,
+        tenantReadOnly: false,
+      });
       expect(resolved!.effective.tenantWide).toEqual(new Set(['reports:view']));
       expect(resolved!.effective.byLocation.get(LOCATION)).toEqual(new Set(['sales:create']));
       expect(iam.runs.at(-1)).toBe(TENANT);
+    });
+
+    it('flags a read-only tenant and never requires a password change there', async () => {
+      iam.actorState = { ...state, mustChangePassword: true, tenantReadOnly: true };
+      expect(await new Authenticate(tokens, iam).execute(accessToken)).toMatchObject({ tenantReadOnly: true, mustChangePassword: false });
+      iam.actorState = { ...state, mustChangePassword: true };
+      expect(await new Authenticate(tokens, iam).execute(accessToken)).toMatchObject({ tenantReadOnly: false, mustChangePassword: true });
     });
 
     it.each([
@@ -161,6 +177,11 @@ describe('session use cases', () => {
           { permission: 'reports:view', scope: { type: 'tenant' } },
         ],
       });
+    });
+
+    it('reports no pending password change in a read-only tenant', async () => {
+      iam.tenantReadOnly = true;
+      expect((await new GetMe(iam).execute(actor)).user.mustChangePassword).toBe(false);
     });
 
     it('fails as an invalid session if the user is gone', async () => {

@@ -10,7 +10,7 @@ export class TenantsRepository implements TenantRepository, TenantMutex {
 
   /** RLS on `tenants` keys on `id`: inside the unit of work only the current tenant is visible. */
   async findCurrent(): Promise<TenantRecord | null> {
-    const [row] = await rows<TenantRecord>(this.tx, sql`select id, name, slug from tenants`);
+    const [row] = await rows<TenantRecord>(this.tx, sql`select id, name, slug, read_only as "readOnly" from tenants`);
     return row ?? null;
   }
 
