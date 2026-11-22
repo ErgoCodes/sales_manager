@@ -12,7 +12,7 @@ import {
   tokens,
 } from './fake-api';
 
-import { PasswordChangeRequiredError, createSession, type SessionDeps } from '../session';
+import { PasswordChangeRequiredError, REFRESH_TIMEOUT_MS, createSession, type SessionDeps } from '../session';
 import { REFRESH_TOKEN_KEY, DEVICE_ID_KEY, createSecureStorage } from '../secure-storage';
 
 // Hoisted above the imports by babel-jest.
@@ -186,6 +186,84 @@ describe('refresh', () => {
 
     expect(secureStoreData.get(REFRESH_TOKEN_KEY)).toBe('refresh-1');
     expect(session.getState().status).toBe('signedIn');
+  });
+
+  it('drops a GET /me that answers after logout', async () => {
+    const { session, api } = await signedIn();
+    const gate = deferred<Response>();
+    api.on('GET /me', () => gate.promise);
+    api.on('POST /auth/logout', json(204));
+
+    const pending = session.revalidate();
+    await new Promise((r) => setTimeout(r, 0));
+    await session.logout();
+    gate.resolve(json(200, me()));
+    await pending;
+
+    expect(session.getState()).toEqual({ status: 'signedOut' });
+  });
+
+  it('leaves no refresh token stored when logout runs during the rotated token write', async () => {
+    const { session, api } = await signedIn();
+    api.on('POST /auth/refresh', json(200, { accessToken: 'access-2', refreshToken: 'refresh-2', expiresIn: 600 }));
+    api.on('POST /auth/logout', json(204));
+    const writeStarted = deferred<void>();
+    const releaseWrite = deferred<void>();
+    secureStoreMock.setItemAsync.mockImplementationOnce(async (key: string, value: string) => {
+      writeStarted.resolve();
+      await releaseWrite.promise;
+      secureStoreData.set(key, value);
+    });
+
+    const pending = session.refresh();
+    await writeStarted.promise;
+    const loggingOut = session.logout();
+    // Logout has cleared memory and queued its delete while the write is still pending.
+    while (session.getState().status !== 'signedOut') await new Promise((r) => setTimeout(r, 0));
+    releaseWrite.resolve();
+    await loggingOut;
+
+    expect(await pending).toBeNull();
+    expect(secureStoreData.has(REFRESH_TOKEN_KEY)).toBe(false);
+    expect(session.getState().status).toBe('signedOut');
+  });
+
+  it('gives up on a refresh that never settles, keeps the credentials and lets the next one through', async () => {
+    jest.useFakeTimers();
+    try {
+      const { session, api } = await signedIn();
+      api.on(
+        'POST /auth/refresh',
+        () => new Promise<Response>(() => {}),
+        json(200, { accessToken: 'access-2', refreshToken: 'refresh-2', expiresIn: 600 }),
+      );
+
+      const stuck = session.refresh();
+      await jest.advanceTimersByTimeAsync(REFRESH_TIMEOUT_MS);
+
+      expect(await stuck).toBeNull();
+      expect(secureStoreData.get(REFRESH_TOKEN_KEY)).toBe('refresh-1');
+      expect(session.getState().status).toBe('signedIn');
+      expect(await session.refresh()).toBe('access-2');
+      expect(api.callsTo('POST /auth/refresh')).toHaveLength(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('resends the same JSON body when it retries a POST after a 401 and a refresh', async () => {
+    const { session, api } = await signedIn();
+    api.on('POST /auth/password', json(401), json(200, tokens(3)));
+    api.on('POST /auth/refresh', json(200, { accessToken: 'access-2', refreshToken: 'refresh-2', expiresIn: 600 }));
+    api.on('GET /me', json(200, me()));
+
+    expect(await session.changePassword('correct horse battery', 'a brand new password')).toEqual({ ok: true });
+
+    const [first, retried] = api.callsTo('POST /auth/password');
+    expect(first.authorization).toBe('Bearer access-1');
+    expect(retried.authorization).toBe('Bearer access-2');
+    expect(retried.body).toEqual({ currentPassword: 'correct horse battery', newPassword: 'a brand new password' });
+    expect(retried.body).toEqual(first.body);
   });
 
   it('does not resurrect a session when logout happens while a refresh is in flight', async () => {

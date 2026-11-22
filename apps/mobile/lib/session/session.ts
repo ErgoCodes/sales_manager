@@ -64,6 +64,27 @@ const ALLOWED_WHILE_PENDING = new Set(['POST /auth/password', 'POST /auth/logout
 /** Refresh this long before the access token expires (spec: 30 s margin). */
 const EXPIRY_MARGIN_MS = 30_000;
 const DEFAULT_LOGOUT_TIMEOUT_MS = 3_000;
+/** A refresh that hangs would block every request queued behind the single flight. */
+export const REFRESH_TIMEOUT_MS = 10_000;
+
+const TIMED_OUT = Symbol('timedOut');
+
+/** Runs `work` with an abort signal and settles with `TIMED_OUT` after `ms` if it has not. */
+async function withTimeout<T>(work: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(TIMED_OUT);
+    }, ms);
+  });
+  try {
+    return await Promise.race([work(controller.signal), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const PLATFORM_LABEL = { android: 'Android', ios: 'iOS' } as const;
 
@@ -92,7 +113,22 @@ function withBearer(request: Request, token: string): Request {
 export function createSession(deps: SessionDeps): Session {
   const now = deps.now ?? Date.now;
   const logoutTimeoutMs = deps.logoutTimeoutMs ?? DEFAULT_LOGOUT_TIMEOUT_MS;
-  const { storage } = deps;
+
+  /**
+   * Secure storage operations run one after another, in call order: a slow write of a
+   * rotated refresh token can never land after the delete of a logout that came later.
+   */
+  let storageChain: Promise<unknown> = Promise.resolve();
+  function serial<T>(op: () => Promise<T>): Promise<T> {
+    const run = storageChain.then(op, op);
+    storageChain = run.catch(() => undefined);
+    return run;
+  }
+  const storage: SecureStorage = {
+    get: (key) => serial(() => deps.storage.get(key)),
+    set: (key, value) => serial(() => deps.storage.set(key, value)),
+    delete: (key) => serial(() => deps.storage.delete(key)),
+  };
 
   let state: SessionState = { status: 'loading' };
   const listeners = new Set<() => void>();
@@ -151,8 +187,14 @@ export function createSession(deps: SessionDeps): Session {
     if (!token) return { kind: 'rejected' };
     const startedIn = generation;
     try {
-      const { data, response } = await publicApi.POST('/auth/refresh', { body: { refreshToken: token } });
-      if (startedIn !== generation) return { kind: 'unavailable' };
+      const result = await withTimeout(
+        (signal) => publicApi.POST('/auth/refresh', { body: { refreshToken: token }, signal }),
+        REFRESH_TIMEOUT_MS,
+      );
+      // Timed out: like a network error, the credentials stay. If the API did rotate, the
+      // old token still works for 10 s and is read as reuse after that (fails closed).
+      if (result === TIMED_OUT || startedIn !== generation) return { kind: 'unavailable' };
+      const { data, response } = result;
       if (data) {
         // Grace window: no refreshToken in the response, the stored one stays (ADR 0004 §2).
         await saveTokens(data);
@@ -217,8 +259,11 @@ export function createSession(deps: SessionDeps): Session {
 
   /** Loads `GET /me` and derives the state; keeps the current one on network errors. */
   async function loadMe(): Promise<void> {
+    const startedIn = generation;
     try {
       const { data } = await api.GET('/me');
+      // The session changed meanwhile (logout, new login): this answer belongs to the old one.
+      if (startedIn !== generation) return;
       if (data) {
         setState(data.user.mustChangePassword ? { status: 'mustChangePassword', me: data } : { status: 'signedIn', me: data });
         return;
@@ -226,7 +271,7 @@ export function createSession(deps: SessionDeps): Session {
     } catch {
       // Offline: fall through.
     }
-    if (state.status === 'loading') setState({ status: 'unreachable' });
+    if (startedIn === generation && state.status === 'loading') setState({ status: 'unreachable' });
   }
 
   async function restore(): Promise<void> {
@@ -287,18 +332,9 @@ export function createSession(deps: SessionDeps): Session {
   }
 
   async function logout(): Promise<void> {
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<void>((resolve) => {
-      timer = setTimeout(() => {
-        controller.abort();
-        resolve();
-      }, logoutTimeoutMs);
-    });
     try {
-      await Promise.race([api.POST('/auth/logout', { signal: controller.signal }).catch(() => undefined), timeout]);
+      await withTimeout((signal) => api.POST('/auth/logout', { signal }).catch(() => undefined), logoutTimeoutMs);
     } finally {
-      clearTimeout(timer);
       await clearLocal({ status: 'signedOut' });
     }
   }
