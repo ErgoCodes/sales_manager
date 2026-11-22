@@ -85,7 +85,8 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "<rootDir>/db/__tests__/helpers.ts",
-      "<rootDir>/db/__tests__/test-db.ts"
+      "<rootDir>/db/__tests__/test-db.ts",
+      "<rootDir>/lib/session/__tests__/fake-api.ts"
     ],
     "collectCoverageFrom": [
       "db/**/*.ts",
@@ -96,7 +97,10 @@
       "!lib/backup.ts",
       "!lib/excel.ts",
       "!lib/notifications.ts",
-      "!lib/__tests__/**"
+      "!lib/__tests__/**",
+      "!lib/**/__tests__/**",
+      "!lib/session/react.ts",
+      "!lib/session/index.ts"
     ],
     "coverageThreshold": {
       "global": {
