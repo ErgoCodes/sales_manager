@@ -1192,6 +1192,7 @@ export interface components {
             timeZone: string;
             asOf: components["schemas"]["IsoDateTime_Output"];
             by: components["schemas"]["TopProductsOrder_Output"];
+            /** @description The first `limit` products of each currency, ranked within it (amounts in different currencies are never compared), ordered by currency and then rank. */
             items: {
                 productId: components["schemas"]["Uuid_Output"];
                 name: string;

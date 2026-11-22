@@ -65,7 +65,7 @@ function inWindow(column: SQL, window: Window): SQL {
 const notReversed = (tenant: SQL, documentId: SQL) =>
   sql`not exists (select 1 from inventory_documents r where r.tenant_id = ${tenant} and r.reverses_document_id = ${documentId})`;
 
-/** The `ORDER BY` of each ranking, from a closed list (never interpolated from input). */
+/** The ranking of each order, from a closed list (never interpolated from input). */
 const RANKING: Record<TopProductsOrder, SQL> = {
   revenue: sql.raw('sum(sl.line_total)'),
   quantity: sql.raw('sum(sl.quantity)'),
@@ -255,17 +255,25 @@ export class ReportsReaderRepository implements ReportsReader {
     return found.map((row) => ({ ...row, totalSales: Number(row.totalSales), profit: Number(row.profit) }));
   }
 
+  /**
+   * The first `limit` products of each currency, ranked within it (amounts in different
+   * currencies are never compared), ordered by currency and then rank.
+   */
   async topProducts(filter: SalesFilter, by: TopProductsOrder, limit: number): Promise<TopProductRecord[]> {
     const found = await rows<TopRow>(
       this.tx,
-      sql`select sl.product_id as "productId", p.name, p.unit_of_measure as "unitOfMeasure", sl.currency,
-                 sum(sl.quantity)::text as quantity, sum(sl.line_total)::text as "totalSales", sum(sl.profit)::text as profit
-          from sale_lines sl
-          join products p on p.tenant_id = sl.tenant_id and p.id = sl.product_id
-          where ${await this.salesWhere(filter)}
-          group by sl.product_id, p.name, p.unit_of_measure, sl.currency
-          order by ${RANKING[by]} desc, p.name, sl.product_id
-          limit ${limit}`,
+      sql`select "productId", name, "unitOfMeasure", currency, quantity::text, "totalSales"::text, profit::text
+          from (
+            select sl.product_id as "productId", p.name, p.unit_of_measure as "unitOfMeasure", sl.currency,
+                   sum(sl.quantity) as quantity, sum(sl.line_total) as "totalSales", sum(sl.profit) as profit,
+                   row_number() over (partition by sl.currency order by ${RANKING[by]} desc, p.name, sl.product_id) as rank
+            from sale_lines sl
+            join products p on p.tenant_id = sl.tenant_id and p.id = sl.product_id
+            where ${await this.salesWhere(filter)}
+            group by sl.product_id, p.name, p.unit_of_measure, sl.currency
+          ) ranked
+          where rank <= ${limit}
+          order by currency, rank`,
     );
     return found.map((row) => ({ ...row, quantity: Number(row.quantity), totalSales: Number(row.totalSales), profit: Number(row.profit) }));
   }

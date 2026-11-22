@@ -183,7 +183,22 @@ describe('KPIs against a hand-computed oracle', () => {
       { productId: cola, name: 'Refresco', unitOfMeasure: 'kg', currency: 'USD', quantity: 3, totalSales: 450, profit: 148.5 },
     ]);
     expect((await top(owner, `${RANGE}&locationId=${L1()}&by=profit`)).items.map((i) => i.productId)).toEqual([rice, beans, cola]);
-    expect((await top(owner, `${RANGE}&locationId=${L1()}&by=quantity&limit=1`)).items.map((i) => i.productId)).toEqual([rice]);
+    // The limit applies per currency: rice and cola tie on quantity, each first in its currency.
+    expect((await top(owner, `${RANGE}&locationId=${L1()}&by=quantity&limit=1`)).items.map((i) => i.productId)).toEqual([rice, cola]);
+  });
+
+  it('ranks within each currency, never comparing amounts across currencies', async () => {
+    // A global ranking by revenue would read cola (USD 1000), rice (CUP 100), beans (CUP 50), and cut cola alone at limit=1.
+    await sale(L1(), a.owner, '2026-01-10 10:00', [
+      { product: rice, quantity: 1, unitPrice: 100, unitCost: 10 },
+      { product: beans, quantity: 5, unitPrice: 10, unitCost: 1 },
+    ]);
+    await sale(L1(), a.owner, '2026-01-10 11:00', [{ product: cola, currency: 'USD', quantity: 1, unitPrice: 1000, unitCost: 10 }]);
+    const owner = await loginAs(app, 'owner@a.example');
+    const ids = async (query: string) => (await top(owner, `${RANGE}&${query}`)).items.map((i) => [i.currency, i.productId]);
+    expect(await ids('by=revenue')).toEqual([['CUP', rice], ['CUP', beans], ['USD', cola]]);
+    expect(await ids('by=revenue&limit=1')).toEqual([['CUP', rice], ['USD', cola]]);
+    expect(await ids('by=quantity&limit=1')).toEqual([['CUP', beans], ['USD', cola]]);
   });
 
   it('cuts every report at now(): a later sale of the range does not count yet', async () => {

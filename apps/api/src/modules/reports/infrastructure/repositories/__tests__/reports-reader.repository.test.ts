@@ -88,7 +88,8 @@ describe('ReportsReaderRepository', () => {
     const { tx, queries } = fakeTx([WINDOW_ROW], [row]);
     const repo = new ReportsReaderRepository(tx, TENANT);
     expect(await repo.topProducts(filter, by, 5)).toEqual([{ ...row, quantity: 1.5, totalSales: 30, profit: 4.25 }]);
-    expect(queries[1]!.sql).toContain(`order by ${expression} desc, p.name, sl.product_id`);
+    expect(queries[1]!.sql).toContain(`row_number() over (partition by sl.currency order by ${expression} desc, p.name, sl.product_id) as rank`);
+    expect(queries[1]!.sql).toMatch(/where rank <= \$\d+\s+order by currency, rank$/);
     expect(queries[1]!.params.at(-1)).toBe(5);
   });
 

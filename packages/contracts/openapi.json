@@ -4583,7 +4583,8 @@
                 "profit"
               ],
               "additionalProperties": false
-            }
+            },
+            "description": "The first `limit` products of each currency, ranked within it (amounts in different currencies are never compared), ordered by currency and then rank."
           }
         },
         "required": [
