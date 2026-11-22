@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import {
+  ADMIN_PERMISSIONS,
   DailySeries,
   DEMO_ERROR_CODES,
   InventoryHealth,
   LocalDate,
   MAX_REPORT_RANGE_DAYS,
   MoneyByCurrency,
+  PERMISSIONS,
   ReportRangeQuery,
   ReportSummary,
   SummaryByLocation,
@@ -36,6 +38,10 @@ describe('TimeZone', () => {
   it('accepts IANA zones from Intl.supportedValuesOf', () => {
     expect(TimeZone.safeParse('America/Havana').success).toBe(true);
     expect(TimeZone.safeParse('Europe/Madrid').success).toBe(true);
+  });
+  it('accepts UTC and Etc/UTC, which Intl.supportedValuesOf omits', () => {
+    expect(TimeZone.safeParse('UTC').success).toBe(true);
+    expect(TimeZone.safeParse('Etc/UTC').success).toBe(true);
   });
   it('rejects unknown zones, offsets and garbage', () => {
     for (const bad of ['America/Atlantis', '+05:00', 'GMT+5', 'havana', '', 3]) expect(TimeZone.safeParse(bad).success).toBe(false);
@@ -177,7 +183,11 @@ describe('report responses', () => {
   });
 });
 
-describe('SP4 error codes', () => {
+describe('SP4 permissions and error codes', () => {
+  it('adds reports:view_own, which is not administrative', () => {
+    expect(PERMISSIONS).toContain('reports:view_own');
+    expect(ADMIN_PERMISSIONS).not.toContain('reports:view_own' as never);
+  });
   it('adds the DEMO_READ_ONLY error code', () => {
     expect([...DEMO_ERROR_CODES]).toEqual(['DEMO_READ_ONLY']);
   });

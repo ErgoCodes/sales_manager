@@ -15,13 +15,15 @@ export const LocalDate = z.iso
   .meta({ id: 'LocalDate', description: 'Calendar day YYYY-MM-DD in the tenant time zone', example: '2026-11-21' });
 export type LocalDate = z.infer<typeof LocalDate>;
 
+/** `Intl.supportedValuesOf('timeZone')` lists canonical zones only and omits UTC, so it is added explicitly. */
+const UTC_ZONES = ['UTC', 'Etc/UTC'];
 let zones: ReadonlySet<string> | undefined;
 function isSupportedTimeZone(value: string): boolean {
-  zones ??= new Set(Intl.supportedValuesOf('timeZone'));
+  zones ??= new Set([...Intl.supportedValuesOf('timeZone'), ...UTC_ZONES]);
   return zones.has(value);
 }
 
-/** IANA time zone, validated against `Intl.supportedValuesOf('timeZone')` (SP4 · D3). */
+/** IANA time zone, validated against `Intl.supportedValuesOf('timeZone')` plus `UTC` and `Etc/UTC` (SP4 · D3). */
 export const TimeZone = z
   .string()
   .refine(isSupportedTimeZone, 'Unknown IANA time zone')
@@ -39,6 +41,10 @@ const rangeShape = {
   locationId: Uuid.optional().meta({ description: 'One location; without it, every location the actor may report on' }),
 };
 
+const RANGE_RULES =
+  `Send both from and to (local days, inclusive) or neither (today in the tenant time zone); from ≤ to; at most ${MAX_REPORT_RANGE_DAYS} days. ` +
+  'Otherwise 400 VALIDATION_FAILED.';
+
 /** Both ends or neither (today); `from ≤ to`; at most `MAX_REPORT_RANGE_DAYS` days. */
 function checkRange(value: { from?: string; to?: string }, ctx: z.RefinementCtx): void {
   const { from, to } = value;
@@ -55,7 +61,10 @@ function checkRange(value: { from?: string; to?: string }, ctx: z.RefinementCtx)
 }
 
 /** Query of every report endpoint: a local-day range and an optional location. */
-export const ReportRangeQuery = z.object(rangeShape).superRefine(checkRange).meta({ id: 'ReportRangeQuery' });
+export const ReportRangeQuery = z
+  .object(rangeShape)
+  .superRefine(checkRange)
+  .meta({ id: 'ReportRangeQuery', description: RANGE_RULES });
 export type ReportRangeQuery = z.infer<typeof ReportRangeQuery>;
 
 export const TOP_PRODUCTS_ORDERS = ['revenue', 'quantity', 'profit'] as const;
@@ -73,7 +82,7 @@ export const TopProductsQuery = z
       .default(10),
   })
   .superRefine(checkRange)
-  .meta({ id: 'TopProductsQuery' });
+  .meta({ id: 'TopProductsQuery', description: RANGE_RULES });
 export type TopProductsQuery = z.infer<typeof TopProductsQuery>;
 
 const currency = z.enum(CURRENCIES);

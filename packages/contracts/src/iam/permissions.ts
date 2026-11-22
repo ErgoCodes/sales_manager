@@ -19,6 +19,8 @@ export const PERMISSIONS = [
   'sales:create',
   'sales:void',
   'reports:view',
+  // SP4 · D4: summary of the actor's own sales at a location, without costs.
+  'reports:view_own',
   'cash:close',
 ] as const;
 

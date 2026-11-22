@@ -2,7 +2,6 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { PERMISSIONS } from '@monaco/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
@@ -10,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { SYSTEM_ROLES } from '../../src/modules/iam/domain/system-roles';
 import { adminPool, urls } from './helpers';
+import { SP2_SYSTEM_ROLES, SP3_SYSTEM_ROLES } from './system-roles-history';
 
 // SP3·T2, D11: the data migration that backfills catalog:view / inventory:view into the
 // system roles of tenants that existed before it.
@@ -21,12 +21,7 @@ const statements = dataMigration.split('--> statement-breakpoint');
 const DATABASE = 'monaco_sp3_roles';
 /** Migrations applied by SP2: everything before the SP3 CHECK change (0008) and the data migration (0009). */
 const PRE_SP3_MIGRATIONS = 8;
-const OLD_PERMISSIONS = PERMISSIONS.filter((p) => p !== 'catalog:view' && p !== 'inventory:view');
-const OLD_SYSTEM: Record<string, readonly string[]> = {
-  owner: OLD_PERMISSIONS,
-  manager: SYSTEM_ROLES.manager.permissions.filter((p) => p !== 'catalog:view' && p !== 'inventory:view'),
-  cashier: SYSTEM_ROLES.cashier.permissions.filter((p) => p !== 'catalog:view' && p !== 'inventory:view'),
-};
+const OLD_SYSTEM: Record<string, readonly string[]> = SP2_SYSTEM_ROLES;
 
 const TENANT_OLD = '33333333-3333-4333-8333-333333333333';
 const TENANT_LATE = '44444444-4444-4444-8444-444444444444';
@@ -181,8 +176,9 @@ describe('SP3 data migration of the system roles (D11)', () => {
     await seedSystemRoles(TENANT_LATE, 'late-tenant');
     expect((await rolePermissionsByKey(TENANT_LATE)).cashier).not.toContain('catalog:view');
     await runDataMigration();
+    // Only this file runs here, so the result is the SP3 roles (SP4's own migration is tested apart).
     const actual = await rolePermissionsByKey(TENANT_LATE);
-    for (const spec of Object.values(SYSTEM_ROLES)) expect(actual[spec.key]).toEqual([...spec.permissions].sort());
+    for (const [key, permissions] of Object.entries(SP3_SYSTEM_ROLES)) expect(actual[key]).toEqual([...permissions].sort());
     expect(await forceState()).toEqual(FORCED);
   });
 

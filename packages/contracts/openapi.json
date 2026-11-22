@@ -2464,6 +2464,7 @@
           "sales:create",
           "sales:void",
           "reports:view",
+          "reports:view_own",
           "cash:close"
         ],
         "description": "Permission catalog entry"
@@ -4020,6 +4021,7 @@
           "sales:create",
           "sales:void",
           "reports:view",
+          "reports:view_own",
           "cash:close"
         ],
         "description": "Permission catalog entry"

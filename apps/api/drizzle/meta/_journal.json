@@ -85,6 +85,20 @@
       "when": 1794883087506,
       "tag": "0011_sp3_catalog_inventory_force_rls_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795309303973,
+      "tag": "0012_sp4_permission_catalog_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795309307814,
+      "tag": "0013_sp4_system_roles_reports_view_own",
+      "breakpoints": true
     }
   ]
 }

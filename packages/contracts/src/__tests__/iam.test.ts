@@ -49,7 +49,7 @@ const ok = (schema: z.ZodType, value: unknown) => expect(schema.safeParse(value)
 const bad = (schema: z.ZodType, value: unknown) => expect(schema.safeParse(value).success).toBe(false);
 
 describe('permission catalog', () => {
-  it('matches the v1 catalog plus the SP3 read permissions', () => {
+  it('matches the v1 catalog plus the SP3 read permissions and SP4 reports:view_own', () => {
     expect([...PERMISSIONS]).toEqual([
       'tenant:manage',
       'locations:manage',
@@ -65,6 +65,7 @@ describe('permission catalog', () => {
       'sales:create',
       'sales:void',
       'reports:view',
+      'reports:view_own',
       'cash:close',
     ]);
     expect(new Set(PERMISSIONS).size).toBe(PERMISSIONS.length);
