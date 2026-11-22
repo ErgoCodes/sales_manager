@@ -10,7 +10,7 @@ import { blendsAverageCost } from '@monaco/domain';
 
 import type { AdminRequest } from '../../iam/application/admin-support';
 import type { Clock } from '../../iam/domain/auth-ports';
-import { ResourceNotFound } from '../../iam/domain/errors';
+import { PermissionDenied, ResourceNotFound } from '../../iam/domain/errors';
 import { authorize, authorizeRead } from '../../iam/domain/permissions';
 import { AlreadyReversed, FutureOccurredAt } from '../domain/inventory-errors';
 import type { InventoryUnitOfWork, StoredDocument } from '../domain/inventory-ports';
@@ -215,6 +215,8 @@ export class ReverseDocument {
         for (const locationId of documentLocations(original)) authorizeRead(actor, 'inventory:view', locationId);
         throw new AlreadyReversed();
       }
+      // Voiding a sale also has to void its `sales` row, so it belongs to the sales module (SP5), never to this route.
+      if (original.kind === 'sale') throw new PermissionDenied('sales:void');
       for (const [permission, locationId] of permissionsOf(original)) authorize(actor, permission, locationId);
 
       return writeDocument(scope, request, {
