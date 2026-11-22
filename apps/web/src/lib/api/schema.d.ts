@@ -675,7 +675,7 @@ export interface components {
          * @description Permission catalog entry
          * @enum {string}
          */
-        Permission_Output: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:view" | "catalog:write" | "inventory:view" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
+        Permission_Output: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:view" | "catalog:write" | "inventory:view" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "reports:view_own" | "cash:close";
         /** @description Tenant-wide, or limited to the listed locations */
         AssignmentScopeResponse_Output: {
             /** @enum {string} */
@@ -1031,7 +1031,7 @@ export interface components {
          * @description Permission catalog entry
          * @enum {string}
          */
-        Permission: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:view" | "catalog:write" | "inventory:view" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "cash:close";
+        Permission: "tenant:manage" | "locations:manage" | "users:manage" | "roles:manage" | "devices:manage" | "audit:view" | "catalog:view" | "catalog:write" | "inventory:view" | "inventory:write" | "inventory:transfer" | "sales:create" | "sales:void" | "reports:view" | "reports:view_own" | "cash:close";
         CreateRoleRequest: {
             name: string;
             permissions: components["schemas"]["Permission"][];

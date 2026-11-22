@@ -25,16 +25,24 @@ describe('system roles', () => {
         'sales:create',
         'sales:void',
         'reports:view',
+        'reports:view_own',
         'cash:close',
         'devices:manage',
       ].sort(),
     );
   });
 
-  it('Cashier matches the spec table', () => {
+  it('Cashier matches the spec table: its own summary (reports:view_own), not reports:view (SP4 · D4)', () => {
     expect([...SYSTEM_ROLES.cashier.permissions].sort()).toEqual(
-      ['cash:close', 'catalog:view', 'inventory:view', 'reports:view', 'sales:create'],
+      ['cash:close', 'catalog:view', 'inventory:view', 'reports:view_own', 'sales:create'],
     );
+    expect(SYSTEM_ROLES.cashier.permissions).not.toContain('reports:view');
+  });
+
+  it('Owner and Manager also get reports:view_own: the Manager must cover every Cashier permission to manage Cashiers', () => {
+    expect(SYSTEM_ROLES.owner.permissions).toContain('reports:view_own');
+    expect(SYSTEM_ROLES.manager.permissions).toEqual(expect.arrayContaining(['reports:view', 'reports:view_own']));
+    for (const permission of SYSTEM_ROLES.cashier.permissions) expect(SYSTEM_ROLES.manager.permissions).toContain(permission);
   });
 
   it('only Owner carries administrative permissions (so only Owner is tenant-only)', () => {

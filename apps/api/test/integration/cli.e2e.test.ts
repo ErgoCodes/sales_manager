@@ -1,4 +1,4 @@
-import { AuthTokens, PERMISSIONS } from '@monaco/contracts';
+import { AuthTokens, MeResponse, PERMISSIONS } from '@monaco/contracts';
 import { averageCostAfterEntry } from '@monaco/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Pool } from 'pg';
@@ -52,7 +52,7 @@ describe('tenant:create', () => {
     const roles = await admin.query('select key, is_system, (select count(*)::int from role_permissions p where p.role_id = r.id) as permissions from roles r order by key');
     expect(roles.rows).toEqual([
       { key: 'cashier', is_system: true, permissions: 5 },
-      { key: 'manager', is_system: true, permissions: 10 },
+      { key: 'manager', is_system: true, permissions: 11 },
       { key: 'owner', is_system: true, permissions: PERMISSIONS.length },
     ]);
 
@@ -182,7 +182,7 @@ describe('db:seed', () => {
     expect(await pair('P1', 'Arroz')).toMatchObject({ cash: null, transfer: null });
   });
 
-  it('seeds the Cashier with the SP3 read permissions (what GET /me shows for them)', async () => {
+  it('seeds the Cashier with the SP3 read permissions and SP4 reports:view_own instead of reports:view', async () => {
     await runSeed(OWNER_URL(), capture().write);
     const { rows } = await admin.query<{ permission: string }>(
       `select rp.permission from role_assignments a join users u on u.id = a.user_id
@@ -190,7 +190,7 @@ describe('db:seed', () => {
       [DEMO_USERS.cashier.email],
     );
     expect(rows.map((r) => r.permission).sort()).toEqual(
-      ['cash:close', 'catalog:view', 'inventory:view', 'reports:view', 'sales:create'],
+      ['cash:close', 'catalog:view', 'inventory:view', 'reports:view_own', 'sales:create'],
     );
   });
 
@@ -241,6 +241,24 @@ describe('db:seed', () => {
         .send({ email: DEMO_USERS[role].email, password: DEMO_USERS[role].password, device: { label: 'seed check', platform: 'web' } })
         .expect(200);
       expect(AuthTokens.parse(res.body).accessToken).toBeTruthy();
+    });
+
+    it('GET /me: the seed Cashier has reports:view_own at its location and not reports:view (SP4 · D4)', async () => {
+      await runSeed(OWNER_URL(), capture().write);
+      const ip = freshIp();
+      const login = await request(app.getHttpServer())
+        .post('/auth/login')
+        .set(CLIENT_IP_HEADER, signedIpHeader('POST', '/auth/login', ip))
+        .send({ email: DEMO_USERS.cashier.email, password: DEMO_USERS.cashier.password, device: { label: 'seed check', platform: 'web' } })
+        .expect(200);
+      const me = MeResponse.parse(
+        (await request(app.getHttpServer()).get('/me').set('authorization', `Bearer ${AuthTokens.parse(login.body).accessToken}`).expect(200)).body,
+      );
+      const held = me.permissions.map((g) => g.permission);
+      expect(held).toContain('reports:view_own');
+      expect(held).not.toContain('reports:view');
+      const p1 = (await admin.query<{ id: string }>(`select id from locations where code = 'P1'`)).rows[0]!.id;
+      expect(me.permissions.find((g) => g.permission === 'reports:view_own')?.scope).toEqual({ type: 'locations', locationIds: [p1] });
     });
   });
 });

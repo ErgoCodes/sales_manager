@@ -73,6 +73,13 @@ describe('SP3 read permissions', () => {
   });
 });
 
+describe('SP4 reports:view_own', () => {
+  it('labels reports:view_own and groups it with the reports', () => {
+    expect(PERMISSION_LABELS['reports:view_own']).toBe('Ver el resumen de sus propias ventas');
+    expect(PERMISSION_GROUPS.find((g) => g.title === 'Reportes')?.permissions).toEqual(['reports:view', 'reports:view_own']);
+  });
+});
+
 describe('inventory read hint (D9: write and transfer count as view)', () => {
   it('reads with inventory:view, inventory:write or inventory:transfer, per location', () => {
     for (const permission of ['inventory:view', 'inventory:write', 'inventory:transfer'] as const) {

@@ -55,12 +55,12 @@ T10a (mobile sesión) ───────────────────�
 
 ### T3 · Contratos de reportes, `reports:view_own` y migración de roles de sistema `M` · `Difícil` · **crítica de seguridad** (en paralelo con T1, T2 y T10a)
 
-- [ ] `packages/contracts/src/reports/`: `LocalDate`, `TimeZone`, `ReportRangeQuery` (rango ≤ 366 días, `from ≤ to`), `MoneyByCurrency`, `ReportSummary` (con `scope`, `locationIds`, `from`, `to`, `timeZone`, `asOf`), `DailySeries`, `TopProducts`, `SummaryByLocation`, `InventoryHealth`, todos con `.meta({ id })`. Enum de tipos de movimiento con `sale` (el test que compara con el dominio sigue en verde).
-- [ ] Código de error `DEMO_READ_ONLY` en `ErrorResponse`.
-- [ ] `reports:view_own` en `PERMISSIONS` (no administrativo); `SYSTEM_ROLES`: Cashier sin `reports:view` y con `reports:view_own`; etiqueta y grupo en `apps/web/src/lib/permissions.ts`.
-- [ ] Migración del `CHECK` de `role_permissions` (`db:generate`) y migración de datos idempotente con el procedimiento de SP3 · D11, que además quita `reports:view` de los Cashier **de sistema**.
-- [ ] Tests de integración: la migración corre dos veces; `FORCE` sigue activo en `roles` y `role_permissions`; un rol Cashier creado antes de SP4 queda igual a `SYSTEM_ROLES`; un rol personalizado con `reports:view` no cambia.
-- [ ] Actualizar ADR 0005.
+- [x] `packages/contracts/src/reports/`: `LocalDate`, `TimeZone`, `ReportRangeQuery` (rango ≤ 366 días, `from ≤ to`), `MoneyByCurrency`, `ReportSummary` (con `scope`, `locationIds`, `from`, `to`, `timeZone`, `asOf`), `DailySeries`, `TopProducts`, `SummaryByLocation`, `InventoryHealth`, todos con `.meta({ id })`. Enum de tipos de movimiento con `sale` (el test que compara con el dominio sigue en verde): **pendiente**, se agrega en contracts cuando T2 (que lo agrega a `@monaco/domain`) y T3 estén mergeados.
+- [x] Código de error `DEMO_READ_ONLY` en `ErrorResponse`.
+- [x] `reports:view_own` en `PERMISSIONS` (no administrativo); `SYSTEM_ROLES`: Cashier sin `reports:view` y con `reports:view_own` (Owner y Manager también lo reciben: el Manager lo necesita por la regla de no escalada, ver ADR 0005 §10); etiqueta y grupo en `apps/web/src/lib/permissions.ts`.
+- [x] Migración del `CHECK` de `role_permissions` (`db:generate`) y migración de datos idempotente con el procedimiento de SP3 · D11, que además quita `reports:view` de los Cashier **de sistema**.
+- [x] Tests de integración: la migración corre dos veces; `FORCE` sigue activo en `roles` y `role_permissions`; un rol Cashier creado antes de SP4 queda igual a `SYSTEM_ROLES`; un rol personalizado con `reports:view` no cambia.
+- [x] Actualizar ADR 0005.
 
 **Hecho cuando:** CI verde (incluido `openapi-drift`), la migración aplica sobre una base limpia y sobre una con datos de SP3, y el Cashier del seed ve `reports:view_own` y no `reports:view` en `GET /me`.
 

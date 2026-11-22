@@ -55,6 +55,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'sales:create': 'Registrar ventas',
   'sales:void': 'Anular ventas',
   'reports:view': 'Ver reportes',
+  'reports:view_own': 'Ver el resumen de sus propias ventas',
   'cash:close': 'Cerrar caja',
 };
 
@@ -62,5 +63,5 @@ export const PERMISSION_GROUPS: readonly { title: string; permissions: readonly 
   { title: 'Administración', permissions: ['tenant:manage', 'locations:manage', 'users:manage', 'roles:manage', 'devices:manage', 'audit:view'] },
   { title: 'Catálogo e inventario', permissions: ['catalog:view', 'catalog:write', 'inventory:view', 'inventory:write', 'inventory:transfer'] },
   { title: 'Ventas y caja', permissions: ['sales:create', 'sales:void', 'cash:close'] },
-  { title: 'Reportes', permissions: ['reports:view'] },
+  { title: 'Reportes', permissions: ['reports:view', 'reports:view_own'] },
 ];

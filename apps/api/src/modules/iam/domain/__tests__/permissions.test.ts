@@ -68,7 +68,7 @@ describe('effectivePermissions', () => {
       atLocations(customRole('x', 'catalog:write'), LOC_A, LOC_B),
       tenantWide(customRole('y', 'reports:view')),
     ]);
-    expect(e.byLocation.get(LOC_A)).toEqual(new Set(['sales:create', 'reports:view', 'cash:close', 'catalog:view', 'inventory:view', 'catalog:write']));
+    expect(e.byLocation.get(LOC_A)).toEqual(new Set(['sales:create', 'reports:view_own', 'cash:close', 'catalog:view', 'inventory:view', 'catalog:write']));
     expect(e.byLocation.get(LOC_B)).toEqual(new Set(['catalog:write']));
     expect(e.tenantWide).toEqual(new Set(['reports:view']));
   });
@@ -134,6 +134,7 @@ describe('toGrants', () => {
       { permission: 'inventory:view', scope: { type: 'locations', locationIds: [LOC_A, LOC_B] } },
       { permission: 'sales:create', scope: { type: 'locations', locationIds: [LOC_A, LOC_B, LOC_C] } },
       { permission: 'reports:view', scope: { type: 'tenant' } },
+      { permission: 'reports:view_own', scope: { type: 'locations', locationIds: [LOC_A, LOC_B] } },
       { permission: 'cash:close', scope: { type: 'locations', locationIds: [LOC_A, LOC_B] } },
     ]);
   });

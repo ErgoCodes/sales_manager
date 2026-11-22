@@ -65,11 +65,13 @@ describe('locations', () => {
 
   it('lists every location to a tenant-wide holder, paginated with a cursor', async () => {
     const owner = await loginAs(app, 'owner@a.example');
+    // The list is ordered by id; two uuidv7 ids minted in the same millisecond have no creation order.
+    const [low, high] = [...a.locations].sort();
     const first = PaginatedLocations.parse((await owner.get('/locations?limit=1').expect(200)).body);
-    expect(first.items.map((l) => l.id)).toEqual([a.locations[0]]);
+    expect(first.items.map((l) => l.id)).toEqual([low]);
     expect(first.nextCursor).not.toBeNull();
     const second = PaginatedLocations.parse((await owner.get(`/locations?limit=1&cursor=${first.nextCursor}`).expect(200)).body);
-    expect(second.items.map((l) => l.id)).toEqual([a.locations[1]]);
+    expect(second.items.map((l) => l.id)).toEqual([high]);
     expect(second.nextCursor).toBeNull();
     await owner.get('/locations?cursor=not-a-cursor').expect(400);
   });

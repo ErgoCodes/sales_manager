@@ -52,6 +52,8 @@ beforeAll(async () => {
   await admin.query(`drop database if exists ${DATABASE}`);
   await admin.query(`create database ${DATABASE}`);
   target = new Pool({ connectionString: urlFor(urls().admin), max: 1 });
+  // `drop database ... with (force)` in afterAll can terminate a client whose socket is still closing (57P01).
+  target.on('error', () => undefined);
   sp1Folder = partialFolder(SP1_MIGRATIONS);
 });
 afterAll(async () => {
@@ -117,6 +119,7 @@ describe('migrations on a database that already has the SP3·T2 schema', () => {
     await admin.query(`drop database if exists ${T2_DATABASE}`);
     await admin.query(`create database ${T2_DATABASE}`);
     t2 = new Pool({ connectionString: t2Url(urls().admin), max: 1 });
+    t2.on('error', () => undefined);
     t2Folder = partialFolder(T2_MIGRATIONS);
   });
   afterAll(async () => {

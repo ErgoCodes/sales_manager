@@ -129,7 +129,7 @@ Notación: `L` es el conjunto de puntos del reporte (ver "Alcance por punto"), `
 | Rol de sistema | Cambia |
 |---|---|
 | Owner | + `reports:view_own` (tiene todos) |
-| Manager | sin cambios (`reports:view`) |
+| Manager | + `reports:view_own` (subconjunto de `reports:view`, que conserva; lo exige la regla de no escalada para seguir gestionando Cashiers) |
 | Cashier | − `reports:view`, + `reports:view_own` |
 
 ## API de reportes
@@ -280,6 +280,8 @@ Las claves JWT se generan con `keys:generate` y se rotan con el procedimiento de
 - **Smoke del deploy:** `/health`, login demo y `GET /reports/summary` contra la URL pública.
 
 ## Decisiones abiertas
+
+**Confirmadas por el dueño el 2026-11-21:** D2, D3, D4, D5, D9 y D10 quedan con su default (D9 sigue condicionada al spike de T1). El resto también queda con su default.
 
 El spec de la Etapa 2 y docs/20 no fijan estos puntos. El resto del documento **asume el default recomendado**; si se elige otra opción, cambian las secciones indicadas. **[Dueño]** marca las decisiones de producto o de costo que debe tomar el dueño.
 

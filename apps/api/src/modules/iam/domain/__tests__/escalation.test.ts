@@ -221,6 +221,16 @@ describe('replace_assignments', () => {
   });
 
   describe('permission and scope coverage', () => {
+    it('SP4 · D4: a system Manager still covers the system Cashier (it holds reports:view_own too)', () => {
+      allowed(manager, replace('u', [], [atLocations(CASHIER_ROLE, LOC_A)]));
+      allowed(manager, replace('u', [], [atLocations(CASHIER_ROLE, LOC_A, LOC_B)]));
+      allowed(manager, { kind: 'disable_user', targetUserId: 'u', targetAssignments: [atLocations(CASHIER_ROLE, LOC_A)] });
+      allowed(manager, { kind: 'reset_password', targetUserId: 'u', targetAssignments: [atLocations(CASHIER_ROLE, LOC_B)] });
+    });
+    it('without reports:view_own, reports:view alone does not cover the Cashier (no implication in the rule)', () => {
+      const legacyManager = actor('legacy-1', atLocations(customRole('m', ...MANAGER_ROLE.permissions.filter((p) => p !== 'reports:view_own')), LOC_A));
+      forbidden(legacyManager, replace('u', [], [atLocations(CASHIER_ROLE, LOC_A)]), 'permission_not_held');
+    });
     it('lets an actor assign what they hold with equal or wider scope', () => {
       allowed(lead, replace('u', [], [atLocations(CASHIER_ROLE, LOC_A)]));
       allowed(lead, replace('u', [], [atLocations(CASHIER_ROLE, LOC_A, LOC_B)]));
