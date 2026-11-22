@@ -45,11 +45,11 @@ T10a (mobile sesión) ───────────────────�
 
 ### T2 · Reglas de ventas y KPIs en `@monaco/domain` `M` · `Media` (en paralelo con T1, T3 y T10a)
 
-- [ ] Tipo `sale` en `INVENTORY_MOVEMENT_KINDS` con signo negativo en `movementDelta` (procedimiento del ADR 0006).
-- [ ] `saleLineAmounts({ quantity, unitPrice, unitCost, isCostSale })` → `{ lineTotal, profit }` en unidades menores, con aritmética en milésimas enteras y el redondeo del spec.
-- [ ] `marginRatio`, `averageTicket`, `lossValue` e `isLowStock` (extrae la regla `stock < threshold` de `countLowStock` sin cambiar mobile).
-- [ ] `PAYMENT_METHODS` (`cash`, `transfer`) y su mapeo con `efectivo`/`transferencia` de mobile.
-- [ ] Tests unitarios de todo lo anterior, incluido un test que compara `saleLineAmounts` con la fórmula de `apps/mobile/db/sales.ts:103-106` cuando el costo es el mismo.
+- [x] Tipo `sale` en `INVENTORY_MOVEMENT_KINDS` con signo negativo en `movementDelta` (procedimiento del ADR 0006).
+- [x] `saleLineAmounts({ quantity, unitPrice, unitCost, isCostSale })` → `{ lineTotal, profit }` en unidades menores, con aritmética en milésimas enteras y el redondeo del spec.
+- [x] `marginRatio`, `averageTicket`, `lossValue` e `isLowStock` (extrae la regla `stock < threshold` de `countLowStock` sin cambiar mobile).
+- [x] `PAYMENT_METHODS` (`cash`, `transfer`) y su mapeo con `efectivo`/`transferencia` de mobile.
+- [x] Tests unitarios de todo lo anterior, incluido un test que compara `saleLineAmounts` con la fórmula de `apps/mobile/db/sales.ts:103-106` cuando el costo es el mismo.
 
 **Hecho cuando:** los umbrales de cobertura de `packages/domain` se mantienen y la suite financiera de mobile (`pnpm test:coverage`) pasa sin cambios en `apps/mobile`.
 
