@@ -30,6 +30,7 @@ describe('movementDelta', () => {
     expect(movementDelta('shrinkage', 2)).toBe(-2);
     expect(movementDelta('owner_withdrawal', 0.3)).toBe(-0.3);
     expect(movementDelta('transfer_out', 4)).toBe(-4);
+    expect(movementDelta('sale', 1.25)).toBe(-1.25);
   });
 
   it('keeps the sign of adjustment and reversal', () => {
@@ -45,6 +46,8 @@ describe('movementDelta', () => {
     expect(() => movementDelta('entry', 0)).toThrow(InvalidQuantityError);
     expect(() => movementDelta('entry', -1)).toThrow(InvalidQuantityError);
     expect(() => movementDelta('shrinkage', -1)).toThrow(InvalidQuantityError);
+    expect(() => movementDelta('sale', -1)).toThrow(InvalidQuantityError);
+    expect(() => movementDelta('sale', 0)).toThrow(InvalidQuantityError);
     expect(() => movementDelta('entry', Number.NaN)).toThrow(InvalidQuantityError);
     expect(() => movementDelta('entry', Infinity)).toThrow(InvalidQuantityError);
     expect(() => movementDelta('entry', 0.0001)).toThrow(InvalidQuantityError);
@@ -56,7 +59,7 @@ describe('movementDelta', () => {
 
   it('lists every kind', () => {
     expect(INVENTORY_MOVEMENT_KINDS).toEqual([
-      'entry', 'shrinkage', 'owner_withdrawal', 'adjustment', 'transfer_out', 'transfer_in', 'reversal',
+      'entry', 'shrinkage', 'owner_withdrawal', 'adjustment', 'transfer_out', 'transfer_in', 'reversal', 'sale',
     ]);
   });
 });
@@ -306,6 +309,31 @@ describe('ledger properties', () => {
         }
       }
       expect(got).toBe(ref);
+    }
+  });
+
+  it('a sale lowers the stock by its quantity and never changes the average cost', () => {
+    const rand = mulberry32(2026);
+    for (let run = 0; run < 200; run++) {
+      const ledger: LedgerLine[] = [];
+      let stock = 0;
+      for (let i = 0; i < 1 + Math.floor(rand() * 10); i++) {
+        const q = randomQty(rand);
+        if (stock > 0 && rand() < 0.5) {
+          const sold = Math.min(q, fromThousandths(stock));
+          ledger.push({ documentId: `s${i}`, kind: 'sale', quantityDelta: movementDelta('sale', sold), unitCost: 0, reversesDocumentId: null });
+          stock -= toThousandths(sold);
+        } else {
+          ledger.push({ documentId: `e${i}`, kind: 'entry', quantityDelta: movementDelta('entry', q), unitCost: 1 + Math.floor(rand() * 500), reversesDocumentId: null });
+          stock += toThousandths(q);
+        }
+      }
+      const before = replayAverageCost(ledger);
+      const sold = Math.max(1, Math.floor(stock / 2)) / 1000;
+      const delta = movementDelta('sale', sold);
+      expect(toThousandths(delta)).toBe(-toThousandths(sold));
+      ledger.push({ documentId: 'last', kind: 'sale', quantityDelta: delta, unitCost: before, reversesDocumentId: null });
+      expect(replayAverageCost(ledger)).toBe(before);
     }
   });
 
