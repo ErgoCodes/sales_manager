@@ -5,12 +5,8 @@ import { afterEach, vi } from 'vitest';
 afterEach(cleanup);
 
 // lucide-react ships a nested React copy that differs from web's; icons are decorative in tests.
-vi.mock('lucide-react', () => ({
-  CheckIcon: () => null,
-  ChevronDownIcon: () => null,
-  ChevronUpIcon: () => null,
-  XIcon: () => null,
-}));
+// Every named export is an icon that renders nothing ('then' stays undefined so the module is not a thenable).
+vi.mock('lucide-react', () => new Proxy({}, { get: (_, name) => (name === 'then' ? undefined : () => null), has: () => true }));
 
 // jsdom lacks ResizeObserver, which Radix primitives (checkbox, select) use.
 globalThis.ResizeObserver ??= class {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatAmount, formatMargin } from '../format';
+import { formatAmount, formatCompactAmount, formatMargin, formatShortDate } from '../format';
 
 describe('report formatting', () => {
   it('formats minor units with their own currency (Intl.NumberFormat), never a fixed $', () => {
@@ -16,5 +16,11 @@ describe('report formatting', () => {
 
   it('formats the margin as a percentage', () => {
     expect(formatMargin(0.2345)).toBe('23.5%');
+  });
+
+  it('chart axis ticks: compact amounts from minor units, and a report day without shifting its date', () => {
+    expect(formatCompactAmount(15_000_000)).toMatch(/^150\s?(k|mil)$/);
+    expect(formatCompactAmount(0)).toBe('0');
+    expect(formatShortDate('2026-11-01')).toMatch(/^1\s(de\s)?nov/);
   });
 });

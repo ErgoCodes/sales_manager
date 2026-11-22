@@ -21,3 +21,16 @@ export function formatAmount(minorUnits: number | null, currency: CurrencyCode):
 export function formatMargin(margin: number | null): string {
   return margin === null ? '—' : PERCENT.format(margin);
 }
+
+const COMPACT = new Intl.NumberFormat('es-CU', { notation: 'compact', maximumFractionDigits: 1 });
+const SHORT_DATE = new Intl.DateTimeFormat('es-CU', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+/** Chart axis tick: an amount (minor units) in compact notation, without the currency code (the chart names it). */
+export function formatCompactAmount(minorUnits: number): string {
+  return COMPACT.format(minorUnits / 100);
+}
+
+/** Chart axis tick: a report day (`YYYY-MM-DD`, already local to the tenant) as day and short month. */
+export function formatShortDate(day: string): string {
+  return SHORT_DATE.format(new Date(`${day}T00:00:00Z`));
+}

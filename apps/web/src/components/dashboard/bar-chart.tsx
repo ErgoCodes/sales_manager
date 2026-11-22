@@ -1,10 +1,9 @@
 'use client';
 
-// A client component on purpose: rendered from a Server Component, the RSC stream may split the SVG
-// children into chunks that arrive late, and React's streaming SSR then emits the pending part as
-// <svg style="display:none">, a style attribute the CSP blocks (D13). As a client component the whole
-// SVG is rendered in one piece from its props.
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Bar, BarChart as RechartsBarChart, LabelList, Tooltip, XAxis, YAxis } from 'recharts';
+import { useMediaQuery } from '@/lib/hooks/use-media-query';
+import { useMounted } from '@/lib/hooks/use-mounted';
+import { AXIS_TICK, ChartPlaceholder, ChartTable, TooltipCard } from './chart-parts';
 
 export interface BarItem {
   key: string;
@@ -15,56 +14,52 @@ export interface BarItem {
   display: string;
 }
 
-const WIDTH = 640;
-const ROW = 28;
-const LABEL = 180;
-const VALUE = 130;
+const ROW = 36;
 
-/** Horizontal bars, own SVG with presentation attributes only (no `style`, D13), plus the equivalent table. */
-export function BarChart({ label, items, valueHeading = 'Valor' }: { label: string; items: readonly BarItem[]; valueHeading?: string }) {
-  const max = Math.max(1, ...items.map((item) => item.value));
-  const span = WIDTH - LABEL - VALUE;
-  const height = ROW * items.length;
+const truncate = (label: string, max: number) => (label.length > max ? `${label.slice(0, max - 1)}…` : label);
+
+/**
+ * Horizontal bars with Recharts, client only (inline styles, D13), no animation (functional data).
+ * The value is printed at the end of each bar. The folded table is the accessible equivalent; pass
+ * `table={false}` only when the caller already shows a table with the same data.
+ */
+export function BarChart({ label, items, valueHeading = 'Valor', table = true }: { label: string; items: readonly BarItem[]; valueHeading?: string; table?: boolean }) {
+  const mounted = useMounted();
+  // Narrow screens: a shorter label column leaves room for the bars and their values.
+  const wide = useMediaQuery('(min-width: 640px)');
+  const data = items.map((item) => ({ ...item, value: Math.max(0, item.value) }));
   return (
-    <div className="space-y-2">
-      <svg viewBox={`0 0 ${WIDTH} ${Math.max(ROW, height)}`} width="100%" height={Math.max(ROW, height)} role="img" aria-label={label} className="text-sky-600 dark:text-sky-400">
-        {items.map((item, i) => {
-          const width = (Math.max(0, item.value) / max) * span;
-          const top = i * ROW;
-          return (
-            <g key={item.key}>
-              <text x={LABEL - 8} y={top + ROW / 2 + 4} fontSize={12} textAnchor="end" className="fill-foreground">
-                {item.label.length > 26 ? `${item.label.slice(0, 25)}…` : item.label}
-              </text>
-              <rect x={LABEL} y={top + 5} width={width.toFixed(1)} height={ROW - 10} fill="currentColor" fillOpacity={0.7}>
-                <title>{`${item.label}: ${item.display}`}</title>
-              </rect>
-              <text x={LABEL + width + 6} y={top + ROW / 2 + 4} fontSize={12} className="fill-foreground">
-                {item.display}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <details>
-        <summary className="cursor-pointer text-sm">Ver como tabla</summary>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>{valueHeading}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.key}>
-                <TableCell>{item.label}</TableCell>
-                <TableCell>{item.display}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </details>
+    <div className="space-y-3">
+      <div role="img" aria-label={label} className="w-full">
+        {mounted ? (
+          <RechartsBarChart
+            responsive
+            layout="vertical"
+            data={data}
+            margin={{ top: 0, right: wide ? 112 : 88, bottom: 0, left: 0 }}
+            barCategoryGap={8}
+            style={{ width: '100%', height: Math.max(1, data.length) * ROW }}
+          >
+            <XAxis type="number" hide domain={[0, 'dataMax']} />
+            <YAxis type="category" dataKey="label" tickFormatter={(value: string) => truncate(value, wide ? 24 : 14)} tick={AXIS_TICK} tickLine={false} axisLine={false} width={wide ? 168 : 96} />
+            <Tooltip
+              cursor={{ fill: 'var(--muted)' }}
+              isAnimationActive={false}
+              content={({ active, payload }) => {
+                const item = payload?.[0]?.payload as BarItem | undefined;
+                if (!active || !item) return null;
+                return <TooltipCard title={item.label} rows={[{ label: valueHeading, value: item.display, swatch: 'bg-chart-1' }]} />;
+              }}
+            />
+            <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 4, 4, 0]} maxBarSize={20} isAnimationActive={false}>
+              <LabelList dataKey="display" position="right" fill="var(--foreground)" fontSize={12} />
+            </Bar>
+          </RechartsBarChart>
+        ) : (
+          <ChartPlaceholder className="h-40" />
+        )}
+      </div>
+      {table ? <ChartTable headings={['Nombre', valueHeading]} rows={items.map((item) => ({ key: item.key, cells: [item.label, item.display] }))} /> : null}
     </div>
   );
 }

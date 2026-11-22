@@ -1,12 +1,10 @@
 'use client';
 
-// A client component on purpose: rendered from a Server Component, the RSC stream may split the SVG
-// children into chunks that arrive late, and React's streaming SSR then emits the pending part as
-// <svg style="display:none">, a style attribute the CSP blocks (D13). As a client component the whole
-// SVG is rendered in one piece from its props.
 import type { CurrencyCode } from '@monaco/contracts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatAmount } from '@/lib/reports/format';
+import { Bar, CartesianGrid, ComposedChart, Line, Tooltip, XAxis, YAxis } from 'recharts';
+import { useMounted } from '@/lib/hooks/use-mounted';
+import { formatAmount, formatCompactAmount, formatShortDate } from '@/lib/reports/format';
+import { AXIS_TICK, ChartPlaceholder, ChartTable, GRID_STROKE, TooltipCard } from './chart-parts';
 
 export interface DailyPoint {
   date: string;
@@ -14,75 +12,59 @@ export interface DailyPoint {
   profit: number;
 }
 
-const WIDTH = 640;
-const HEIGHT = 220;
-const PAD = { top: 12, right: 8, bottom: 24, left: 8 };
-
 /**
- * Daily sales (columns) and profit (line). Own SVG with presentation attributes only, never `style`
- * (the CSP allows only nonce'd styles, D13); colors come from classes. The table below is the equivalent.
+ * Daily sales (columns) and profit (line), drawn with Recharts on the client only: Recharts sets
+ * inline styles, which the CSP allows from the CSSOM but blocks in server HTML (D13). No animation:
+ * it is functional data, read many times a day. The table below is the accessible equivalent.
  */
 export function DailyChart({ points, currency }: { points: readonly DailyPoint[]; currency: CurrencyCode }) {
-  const innerWidth = WIDTH - PAD.left - PAD.right;
-  const innerHeight = HEIGHT - PAD.top - PAD.bottom;
-  const max = Math.max(1, ...points.map((p) => Math.max(p.totalSales, p.profit)));
-  const min = Math.min(0, ...points.map((p) => p.profit));
-  const y = (value: number) => PAD.top + ((max - value) / (max - min)) * innerHeight;
-  const band = innerWidth / Math.max(1, points.length);
-  const center = (index: number) => PAD.left + band * index + band / 2;
-  const barWidth = Math.max(1, band * 0.7);
-  const zero = y(0);
-  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${center(i).toFixed(1)} ${y(p.profit).toFixed(1)}`).join(' ');
-  const first = points[0];
-  const last = points.at(-1);
-
+  const mounted = useMounted();
   return (
-    <div className="space-y-2">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height={HEIGHT} role="img" aria-label={`Ventas y utilidad por día en ${currency}`} className="text-sky-600 dark:text-sky-400">
-        <line x1={PAD.left} x2={WIDTH - PAD.right} y1={zero} y2={zero} stroke="currentColor" strokeOpacity={0.3} />
-        {points.map((p, i) => {
-          const top = y(p.totalSales);
-          return (
-            <rect key={p.date} x={(center(i) - barWidth / 2).toFixed(1)} y={top.toFixed(1)} width={barWidth.toFixed(1)} height={Math.max(0, zero - top).toFixed(1)} fill="currentColor" fillOpacity={0.7}>
-              <title>{`${p.date}: ventas ${formatAmount(p.totalSales, currency)}, utilidad ${formatAmount(p.profit, currency)}`}</title>
-            </rect>
-          );
-        })}
-        {points.length > 0 ? <path d={line} fill="none" strokeWidth={2} className="stroke-emerald-600 dark:stroke-emerald-400" /> : null}
-        {points.length === 1 && first ? <circle cx={center(0)} cy={y(first.profit)} r={3} className="fill-emerald-600 dark:fill-emerald-400" /> : null}
-        {first ? (
-          <text x={PAD.left} y={HEIGHT - 6} fontSize={11} fill="currentColor">
-            {first.date}
-          </text>
-        ) : null}
-        {last && last !== first ? (
-          <text x={WIDTH - PAD.right} y={HEIGHT - 6} fontSize={11} textAnchor="end" fill="currentColor">
-            {last.date}
-          </text>
-        ) : null}
-      </svg>
-      <p className="text-xs opacity-70">Columnas: ventas · Línea: utilidad</p>
-      <details>
-        <summary className="cursor-pointer text-sm">Ver como tabla</summary>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Día</TableHead>
-              <TableHead>Ventas</TableHead>
-              <TableHead>Utilidad</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {points.map((p) => (
-              <TableRow key={p.date}>
-                <TableCell>{p.date}</TableCell>
-                <TableCell>{formatAmount(p.totalSales, currency)}</TableCell>
-                <TableCell>{formatAmount(p.profit, currency)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </details>
+    <div className="space-y-3">
+      <div role="img" aria-label={`Ventas y utilidad por día en ${currency}`} className="h-64 w-full">
+        {mounted ? (
+          <ComposedChart responsive data={[...points]} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} style={{ width: '100%', height: '100%' }}>
+            <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+            <XAxis dataKey="date" tickFormatter={formatShortDate} tick={AXIS_TICK} tickLine={false} axisLine={false} minTickGap={16} />
+            <YAxis tickFormatter={formatCompactAmount} tick={AXIS_TICK} tickLine={false} axisLine={false} width={48} />
+            <Tooltip
+              cursor={{ fill: 'var(--muted)' }}
+              isAnimationActive={false}
+              content={({ active, payload, label }) => {
+                const point = payload?.[0]?.payload as DailyPoint | undefined;
+                if (!active || !point) return null;
+                return (
+                  <TooltipCard
+                    title={formatShortDate(String(label))}
+                    rows={[
+                      { label: 'Ventas', value: formatAmount(point.totalSales, currency), swatch: 'bg-chart-1' },
+                      { label: 'Utilidad', value: formatAmount(point.profit, currency), swatch: 'bg-chart-2' },
+                    ]}
+                  />
+                );
+              }}
+            />
+            <Bar dataKey="totalSales" name="Ventas" fill="var(--chart-1)" fillOpacity={0.85} radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={false} />
+            <Line dataKey="profit" name="Utilidad" type="monotone" stroke="var(--chart-2)" strokeWidth={2.5} dot={points.length === 1} activeDot={{ r: 4 }} isAnimationActive={false} />
+          </ComposedChart>
+        ) : (
+          <ChartPlaceholder className="h-full" />
+        )}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ul aria-label="Leyenda" className="flex gap-4 text-xs text-muted-foreground">
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className="size-2.5 rounded-sm bg-chart-1" /> Ventas
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className="h-0.5 w-3 rounded-full bg-chart-2" /> Utilidad
+          </li>
+        </ul>
+      </div>
+      <ChartTable
+        headings={['Día', 'Ventas', 'Utilidad']}
+        rows={points.map((p) => ({ key: p.date, cells: [p.date, formatAmount(p.totalSales, currency), formatAmount(p.profit, currency)] }))}
+      />
     </div>
   );
 }
