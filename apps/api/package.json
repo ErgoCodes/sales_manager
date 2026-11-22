@@ -22,6 +22,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "pnpm build && node dist/scripts/seed.bin.js",
+    "demo:reset": "pnpm build && node dist/scripts/demo-reset.bin.js",
     "tenant:create": "pnpm build && node dist/scripts/tenant-create.bin.js"
   },
   "dependencies": {

@@ -108,10 +108,10 @@ T10a (mobile sesión) ───────────────────�
 
 ### T8 · Seed demo realista y `demo:reset` `M` · `Media` · **crítica de datos** (depende de T5; en paralelo con T9 y T10b)
 
-- [ ] `db:seed` extendido (`--history-days`, default 14): productos, precios por punto, entradas, mermas, retiros, transferencias (si existen) y ventas, todo por los casos de uso de SP3 y `RecordSale` con el `Actor` del Owner demo. PRNG con semilla fija, ids UUIDv7 deterministas, fechas relativas en la zona del tenant, día de hoy completo.
-- [ ] Idempotente: no vuelve a sembrar la historia si el tenant demo ya tiene ventas. Sigue negándose con `NODE_ENV=production`.
-- [ ] `pnpm --filter api demo:reset` (90 días): conexión `monaco_owner`, se niega si hay algún tenant con `read_only = false` o si `DEMO_RESET_CONFIRM` no es el slug; en una transacción, `TRUNCATE` de las tablas de tenant, tenant demo con `read_only = true` y siembra.
-- [ ] Tests de integración: `db:seed` dos veces no duplica; ningún par queda con stock negativo; el reset se niega con un tenant real; el reset es atómico (una falla a mitad deja los datos anteriores); los KPIs del tenant demo no están vacíos para "hoy" y para 30 días.
+- [x] `db:seed` extendido (`--history-days`, default 14): productos, precios por punto, entradas, mermas, retiros, transferencias (si existen) y ventas, todo por los casos de uso de SP3 y `RecordSale` con el `Actor` del Owner demo. PRNG con semilla fija, ids UUIDv7 deterministas, fechas relativas en la zona del tenant, día de hoy completo.
+- [x] Idempotente: no vuelve a sembrar la historia si el tenant demo ya tiene ventas. Sigue negándose con `NODE_ENV=production`.
+- [x] `pnpm --filter api demo:reset` (90 días): conexión `monaco_owner`, se niega si hay algún tenant con `read_only = false` o si `DEMO_RESET_CONFIRM` no es el slug; en una transacción, `TRUNCATE` de las tablas de tenant, tenant demo con `read_only = true` y siembra.
+- [x] Tests de integración: `db:seed` dos veces no duplica; ningún par queda con stock negativo; el reset se niega con un tenant real; el reset es atómico (una falla a mitad deja los datos anteriores); los KPIs del tenant demo no están vacíos para "hoy" y para 30 días.
 
 **Hecho cuando:** `pnpm db:up && pnpm db:migrate && pnpm --filter api db:seed` deja el tablero con datos, el job `e2e` sigue en verde con su tiempo de seed acotado, y `demo:reset` deja el volumen del spec en menos de 5 minutos en local.
 
