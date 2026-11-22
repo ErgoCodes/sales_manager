@@ -128,14 +128,16 @@ T10a (mobile sesión) ───────────────────�
 
 ### T10a · Mobile: cliente API y sesión online `L` · `Difícil` · **crítica de seguridad** (sin dependencias de este plan; en paralelo con T1, T2 y T3)
 
-- [ ] Leer la doc de Expo 54 (`expo-secure-store`, variables `EXPO_PUBLIC_*`, backups de Android) antes de escribir código. Instalar `expo-secure-store` con la versión que fije Expo 54 (`pnpm --filter mobile exec expo install expo-secure-store`) y `openapi-fetch`; `openapi-typescript` como dev.
-- [ ] Script `api:generate` → `apps/mobile/lib/api/schema.d.ts` desde `packages/contracts/openapi.json`, y el paso correspondiente en el job `openapi-drift`.
-- [ ] `apps/mobile/lib/session/`: refresh y `deviceId` en el almacenamiento seguro (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`), access en memoria, refresh anticipado y ante 401 con single-flight, ventana de gracia sin `refreshToken`, borrado ante 401 del refresh, logout que borra aunque la API falle, revalidación con `GET /me` al volver a primer plano.
-- [ ] Pantallas `app/account/` (login, cambio de contraseña obligatorio, cuenta) con entrada desde Configuración; `EXPO_PUBLIC_API_URL` por perfil de `eas.json`; mensaje en Expo web.
-- [ ] Tests Jest con `expo-secure-store` y `fetch` simulados: login guarda lo correcto, single-flight con dos 401 simultáneos, ventana de gracia, reuso → login, logout sin red, `mustChangePassword` bloquea el resto.
-- [ ] Actualizar ADR 0004 (sesión en mobile).
+- [x] Leer la doc de Expo 54 (`expo-secure-store`, variables `EXPO_PUBLIC_*`, backups de Android) antes de escribir código. Instalar `expo-secure-store` con la versión que fije Expo 54 (`pnpm --filter mobile exec expo install expo-secure-store`) y `openapi-fetch`; `openapi-typescript` como dev.
+- [x] Script `api:generate` → `apps/mobile/lib/api/schema.d.ts` desde `packages/contracts/openapi.json`, y el paso correspondiente en el job `openapi-drift`.
+- [x] `apps/mobile/lib/session/`: refresh y `deviceId` en el almacenamiento seguro (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`), access en memoria, refresh anticipado y ante 401 con single-flight, ventana de gracia sin `refreshToken`, borrado ante 401 del refresh, logout que borra aunque la API falle, revalidación con `GET /me` al volver a primer plano.
+- [x] Pantallas `app/account/` (login, cambio de contraseña obligatorio, cuenta) con entrada desde Configuración; `EXPO_PUBLIC_API_URL` por perfil de `eas.json`; mensaje en Expo web.
+- [x] Tests Jest con `expo-secure-store` y `fetch` simulados: login guarda lo correcto, single-flight con dos 401 simultáneos, ventana de gracia, reuso → login, logout sin red, `mustChangePassword` bloquea el resto.
+- [x] Actualizar ADR 0004 (sesión en mobile).
 
 **Hecho cuando:** en un dev client Android contra la API local, el usuario demo inicia sesión (se crea un dispositivo `android` visible en `/dispositivos` de la web), sobrevive al vencimiento del access, cierra sesión y, revocado desde la web, vuelve al login; la suite financiera de mobile pasa sin cambios en `db/` ni `store/`.
+
+> **Pendiente de verificar a mano:** la parte del dev client Android contra la API local (login, dispositivo `android` en `/dispositivos`, vencimiento del access, logout y revocación desde la web) no se corrió en el entorno del agente; lo cubren los tests Jest con `expo-secure-store` y `fetch` simulados. La suite financiera pasa sin cambios en `db/` ni `store/`.
 
 ### T10b · Mobile: vista "Hoy" `M` · `Media` (depende de T6 y T10a; en paralelo con T8 y T9)
 
