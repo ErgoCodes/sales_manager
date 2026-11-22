@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
 import { useAppColors } from '@/hooks/use-app-colors';
 import { API_URL } from '@/lib/api/config';
-import { accountRouteFor, session, type AccountRoute } from '@/lib/session';
+import { accountRedirectFor, session, type AccountRoute } from '@/lib/session';
 import { useSession } from '@/lib/session/react';
 
 function Centered({ children }: { children: ReactNode }) {
@@ -69,7 +69,7 @@ export function AccountGate({ route, children }: { route: AccountRoute; children
     );
   }
 
-  const target = accountRouteFor(state);
-  if (target && target !== route) return <Redirect href={target} />;
+  const target = accountRedirectFor(state, route);
+  if (target) return <Redirect href={target} />;
   return <>{children}</>;
 }

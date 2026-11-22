@@ -141,11 +141,13 @@ T10a (mobile sesión) ───────────────────�
 
 ### T10b · Mobile: vista "Hoy" `M` · `Media` (depende de T6 y T10a; en paralelo con T8 y T9)
 
-- [ ] Regenerar `apps/mobile/lib/api/schema.d.ts` con los endpoints de reportes.
-- [ ] Pantalla "Hoy" en `app/account/`: selector de punto (según `GET /me`), `GET /reports/summary` sin fechas y, con `reports:view`, `GET /reports/inventory-health`; resumen por moneda; utilidad oculta con `scope: 'own'`; encabezado "Datos del servidor · actualizado HH:mm"; "Sin conexión" con el último dato en memoria.
-- [ ] Tests Jest de la pantalla con respuestas simuladas (`scope: 'location'` y `'own'`, varias monedas, error de red).
+- [x] Regenerar `apps/mobile/lib/api/schema.d.ts` con los endpoints de reportes.
+- [x] Pantalla "Hoy" en `app/account/`: selector de punto (según `GET /me`), `GET /reports/summary` sin fechas y, con `reports:view`, `GET /reports/inventory-health`; resumen por moneda; utilidad oculta con `scope: 'own'`; encabezado "Datos del servidor · actualizado HH:mm"; "Sin conexión" con el último dato en memoria.
+- [x] Tests Jest de la pantalla con respuestas simuladas (`scope: 'location'` y `'own'`, varias monedas, error de red).
 
 **Hecho cuando:** contra la API local con el seed, el Manager ve "Hoy" de su punto con utilidad y bajo stock, el Cashier ve solo sus ventas sin utilidad, y la suite financiera sigue en verde.
+
+> **Pendiente de verificar a mano:** la vista "Hoy" contra la API local con el seed (Manager con utilidad y bajo stock, Cashier solo con sus ventas) no se corrió en el entorno del agente. Los tests Jest cubren la lógica de la pantalla (`lib/reports/today.ts`: permisos de `GET /me`, consultas, `scope: 'own'`, varias monedas, error de red con el último dato en memoria) con respuestas simuladas; mobile no tiene `@testing-library/react-native`, así que el componente en sí no se renderiza en los tests. El schema ya tenía los endpoints de reportes: `api:generate` no produjo cambios.
 
 ### T11 · Despliegue de la demo pública `L` · `Difícil` · **crítica de seguridad y entrega** (depende de T1, T7 y T8)
 

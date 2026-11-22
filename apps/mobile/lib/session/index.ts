@@ -7,7 +7,7 @@ import { createSession } from './session';
 
 export type { ChangePasswordResult, LoginResult, Me, Session, SessionState } from './session';
 export { PasswordChangeRequiredError } from './session';
-export { accountRouteFor, type AccountRoute } from './routes';
+export { accountRedirectFor, accountRouteFor, type AccountRoute } from './routes';
 
 /** `expo-secure-store` exists only on Android and iOS; Expo web has no online session. */
 export const isSessionSupported = Platform.OS === 'android' || Platform.OS === 'ios';
