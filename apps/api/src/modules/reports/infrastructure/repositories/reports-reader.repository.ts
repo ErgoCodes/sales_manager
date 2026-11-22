@@ -19,10 +19,10 @@ import type {
 /*
  * Live aggregates for the reports (ADR 0007 §3), on one `withTenant`
  * transaction: RLS stays the second barrier and every predicate also names the
- * tenant, so the indexes lead with it. Local days become a half-open
- * `timestamptz` range in SQL, `[from 00:00 local, to + 1 00:00 local)`, through
- * `AT TIME ZONE`, so the filter uses the `occurred_at` indexes and a DST change
- * neither loses nor duplicates a sale. Every read is cut at now() and skips
+ * tenant, so the indexes lead with it. Local days become half-open
+ * `timestamptz` ranges in SQL, `[start of from, start of to + 1)`, so the filter
+ * uses the `occurred_at` indexes, and the daily series buckets by the same
+ * bounds: a DST change neither loses, duplicates nor moves a sale. Every read is cut at now() and skips
  * reversed documents (a `NOT EXISTS` on the unique reverses_document_id). Sums
  * are exact numerics, returned as text (node-postgres) and converted here.
  */
@@ -30,16 +30,31 @@ import type {
 const uuids = (ids: readonly string[]) => sql`${sql.param([...ids])}::uuid[]`;
 
 /**
- * The instants of a filter: `[start, end)` of its local days and the cut-off now().
- * Computed in a statement of their own and bound as `timestamptz` parameters: under
- * RLS, Postgres only turns a predicate into an index condition when it is leakproof,
- * and `AT TIME ZONE` (which can raise on a bad zone) and now() are not. Inline, they
- * would make every report scan the whole location (or the table).
+ * The instants of a filter: `[start, end)` of its local days, the start of each local
+ * day (`bounds`, one per day plus `end`) and the cut-off now(). Computed in a statement
+ * of their own and bound as `timestamptz` parameters: under RLS, Postgres only turns a
+ * predicate into an index condition when it is leakproof, and `AT TIME ZONE` (which can
+ * raise on a bad zone) and now() are not. Inline, they would make every report scan the
+ * whole location (or the table).
  */
 interface Window {
   readonly start: string;
   readonly end: string;
   readonly asOf: string;
+  readonly bounds: readonly string[];
+}
+
+/**
+ * The first instant of local day `day` in `zone`. `day::timestamp AT TIME ZONE zone`
+ * resolves an ambiguous midnight (a fall-back at 01:00 → 00:00, as in Havana on
+ * 2026-11-01) to its second occurrence, which would push the first hour of the day
+ * into the previous one; when the offset an hour earlier is larger, the day started
+ * that much earlier. A spring-forward (no 00:00) needs no correction.
+ */
+function dayStart(day: SQL, zone: SQL): SQL {
+  const at = sql`(${day}::timestamp at time zone ${zone})`;
+  const offset = (instant: SQL) => sql`((${instant}) at time zone ${zone} - (${instant}) at time zone 'UTC')`;
+  return sql`(${at} - greatest(interval '0', ${offset(sql`${at} - interval '1 hour'`)} - ${offset(at)}))`;
 }
 
 /** `occurred_at` inside the window and not in the future. */
@@ -111,12 +126,11 @@ export class ReportsReaderRepository implements ReportsReader {
     const key = `${filter.range.from}|${filter.range.to}|${filter.timeZone}`;
     let window = this.windows.get(key);
     if (!window) {
-      window = rows<Window>(
+      window = rows<{ bounds: string[]; asOf: string }>(
         this.tx,
-        sql`select (${filter.range.from}::date::timestamp at time zone ${filter.timeZone})::text as start,
-                   ((${filter.range.to}::date + 1)::timestamp at time zone ${filter.timeZone})::text as "end",
-                   now()::text as "asOf"`,
-      ).then(([row]) => row!);
+        sql`select array_agg(${dayStart(sql`d.day`, sql`${filter.timeZone}::text`)}::text order by d.day) as bounds, now()::text as "asOf"
+            from generate_series(${filter.range.from}::date, ${filter.range.to}::date + 1, interval '1 day') as d(day)`,
+      ).then(([row]) => ({ start: row!.bounds[0]!, end: row!.bounds.at(-1)!, asOf: row!.asOf, bounds: row!.bounds }));
       this.windows.set(key, window);
     }
     return window;
@@ -146,7 +160,7 @@ export class ReportsReaderRepository implements ReportsReader {
     );
   }
 
-  /** Sale lines through the covering index (tenant_id, location_id, occurred_at) INCLUDE (...). */
+  /** Sale lines through the covering index (tenant_id, location_id, occurred_at) INCLUDE (...), index-only. */
   private async salesWhere(filter: SalesFilter): Promise<SQL> {
     const own = filter.cashierUserId === undefined ? sql`` : sql` and sl.cashier_user_id = ${filter.cashierUserId}::uuid`;
     return sql`sl.tenant_id = ${this.tenantId} and sl.location_id = any(${uuids(filter.locationIds)})
@@ -213,22 +227,29 @@ export class ReportsReaderRepository implements ReportsReader {
     return found.map((row) => ({ ...row, unitCost: Number(row.unitCost), quantity: Number(row.quantity) }));
   }
 
-  /** Every local day of the range for each currency with sales in it (missing days are 0). */
+  /**
+   * Every local day of the range for each currency with sales in it (missing days are 0).
+   * A line falls in the day whose `[start, next start)` holds it: `width_bucket` over the
+   * same bounds as the filter (day n of the range is bucket n), so the series always adds
+   * up to the totals, also on a fall-back day.
+   */
   async dailySales(filter: SalesFilter): Promise<DailyPointRecord[]> {
+    const window = await this.window(filter);
+    const days = window.bounds.length - 1;
     const found = await rows<DailyRow>(
       this.tx,
       sql`with agg as (
-            select (sl.occurred_at at time zone ${filter.timeZone})::date as day, sl.currency,
+            select width_bucket(sl.occurred_at, ${sql.param([...window.bounds])}::timestamptz[]) as day, sl.currency,
                    sum(sl.line_total) as total, sum(sl.profit) as profit
             from sale_lines sl
             where ${await this.salesWhere(filter)}
             group by 1, 2
           )
-          select c.currency, d.day::date::text as date,
+          select c.currency, (${filter.range.from}::date + d.day - 1)::text as date,
                  coalesce(a.total, 0)::text as "totalSales", coalesce(a.profit, 0)::text as profit
           from (select distinct currency from agg) c
-          cross join generate_series(${filter.range.from}::date, ${filter.range.to}::date, interval '1 day') as d(day)
-          left join agg a on a.currency = c.currency and a.day = d.day::date
+          cross join generate_series(1, ${days}::int) as d(day)
+          left join agg a on a.currency = c.currency and a.day = d.day
           order by c.currency, d.day`,
     );
     return found.map((row) => ({ ...row, totalSales: Number(row.totalSales), profit: Number(row.profit) }));

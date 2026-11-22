@@ -240,6 +240,21 @@ describe('local days in America/Havana', () => {
     expect((await summary(owner, 'from=2026-11-01&to=2026-11-01')).currencies[0]!.totalSales).toBe(1800);
   });
 
+  it('puts the first hour of a fall-back day (twice 00:00–01:00) in that day, in the series and the totals', async () => {
+    // 2026-11-01 04:30 UTC is 00:30 CDT, the first of the two 00:30 of that day in Havana; 05:30 UTC is the second.
+    for (const [instant, price] of [['2026-10-31 12:00+00', 10], ['2026-11-01 04:30+00', 20], ['2026-11-01 05:30+00', 40], ['2026-11-02 05:30+00', 80]] as const) {
+      await fx.sale(a.id, { location: L1(), cashier: a.owner, at: instant, lines: [{ product: rice, quantity: 1, unitPrice: price, unitCost: 1 }] });
+    }
+    const owner = await loginAs(app, 'owner@a.example');
+    const points = async (query: string) => (await series(owner, query)).series[0]!.points.map((p) => [p.date, p.totalSales, p.profit]);
+    expect(await points('from=2026-10-31&to=2026-11-02')).toEqual([['2026-10-31', 10, 9], ['2026-11-01', 60, 58], ['2026-11-02', 80, 79]]);
+    expect(await points('from=2026-11-01&to=2026-11-01')).toEqual([['2026-11-01', 60, 58]]);
+    const day = async (date: string) => (await summary(owner, `from=${date}&to=${date}`)).currencies.map((c) => [c.totalSales, c.tickets]);
+    expect(await day('2026-10-31')).toEqual([[10, 1]]);
+    expect(await day('2026-11-01')).toEqual([[60, 2]]);
+    expect(await day('2026-11-02')).toEqual([[80, 1]]);
+  });
+
   it('echoes a stored zone Node no longer lists without re-validating it (ADR 0007 §4)', async () => {
     await admin.query(`update tenants set time_zone = 'Europe/Kyiv' where id = $1`, [a.id]);
     await fx.sale(a.id, { location: L1(), cashier: a.owner, at: '2026-01-10 23:30 Europe/Kyiv', lines: [{ product: rice, quantity: 1, unitPrice: 100, unitCost: 10 }] });

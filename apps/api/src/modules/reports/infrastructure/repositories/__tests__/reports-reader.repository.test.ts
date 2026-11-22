@@ -6,7 +6,9 @@ import { ReportsReaderRepository } from '../reports-reader.repository';
 const LOC = '0190a000-0000-7000-8000-0000000000c1';
 const CASHIER = '0190a000-0000-7000-8000-0000000000a1';
 const PRODUCT = '0190a000-0000-7000-8000-0000000000d1';
-const WINDOW = { start: '2026-01-10 05:00:00+00', end: '2026-01-12 05:00:00+00', asOf: '2026-11-21 15:00:00.123456+00' };
+const BOUNDS = ['2026-01-10 05:00:00+00', '2026-01-11 05:00:00+00', '2026-01-12 05:00:00+00'];
+const WINDOW_ROW = { bounds: BOUNDS, asOf: '2026-11-21 15:00:00.123456+00' };
+const WINDOW = { start: BOUNDS[0]!, end: BOUNDS[2]!, asOf: WINDOW_ROW.asOf };
 const filter = { locationIds: [LOC], range: { from: '2026-01-10', to: '2026-01-11' }, timeZone: 'America/Havana' };
 
 describe('ReportsReaderRepository', () => {
@@ -31,7 +33,7 @@ describe('ReportsReaderRepository', () => {
 
   it('binds the local-day window once per range as timestamptz parameters, and filters the own sales', async () => {
     const { tx, queries } = fakeTx(
-      [WINDOW],
+      [WINDOW_ROW],
       [{ locationId: null, currency: 'CUP', cashSales: '300', transferSales: '0', profit: '12.500000', tickets: 2 }],
       [{ locationId: LOC, currency: 'CUP', cashSales: '1', transferSales: '2', profit: '-0.5', tickets: 1 }],
     );
@@ -41,8 +43,10 @@ describe('ReportsReaderRepository', () => {
     ]);
     expect(await repo.salesTotals(filter, true)).toEqual([{ locationId: LOC, currency: 'CUP', cashSales: 1, transferSales: 2, profit: -0.5, tickets: 1 }]);
     expect(queries).toHaveLength(3);
-    expect(queries[0]!.sql).toMatch(/\(\$1::date::timestamp at time zone \$2\)::text as start/);
-    expect(queries[0]!.params).toEqual(['2026-01-10', 'America/Havana', '2026-01-11', 'America/Havana']);
+    // One start per local day plus the end, corrected for a fall-back midnight.
+    expect(queries[0]!.sql).toMatch(/array_agg\(\(\(d\.day::timestamp at time zone \$1::text\) - greatest\(interval '0', /);
+    expect(queries[0]!.sql).toMatch(/generate_series\(\$\d+::date, \$\d+::date \+ 1, interval '1 day'\) as d\(day\)/);
+    expect(queries[0]!.params).toEqual(expect.arrayContaining(['2026-01-10', 'America/Havana', '2026-01-11']));
     const totals = queries[1]!;
     expect(totals.sql).toMatch(/sl\.occurred_at >= \$\d+::timestamptz and sl\.occurred_at < \$\d+::timestamptz and sl\.occurred_at <= \$\d+::timestamptz/);
     expect(totals.sql).not.toMatch(/at time zone|now\(\)/);
@@ -55,7 +59,7 @@ describe('ReportsReaderRepository', () => {
   });
 
   it('reads valued ledger quantities of non-reversed exits and entries per unit cost', async () => {
-    const { tx, queries } = fakeTx([WINDOW], [{ locationId: LOC, kind: 'shrinkage', currency: 'CUP', unitCost: '10.500000', quantity: '2.000' }]);
+    const { tx, queries } = fakeTx([WINDOW_ROW], [{ locationId: LOC, kind: 'shrinkage', currency: 'CUP', unitCost: '10.500000', quantity: '2.000' }]);
     const repo = new ReportsReaderRepository(tx, TENANT);
     expect(await repo.valuedMovements(filter)).toEqual([{ locationId: LOC, kind: 'shrinkage', currency: 'CUP', unitCost: 10.5, quantity: 2 }]);
     expect(queries[1]!.sql).toMatch(/d\.kind in \('exit', 'entry'\)/);
@@ -64,12 +68,15 @@ describe('ReportsReaderRepository', () => {
     expect(queries[1]!.sql).toMatch(/r\.reverses_document_id = d\.id/);
   });
 
-  it('zero-fills the daily series over generate_series of local days', async () => {
-    const { tx, queries } = fakeTx([WINDOW], [{ currency: 'CUP', date: '2026-01-10', totalSales: '0', profit: '0' }]);
+  it('buckets the daily series by the bounds of the local days and zero-fills every day', async () => {
+    const { tx, queries } = fakeTx([WINDOW_ROW], [{ currency: 'CUP', date: '2026-01-10', totalSales: '0', profit: '0' }]);
     const repo = new ReportsReaderRepository(tx, TENANT);
     expect(await repo.dailySales(filter)).toEqual([{ currency: 'CUP', date: '2026-01-10', totalSales: 0, profit: 0 }]);
-    expect(queries[1]!.sql).toMatch(/generate_series\(\$\d+::date, \$\d+::date, interval '1 day'\)/);
-    expect(queries[1]!.sql).toMatch(/\(sl\.occurred_at at time zone \$1\)::date as day/);
+    expect(queries[1]!.sql).toMatch(/width_bucket\(sl\.occurred_at, \$1::timestamptz\[\]\) as day/);
+    expect(queries[1]!.sql).not.toMatch(/at time zone/);
+    expect(queries[1]!.sql).toMatch(/generate_series\(1, \$\d+::int\) as d\(day\)/);
+    expect(queries[1]!.params[0]).toEqual(BOUNDS);
+    expect(queries[1]!.params).toContain(2);
   });
 
   it.each([
@@ -78,7 +85,7 @@ describe('ReportsReaderRepository', () => {
     ['profit', 'sum(sl.profit)'],
   ] as const)('ranks products by %s from a closed list', async (by, expression) => {
     const row = { productId: PRODUCT, name: 'Arroz', unitOfMeasure: 'kg', currency: 'CUP', quantity: '1.500', totalSales: '30', profit: '4.25' };
-    const { tx, queries } = fakeTx([WINDOW], [row]);
+    const { tx, queries } = fakeTx([WINDOW_ROW], [row]);
     const repo = new ReportsReaderRepository(tx, TENANT);
     expect(await repo.topProducts(filter, by, 5)).toEqual([{ ...row, quantity: 1.5, totalSales: 30, profit: 4.25 }]);
     expect(queries[1]!.sql).toContain(`order by ${expression} desc, p.name, sl.product_id`);
