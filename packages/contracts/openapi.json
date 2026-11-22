@@ -1400,6 +1400,343 @@
         ]
       }
     },
+    "/reports/summary": {
+      "get": {
+        "description": "Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. Or reports:view_own on the location (locationId required): only the actor's sales, scope 'own', profit, margin and losses null. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.",
+        "operationId": "getReportSummary",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First local day (inclusive). Without from/to: today in the tenant time zone",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last local day (inclusive)",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "description": "One location; without it, every location the actor may report on",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales, profit, margin, tickets, losses and valued entries per currency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSummary_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "KPIs per currency over a range",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/reports/daily-series": {
+      "get": {
+        "description": "Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. Days without sales are 0.",
+        "operationId": "getReportDailySeries",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First local day (inclusive). Without from/to: today in the tenant time zone",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last local day (inclusive)",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "description": "One location; without it, every location the actor may report on",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One point per local day for each currency with sales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailySeries_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Total sales and profit per local day and currency",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/reports/top-products": {
+      "get": {
+        "description": "Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.",
+        "operationId": "getReportTopProducts",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First local day (inclusive). Without from/to: today in the tenant time zone",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last local day (inclusive)",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "description": "One location; without it, every location the actor may report on",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          },
+          {
+            "name": "by",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "revenue",
+              "$ref": "#/components/schemas/TopProductsOrder"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+$"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The best products of the range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopProducts_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Product ranking by revenue, quantity or profit",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/reports/by-location": {
+      "get": {
+        "description": "Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.",
+        "operationId": "getReportByLocation",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First local day (inclusive). Without from/to: today in the tenant time zone",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last local day (inclusive)",
+            "schema": {
+              "$ref": "#/components/schemas/LocalDate"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "description": "One location; without it, every location the actor may report on",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "KPIs per location and currency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryByLocation_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A compact summary per visible location",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/reports/inventory-health": {
+      "get": {
+        "description": "With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. Never by range. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.",
+        "operationId": "getReportInventoryHealth",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "description": "One location; without it, every location the actor may report on",
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Counts, the first items of each list and the value per currency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryHealth_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see ErrorResponse.code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Low stock, stagnant and near-expiration products, and the inventory value, at the moment",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/roles": {
       "get": {
         "operationId": "listRoles",
@@ -3938,6 +4275,609 @@
         ],
         "additionalProperties": false
       },
+      "ReportScope_Output": {
+        "type": "string",
+        "enum": [
+          "location",
+          "own"
+        ],
+        "description": "'own': only the actor's sales of the location, without costs (reports:view_own)"
+      },
+      "LocalDate_Output": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+        "description": "Calendar day YYYY-MM-DD in the tenant time zone",
+        "example": "2026-11-21"
+      },
+      "SummaryTotals_Output": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CUP",
+              "USD",
+              "MLC"
+            ]
+          },
+          "cashSales": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "transferSales": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "totalSales": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "profit": {
+            "type": "number",
+            "description": "Gross profit. Null with scope 'own' (reports:view_own never sees costs, D4)",
+            "nullable": true
+          },
+          "margin": {
+            "type": "number",
+            "description": "profit / totalSales, 4 decimals; null without sales. Null with scope 'own' (reports:view_own never sees costs, D4)",
+            "nullable": true
+          },
+          "tickets": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Distinct sales with at least one line in this currency"
+          },
+          "averageTicket": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "round(totalSales / tickets); null without tickets",
+            "nullable": true
+          },
+          "shrinkageLoss": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Null with scope 'own' (reports:view_own never sees costs, D4)",
+            "nullable": true
+          },
+          "ownerWithdrawals": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Null with scope 'own' (reports:view_own never sees costs, D4)",
+            "nullable": true
+          },
+          "valuedEntries": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Null with scope 'own' (reports:view_own never sees costs, D4)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "currency",
+          "cashSales",
+          "transferSales",
+          "totalSales",
+          "profit",
+          "margin",
+          "tickets",
+          "averageTicket",
+          "shrinkageLoss",
+          "ownerWithdrawals",
+          "valuedEntries"
+        ],
+        "additionalProperties": false
+      },
+      "ReportSummary_Output": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/ReportScope_Output"
+          },
+          "locationIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Uuid_Output"
+            },
+            "description": "Locations the report covers (only authorized ones)"
+          },
+          "from": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "to": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "IANA time zone stored for the tenant (validated when it was written)",
+            "example": "America/Havana"
+          },
+          "asOf": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "currencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SummaryTotals_Output"
+            }
+          }
+        },
+        "required": [
+          "scope",
+          "locationIds",
+          "from",
+          "to",
+          "timeZone",
+          "asOf",
+          "currencies"
+        ],
+        "additionalProperties": false
+      },
+      "DailySeries_Output": {
+        "type": "object",
+        "properties": {
+          "locationIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Uuid_Output"
+            },
+            "description": "Locations the report covers (only authorized ones)"
+          },
+          "from": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "to": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "IANA time zone stored for the tenant (validated when it was written)",
+            "example": "America/Havana"
+          },
+          "asOf": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "CUP",
+                    "USD",
+                    "MLC"
+                  ]
+                },
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "$ref": "#/components/schemas/LocalDate_Output"
+                      },
+                      "totalSales": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "profit": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "date",
+                      "totalSales",
+                      "profit"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "currency",
+                "points"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "locationIds",
+          "from",
+          "to",
+          "timeZone",
+          "asOf",
+          "series"
+        ],
+        "additionalProperties": false
+      },
+      "TopProductsOrder_Output": {
+        "type": "string",
+        "enum": [
+          "revenue",
+          "quantity",
+          "profit"
+        ]
+      },
+      "TopProducts_Output": {
+        "type": "object",
+        "properties": {
+          "locationIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Uuid_Output"
+            },
+            "description": "Locations the report covers (only authorized ones)"
+          },
+          "from": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "to": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "IANA time zone stored for the tenant (validated when it was written)",
+            "example": "America/Havana"
+          },
+          "asOf": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "by": {
+            "$ref": "#/components/schemas/TopProductsOrder_Output"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "$ref": "#/components/schemas/Uuid_Output"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "unitOfMeasure": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "CUP",
+                    "USD",
+                    "MLC"
+                  ]
+                },
+                "quantity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Units sold, at most 3 decimals"
+                },
+                "totalSales": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "profit": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "productId",
+                "name",
+                "unitOfMeasure",
+                "currency",
+                "quantity",
+                "totalSales",
+                "profit"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "locationIds",
+          "from",
+          "to",
+          "timeZone",
+          "asOf",
+          "by",
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "SummaryByLocation_Output": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "to": {
+            "$ref": "#/components/schemas/LocalDate_Output"
+          },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "IANA time zone stored for the tenant (validated when it was written)",
+            "example": "America/Havana"
+          },
+          "asOf": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "locationId": {
+                  "$ref": "#/components/schemas/Uuid_Output"
+                },
+                "locationName": {
+                  "type": "string"
+                },
+                "currencies": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SummaryTotals_Output"
+                  }
+                }
+              },
+              "required": [
+                "locationId",
+                "locationName",
+                "currencies"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "timeZone",
+          "asOf",
+          "locations"
+        ],
+        "additionalProperties": false
+      },
+      "MoneyByCurrency_Output": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "currency": {
+              "type": "string",
+              "enum": [
+                "CUP",
+                "USD",
+                "MLC"
+              ]
+            },
+            "amount": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Minor units, up to 6 decimals"
+            }
+          },
+          "required": [
+            "currency",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        "description": "One entry per currency with data"
+      },
+      "InventoryHealth_Output": {
+        "type": "object",
+        "properties": {
+          "locationIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Uuid_Output"
+            },
+            "description": "Locations the report covers (only authorized ones)"
+          },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "IANA time zone stored for the tenant (validated when it was written)",
+            "example": "America/Havana"
+          },
+          "asOf": {
+            "$ref": "#/components/schemas/IsoDateTime_Output"
+          },
+          "lowStock": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Total in the list, beyond the returned items"
+              },
+              "items": {
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "$ref": "#/components/schemas/Uuid_Output"
+                    },
+                    "locationId": {
+                      "$ref": "#/components/schemas/Uuid_Output"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "unitOfMeasure": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number",
+                      "description": "Current stock, at most 3 decimals"
+                    },
+                    "threshold": {
+                      "type": "number",
+                      "description": "Effective threshold (getProductThreshold)"
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "locationId",
+                    "name",
+                    "unitOfMeasure",
+                    "quantity",
+                    "threshold"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "count",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          "stagnant": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Total in the list, beyond the returned items"
+              },
+              "items": {
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "$ref": "#/components/schemas/Uuid_Output"
+                    },
+                    "locationId": {
+                      "$ref": "#/components/schemas/Uuid_Output"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "unitOfMeasure": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number",
+                      "description": "Current stock, at most 3 decimals"
+                    },
+                    "lastSaleDate": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/LocalDate_Output"
+                        }
+                      ],
+                      "nullable": true,
+                      "description": "Local day of the last sale; null if never sold"
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "locationId",
+                    "name",
+                    "unitOfMeasure",
+                    "quantity",
+                    "lastSaleDate"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "count",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          "nearExpiration": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Total in the list, beyond the returned items"
+              },
+              "items": {
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "$ref": "#/components/schemas/Uuid_Output"
+                    },
+                    "locationId": {
+                      "$ref": "#/components/schemas/Uuid_Output"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "unitOfMeasure": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number",
+                      "description": "Current stock, at most 3 decimals"
+                    },
+                    "expirationDate": {
+                      "$ref": "#/components/schemas/LocalDate_Output"
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "locationId",
+                    "name",
+                    "unitOfMeasure",
+                    "quantity",
+                    "expirationDate"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "count",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          "inventoryValue": {
+            "$ref": "#/components/schemas/MoneyByCurrency_Output"
+          }
+        },
+        "required": [
+          "locationIds",
+          "timeZone",
+          "asOf",
+          "lowStock",
+          "stagnant",
+          "nearExpiration",
+          "inventoryValue"
+        ],
+        "additionalProperties": false
+      },
       "Role_Output": {
         "type": "object",
         "properties": {
@@ -4578,6 +5518,21 @@
           "nextCursor"
         ],
         "additionalProperties": false
+      },
+      "LocalDate": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+        "description": "Calendar day YYYY-MM-DD in the tenant time zone",
+        "example": "2026-11-21"
+      },
+      "TopProductsOrder": {
+        "type": "string",
+        "enum": [
+          "revenue",
+          "quantity",
+          "profit"
+        ]
       }
     }
   }

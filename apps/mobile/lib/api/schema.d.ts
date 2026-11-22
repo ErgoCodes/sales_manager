@@ -393,6 +393,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reports/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * KPIs per currency over a range
+         * @description Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. Or reports:view_own on the location (locationId required): only the actor's sales, scope 'own', profit, margin and losses null. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.
+         */
+        get: operations["getReportSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/daily-series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Total sales and profit per local day and currency
+         * @description Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. Days without sales are 0.
+         */
+        get: operations["getReportDailySeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/top-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Product ranking by revenue, quantity or profit
+         * @description Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.
+         */
+        get: operations["getReportTopProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/by-location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A compact summary per visible location
+         * @description Local days of the tenant time zone; without from/to, today. Cut at the database now(); reversed documents never count. Amounts per currency, never converted. With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.
+         */
+        get: operations["getReportByLocation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/inventory-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Low stock, stagnant and near-expiration products, and the inventory value, at the moment
+         * @description With locationId: reports:view there (403 otherwise; 404 for a location of another tenant). Without it: every active location where the actor has reports:view. Never by range. reports:view is a financial permission: it sees profit, margin, valued losses and inventory value.
+         */
+        get: operations["getReportInventoryHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/roles": {
         parameters: {
             query?: never;
@@ -1011,6 +1111,173 @@ export interface components {
             /** @description Null when there are no more pages */
             nextCursor: string | null;
         };
+        /**
+         * @description 'own': only the actor's sales of the location, without costs (reports:view_own)
+         * @enum {string}
+         */
+        ReportScope_Output: "location" | "own";
+        /**
+         * Format: date
+         * @description Calendar day YYYY-MM-DD in the tenant time zone
+         * @example 2026-11-21
+         */
+        LocalDate_Output: string;
+        SummaryTotals_Output: {
+            /** @enum {string} */
+            currency: "CUP" | "USD" | "MLC";
+            cashSales: number;
+            transferSales: number;
+            totalSales: number;
+            /** @description Gross profit. Null with scope 'own' (reports:view_own never sees costs, D4) */
+            profit: number | null;
+            /** @description profit / totalSales, 4 decimals; null without sales. Null with scope 'own' (reports:view_own never sees costs, D4) */
+            margin: number | null;
+            /** @description Distinct sales with at least one line in this currency */
+            tickets: number;
+            /** @description round(totalSales / tickets); null without tickets */
+            averageTicket: number | null;
+            /** @description Null with scope 'own' (reports:view_own never sees costs, D4) */
+            shrinkageLoss: number | null;
+            /** @description Null with scope 'own' (reports:view_own never sees costs, D4) */
+            ownerWithdrawals: number | null;
+            /** @description Null with scope 'own' (reports:view_own never sees costs, D4) */
+            valuedEntries: number | null;
+        };
+        ReportSummary_Output: {
+            scope: components["schemas"]["ReportScope_Output"];
+            /** @description Locations the report covers (only authorized ones) */
+            locationIds: components["schemas"]["Uuid_Output"][];
+            from: components["schemas"]["LocalDate_Output"];
+            to: components["schemas"]["LocalDate_Output"];
+            /**
+             * @description IANA time zone stored for the tenant (validated when it was written)
+             * @example America/Havana
+             */
+            timeZone: string;
+            asOf: components["schemas"]["IsoDateTime_Output"];
+            currencies: components["schemas"]["SummaryTotals_Output"][];
+        };
+        DailySeries_Output: {
+            /** @description Locations the report covers (only authorized ones) */
+            locationIds: components["schemas"]["Uuid_Output"][];
+            from: components["schemas"]["LocalDate_Output"];
+            to: components["schemas"]["LocalDate_Output"];
+            /**
+             * @description IANA time zone stored for the tenant (validated when it was written)
+             * @example America/Havana
+             */
+            timeZone: string;
+            asOf: components["schemas"]["IsoDateTime_Output"];
+            series: {
+                /** @enum {string} */
+                currency: "CUP" | "USD" | "MLC";
+                points: {
+                    date: components["schemas"]["LocalDate_Output"];
+                    totalSales: number;
+                    profit: number;
+                }[];
+            }[];
+        };
+        /** @enum {string} */
+        TopProductsOrder_Output: "revenue" | "quantity" | "profit";
+        TopProducts_Output: {
+            /** @description Locations the report covers (only authorized ones) */
+            locationIds: components["schemas"]["Uuid_Output"][];
+            from: components["schemas"]["LocalDate_Output"];
+            to: components["schemas"]["LocalDate_Output"];
+            /**
+             * @description IANA time zone stored for the tenant (validated when it was written)
+             * @example America/Havana
+             */
+            timeZone: string;
+            asOf: components["schemas"]["IsoDateTime_Output"];
+            by: components["schemas"]["TopProductsOrder_Output"];
+            items: {
+                productId: components["schemas"]["Uuid_Output"];
+                name: string;
+                unitOfMeasure: string;
+                /** @enum {string} */
+                currency: "CUP" | "USD" | "MLC";
+                /** @description Units sold, at most 3 decimals */
+                quantity: number;
+                totalSales: number;
+                profit: number;
+            }[];
+        };
+        SummaryByLocation_Output: {
+            from: components["schemas"]["LocalDate_Output"];
+            to: components["schemas"]["LocalDate_Output"];
+            /**
+             * @description IANA time zone stored for the tenant (validated when it was written)
+             * @example America/Havana
+             */
+            timeZone: string;
+            asOf: components["schemas"]["IsoDateTime_Output"];
+            locations: {
+                locationId: components["schemas"]["Uuid_Output"];
+                locationName: string;
+                currencies: components["schemas"]["SummaryTotals_Output"][];
+            }[];
+        };
+        /** @description One entry per currency with data */
+        MoneyByCurrency_Output: {
+            /** @enum {string} */
+            currency: "CUP" | "USD" | "MLC";
+            /** @description Minor units, up to 6 decimals */
+            amount: number;
+        }[];
+        InventoryHealth_Output: {
+            /** @description Locations the report covers (only authorized ones) */
+            locationIds: components["schemas"]["Uuid_Output"][];
+            /**
+             * @description IANA time zone stored for the tenant (validated when it was written)
+             * @example America/Havana
+             */
+            timeZone: string;
+            asOf: components["schemas"]["IsoDateTime_Output"];
+            lowStock: {
+                /** @description Total in the list, beyond the returned items */
+                count: number;
+                items: {
+                    productId: components["schemas"]["Uuid_Output"];
+                    locationId: components["schemas"]["Uuid_Output"];
+                    name: string;
+                    unitOfMeasure: string;
+                    /** @description Current stock, at most 3 decimals */
+                    quantity: number;
+                    /** @description Effective threshold (getProductThreshold) */
+                    threshold: number;
+                }[];
+            };
+            stagnant: {
+                /** @description Total in the list, beyond the returned items */
+                count: number;
+                items: {
+                    productId: components["schemas"]["Uuid_Output"];
+                    locationId: components["schemas"]["Uuid_Output"];
+                    name: string;
+                    unitOfMeasure: string;
+                    /** @description Current stock, at most 3 decimals */
+                    quantity: number;
+                    /** @description Local day of the last sale; null if never sold */
+                    lastSaleDate: components["schemas"]["LocalDate_Output"] | null;
+                }[];
+            };
+            nearExpiration: {
+                /** @description Total in the list, beyond the returned items */
+                count: number;
+                items: {
+                    productId: components["schemas"]["Uuid_Output"];
+                    locationId: components["schemas"]["Uuid_Output"];
+                    name: string;
+                    unitOfMeasure: string;
+                    /** @description Current stock, at most 3 decimals */
+                    quantity: number;
+                    expirationDate: components["schemas"]["LocalDate_Output"];
+                }[];
+            };
+            inventoryValue: components["schemas"]["MoneyByCurrency_Output"];
+        };
         Role_Output: {
             id: components["schemas"]["Uuid_Output"];
             /** @description Null for custom roles */
@@ -1155,6 +1422,14 @@ export interface components {
             /** @description Null when there are no more pages */
             nextCursor: string | null;
         };
+        /**
+         * Format: date
+         * @description Calendar day YYYY-MM-DD in the tenant time zone
+         * @example 2026-11-21
+         */
+        LocalDate: string;
+        /** @enum {string} */
+        TopProductsOrder: "revenue" | "quantity" | "profit";
     };
     responses: never;
     parameters: never;
@@ -2021,6 +2296,184 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InventoryDocument_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getReportSummary: {
+        parameters: {
+            query?: {
+                /** @description First local day (inclusive). Without from/to: today in the tenant time zone */
+                from?: components["schemas"]["LocalDate"];
+                /** @description Last local day (inclusive) */
+                to?: components["schemas"]["LocalDate"];
+                /** @description One location; without it, every location the actor may report on */
+                locationId?: components["schemas"]["Uuid"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sales, profit, margin, tickets, losses and valued entries per currency */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSummary_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getReportDailySeries: {
+        parameters: {
+            query?: {
+                /** @description First local day (inclusive). Without from/to: today in the tenant time zone */
+                from?: components["schemas"]["LocalDate"];
+                /** @description Last local day (inclusive) */
+                to?: components["schemas"]["LocalDate"];
+                /** @description One location; without it, every location the actor may report on */
+                locationId?: components["schemas"]["Uuid"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One point per local day for each currency with sales */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailySeries_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getReportTopProducts: {
+        parameters: {
+            query?: {
+                /** @description First local day (inclusive). Without from/to: today in the tenant time zone */
+                from?: components["schemas"]["LocalDate"];
+                /** @description Last local day (inclusive) */
+                to?: components["schemas"]["LocalDate"];
+                /** @description One location; without it, every location the actor may report on */
+                locationId?: components["schemas"]["Uuid"];
+                by?: components["schemas"]["TopProductsOrder"];
+                limit?: string | number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The best products of the range */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopProducts_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getReportByLocation: {
+        parameters: {
+            query?: {
+                /** @description First local day (inclusive). Without from/to: today in the tenant time zone */
+                from?: components["schemas"]["LocalDate"];
+                /** @description Last local day (inclusive) */
+                to?: components["schemas"]["LocalDate"];
+                /** @description One location; without it, every location the actor may report on */
+                locationId?: components["schemas"]["Uuid"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description KPIs per location and currency */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SummaryByLocation_Output"];
+                };
+            };
+            /** @description Error (see ErrorResponse.code) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getReportInventoryHealth: {
+        parameters: {
+            query?: {
+                /** @description One location; without it, every location the actor may report on */
+                locationId?: components["schemas"]["Uuid"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Counts, the first items of each list and the value per currency */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryHealth_Output"];
                 };
             };
             /** @description Error (see ErrorResponse.code) */
