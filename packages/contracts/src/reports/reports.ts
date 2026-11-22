@@ -67,11 +67,15 @@ export const ReportRangeQuery = z
   .meta({ id: 'ReportRangeQuery', description: RANGE_RULES });
 export type ReportRangeQuery = z.infer<typeof ReportRangeQuery>;
 
+/** `GET /reports/inventory-health`: at the moment, so only the optional location. */
+export const InventoryHealthQuery = z.object({ locationId: rangeShape.locationId }).meta({ id: 'InventoryHealthQuery' });
+export type InventoryHealthQuery = z.infer<typeof InventoryHealthQuery>;
+
 export const TOP_PRODUCTS_ORDERS = ['revenue', 'quantity', 'profit'] as const;
 export const TopProductsOrder = z.enum(TOP_PRODUCTS_ORDERS).meta({ id: 'TopProductsOrder' });
 export type TopProductsOrder = z.infer<typeof TopProductsOrder>;
 
-/** `GET /reports/top-products`: the range plus `by` and `limit` (1–50, default 10). */
+/** `GET /reports/top-products`: the range plus `by` and `limit` (1–50 per currency, default 10). */
 export const TopProductsQuery = z
   .object({
     ...rangeShape,
@@ -179,7 +183,7 @@ export const TopProducts = z
         totalSales: minorUnits,
         profit: decimalUnits,
       }),
-    ),
+    ).meta({ description: 'The first `limit` products of each currency, ranked within it (amounts in different currencies are never compared), ordered by currency and then rank.' }),
   })
   .meta({ id: 'TopProducts' });
 export type TopProducts = z.infer<typeof TopProducts>;

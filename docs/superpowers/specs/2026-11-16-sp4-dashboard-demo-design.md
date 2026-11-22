@@ -150,7 +150,7 @@ Esquemas nuevos en `packages/contracts/src/reports/`, todos con `.meta({ id })`:
 
 **Consultas e índices:** un `SELECT … GROUP BY currency, payment_method` sobre el índice cubriente de `sale_lines`; las pérdidas leen `inventory_movements` por `(tenant_id, document_id)` filtrando documentos `exit`/`entry` por un índice nuevo `inventory_documents (tenant_id, location_id, occurred_at) WHERE kind IN ('exit','entry')`; "no revertido" es un `NOT EXISTS` sobre `UNIQUE (tenant_id, reverses_document_id)`. Las reglas por fila (`getProductThreshold`, `isStagnant`, `isNearExpiration`, `marginRatio`) se aplican en la API sobre el resultado, nunca reescritas en SQL.
 
-**Presupuesto de rendimiento:** con 10× el volumen de la demo (≈ 200 000 líneas de venta), cada endpoint responde en p95 < 300 ms en el contenedor de integración, y `EXPLAIN` no muestra `Seq Scan` sobre `sale_lines` ni `inventory_movements`. Si no se cumple, se aplica la salida del ADR 0007 (proyección diaria), no un cache.
+**Presupuesto de rendimiento:** con 10× el volumen de la demo (≈ 200 000 líneas de venta en 90 días), para ventanas de hasta 30 días (los períodos del tablero: Hoy, 7 días, 30 días, Este mes), cada endpoint responde en p95 < 300 ms en el contenedor de integración, y `EXPLAIN` no muestra `Seq Scan` sobre `sale_lines` ni `inventory_movements`. Las ventanas más largas (hasta 90 días y el máximo del rango) se permiten, pero quedan fuera del presupuesto: el test las mide y las registra sin afirmarlas. La salida documentada cuando el volumen real lo exija es la proyección diaria del ADR 0007, nunca un cache. *(Enmienda del 2026-11-22: el owner eligió la opción B, ampliar `sale_lines_kpi_idx` y acotar el presupuesto a 30 días, en lugar de la proyección diaria; ver ADR 0007, "Resultados medidos".)*
 
 **Cache:** ninguno en SP4. Los permisos se resuelven por petición (ADR 0004) y los datos son privados; un cache por `(tenant, usuario, rango)` tendría que invalidarse con cada venta de SP5. En la web, las páginas son dinámicas (cookies) y cada tarjeta carga en su `<Suspense>`.
 
@@ -272,7 +272,7 @@ Las claves JWT se generan con `keys:generate` y se rotan con el procedimiento de
   - **KPIs contra un oráculo:** un fixture fijo con totales calculados a mano (incluye mermas, una entrada revertida, venta a costo, dos monedas y una venta futura que no cuenta);
   - **corte de día:** `America/Havana` cruzando los cambios de horario; serie diaria = total del rango;
   - `RecordSale` concurrente con salidas de inventario sobre el mismo par: stock final ≥ 0 y sin deadlock;
-  - **rendimiento:** volumen ×10, p95 < 300 ms y sin `Seq Scan` en las tablas grandes;
+  - **rendimiento:** volumen ×10, ventanas de hasta 30 días, p95 < 300 ms y sin `Seq Scan` en las tablas grandes (el `EXPLAIN` corre siempre; la latencia, con `REPORTS_PERF=1`);
   - tenant `read_only`: toda mutación da `403 DEMO_READ_ONLY` (se recorre la lista de rutas de la app), login, refresh y logout funcionan;
   - `demo:reset` se niega con un tenant real y es atómico; `db:seed` dos veces no duplica.
 - **Mobile (Jest):** sesión, refresh single-flight, ventana de gracia, logout sin red, cambio obligatorio y pantalla "Hoy".

@@ -120,6 +120,13 @@
       "when": 1795312615396,
       "tag": "0016_sp4_sales_force_rls_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795350925011,
+      "tag": "0017_sp4_sale_lines_kpi_idx_widen",
+      "breakpoints": true
     }
   ]
 }

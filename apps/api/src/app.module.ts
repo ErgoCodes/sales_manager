@@ -22,6 +22,7 @@ import { IamModule } from './modules/iam/iam.module';
 import { toInventoryMappedError } from './modules/inventory/http/inventory-http-errors';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { LocationsModule } from './modules/locations/locations.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { UsersModule } from './modules/users/users.module';
@@ -51,6 +52,7 @@ export class AppModule implements NestModule {
         CatalogModule,
         InventoryModule,
         SalesModule,
+        ReportsModule,
         RolesModule,
         UsersModule,
         AssignmentsModule,

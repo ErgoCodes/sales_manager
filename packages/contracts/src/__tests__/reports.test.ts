@@ -6,6 +6,7 @@ import {
   DailySeries,
   DEMO_ERROR_CODES,
   InventoryHealth,
+  InventoryHealthQuery,
   LocalDate,
   MAX_REPORT_RANGE_DAYS,
   MoneyByCurrency,
@@ -81,6 +82,14 @@ describe('ReportRangeQuery', () => {
   it('rejects invalid days and a non-UUIDv7 location', () => {
     expect(ReportRangeQuery.safeParse({ from: '2026-02-30', to: '2026-03-01' }).success).toBe(false);
     expect(ReportRangeQuery.safeParse({ locationId: 'p1' }).success).toBe(false);
+  });
+});
+
+describe('InventoryHealthQuery', () => {
+  it('takes only an optional location (the health is at the moment, never by range)', () => {
+    expect(InventoryHealthQuery.parse({})).toEqual({});
+    expect(InventoryHealthQuery.parse({ locationId: LOCATION, from: '2026-01-01' })).toEqual({ locationId: LOCATION });
+    expect(InventoryHealthQuery.safeParse({ locationId: 'x' }).success).toBe(false);
   });
 });
 
