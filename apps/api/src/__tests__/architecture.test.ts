@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
 import { ESLint } from 'eslint';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 // Keeps the hexagonal boundary rule (ADR 0001) honest: if someone loosens
 // eslint.config.js, these fail.
@@ -16,6 +16,12 @@ const domainFile = 'src/modules/health/domain/probe.ts';
 const applicationFile = 'src/modules/health/application/probe.ts';
 
 describe('hexagonal import boundaries', () => {
+  // The first lintText loads the config and parsers from disk; when the whole repo's suites run in
+  // parallel (pre-push hook) that alone can exceed the default 5s test timeout, so it happens here.
+  beforeAll(async () => {
+    await restrictedImports(domainFile, '');
+  }, 60_000);
+
   it.each([
     ["import { sql } from 'drizzle-orm';"],
     ["import { Injectable } from '@nestjs/common';"],
