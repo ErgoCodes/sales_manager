@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dashboardHref, parseFilters, resolveRange, todayIn } from '../filters';
+import { addDays, cardKeys, dashboardHref, parseFilters, resolveRange, todayIn } from '../filters';
 
 const L1 = '018f0000-0000-7000-8000-0000000000b1';
 
@@ -59,5 +59,23 @@ describe('ranges', () => {
     expect(resolveRange({ period: '7d', order: 'revenue' }, '2026-11-22')).toEqual({ from: '2026-11-16', to: '2026-11-22' });
     expect(resolveRange({ period: '30d', order: 'revenue' }, '2026-11-22')).toEqual({ from: '2026-10-24', to: '2026-11-22' });
     expect(resolveRange({ period: 'rango', from: '2026-01-01', to: '2026-01-05', order: 'revenue' })).toEqual({ from: '2026-01-01', to: '2026-01-05' });
+  });
+});
+
+describe('cardKeys', () => {
+  const base = { period: '7d', order: 'revenue' } as const;
+
+  it('changing the ranking order only changes the top-products key', () => {
+    const before = cardKeys(base);
+    const after = cardKeys({ ...base, order: 'quantity' });
+    expect(after.top).not.toBe(before.top);
+    expect(after.shared).toBe(before.shared);
+  });
+
+  it('changing any other filter changes every key', () => {
+    const before = cardKeys(base);
+    const after = cardKeys({ ...base, period: 'hoy' });
+    expect(after.top).not.toBe(before.top);
+    expect(after.shared).not.toBe(before.shared);
   });
 });

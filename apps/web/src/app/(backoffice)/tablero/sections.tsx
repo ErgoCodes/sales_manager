@@ -55,6 +55,7 @@ export async function TopProductsSection({ data, filters }: Props) {
   const orders = (
     <SegmentedLinks
       label="Ordenar ranking"
+      scroll={false}
       items={(Object.keys(ORDER_LABELS) as (keyof typeof ORDER_LABELS)[]).map((order) => ({ key: order, href: dashboardHref(filters, { order }), label: ORDER_LABELS[order], active: filters.order === order }))}
     />
   );

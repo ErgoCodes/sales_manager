@@ -12,13 +12,15 @@ export interface SegmentedLink {
  * A segmented control made of links: the URL is the state, so each option is a plain link and the
  * selected one carries `aria-current="page"`. Works without client JS.
  */
-export function SegmentedLinks({ label, items, className }: { label: string; items: readonly SegmentedLink[]; className?: string }) {
+/** `scroll={false}` keeps the scroll position: use it when the options only change the surrounding card. */
+export function SegmentedLinks({ label, items, className, scroll }: { label: string; items: readonly SegmentedLink[]; className?: string; scroll?: boolean }) {
   return (
     <nav aria-label={label} className={cn('inline-flex rounded-lg bg-muted p-0.5', className)}>
       {items.map((item) => (
         <Link
           key={item.key}
           href={item.href}
+          scroll={scroll}
           aria-current={item.active ? 'page' : undefined}
           className={cn(
             'rounded-md px-3 py-1 text-sm whitespace-nowrap text-muted-foreground outline-none transition-[color,background-color,box-shadow] duration-150 ease-out hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50',

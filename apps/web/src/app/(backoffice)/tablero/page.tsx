@@ -5,7 +5,7 @@ import { CardLoading } from '@/components/dashboard/card';
 import { DashboardFilters } from '@/components/dashboard/dashboard-filters';
 import { getMe } from '@/lib/api/me';
 import { canAny } from '@/lib/permissions';
-import { parseFilters, type DashboardSearch } from '@/lib/reports/filters';
+import { cardKeys, parseFilters, type DashboardSearch } from '@/lib/reports/filters';
 import { loadDashboard, reportLocations } from './data';
 import { ByLocationSection, HealthSection, SeriesSection, SummarySection, TITLES, TopProductsSection } from './sections';
 
@@ -27,8 +27,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   if (!locations.ok) return <ErrorNotice message={locations.message} />;
   const data = loadDashboard(filters);
   const props = { data, filters };
-  // Suspense keys: a filter change shows each card's loading state again instead of the stale one.
-  const key = JSON.stringify(filters);
+  // Suspense keys: a filter change shows the affected cards' loading state instead of stale data.
+  const { shared: key, top: topKey } = cardKeys(filters);
 
   return (
     <div className="space-y-5">
@@ -44,7 +44,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <SeriesSection {...props} />
       </Suspense>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Suspense key={`top${key}`} fallback={<CardLoading title={TITLES.top} />}>
+        <Suspense key={`top${topKey}`} fallback={<CardLoading title={TITLES.top} />}>
           <TopProductsSection {...props} />
         </Suspense>
         <Suspense key={`by-location${key}`} fallback={<CardLoading title={TITLES.byLocation} />}>
