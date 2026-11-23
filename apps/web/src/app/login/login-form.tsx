@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useRef } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import { useActionState, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,7 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: readonly DemoA
   const [state, action, pending] = useActionState<FormState, FormData>(loginAction, {});
   const email = useRef<HTMLInputElement>(null);
   const password = useRef<HTMLInputElement>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const fill = (account: DemoAccount) => {
     if (email.current) email.current.value = account.email;
     if (password.current) password.current.value = account.password;
@@ -41,7 +43,20 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: readonly DemoA
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Contraseña</Label>
-          <Input ref={password} id="password" name="password" type="password" autoComplete="current-password" required />
+          <div className="relative">
+            <Input ref={password} id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="pr-10" />
+            {/* The name avoids "contraseña" so the field's label stays unique (e2e selects it by substring). */}
+            <button
+              type="button"
+              aria-label="Mostrar caracteres"
+              aria-controls="password"
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((shown) => !shown)}
+              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              {showPassword ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+            </button>
+          </div>
         </div>
         {state.error ? (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

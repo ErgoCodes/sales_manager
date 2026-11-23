@@ -15,6 +15,25 @@ const ACCOUNTS = [
   { label: 'Cajero', email: 'cashier@example.test', password: 'cashier-secret' },
 ];
 
+describe('LoginForm password visibility', () => {
+  it('the eye button toggles the password between hidden and visible', () => {
+    view = renderWithReact(<LoginForm />);
+    const { container } = view;
+    const input = getByLabelText(container, 'Contraseña');
+    const toggle = getByRole(container, 'button', { name: 'Mostrar caracteres' });
+    expect(input).toHaveAttribute('type', 'password');
+    expect(toggle).toHaveAttribute('type', 'button');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle).toHaveAttribute('aria-controls', 'password');
+    act(() => toggle.click());
+    expect(input).toHaveAttribute('type', 'text');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    act(() => toggle.click());
+    expect(input).toHaveAttribute('type', 'password');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
 describe('LoginForm demo accounts (DEMO_MODE)', () => {
   it('each demo button fills the form without submitting it', () => {
     view = renderWithReact(<LoginForm demoAccounts={ACCOUNTS} />);
