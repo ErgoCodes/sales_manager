@@ -32,7 +32,7 @@ export async function exportToExcel(filename: string, sheets: Sheet[]): Promise<
     // Reexportar el mismo día pisaría un archivo previo con el mismo nombre.
     file.delete();
   }
-  file.write(base64, { encoding: 'base64' });
+  await file.write(base64, { encoding: 'base64' });
 
   const canShare = await Sharing.isAvailableAsync();
   if (!canShare) {

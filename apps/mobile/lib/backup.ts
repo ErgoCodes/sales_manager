@@ -41,7 +41,7 @@ export async function exportBackup(): Promise<void> {
     // Reintentar el mismo día pisaría un respaldo previo con el mismo nombre.
     backupFile.delete();
   }
-  sourceFile.copy(backupFile);
+  await sourceFile.copy(backupFile);
 
   const canShare = await Sharing.isAvailableAsync();
   if (!canShare) {
@@ -72,7 +72,7 @@ export async function pickAndValidateBackupFile(): Promise<DocumentPicker.Docume
   const handle = file.open();
   let header: Uint8Array;
   try {
-    header = handle.readBytes(16);
+    header = await handle.readBytes(16);
   } finally {
     handle.close();
   }
@@ -98,5 +98,5 @@ export async function restoreBackup(asset: DocumentPicker.DocumentPickerAsset): 
   const bytes = await sourceFile.bytes();
   // `write` trunca y sobrescribe el contenido existente, a diferencia de
   // `copy`, que falla si el destino ya existe.
-  targetFile.write(bytes);
+  await targetFile.write(bytes);
 }
