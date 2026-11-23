@@ -95,3 +95,13 @@ export function resolveRange(filters: DashboardFilters, today?: string): { from:
   if (filters.period === 'hoy' || !today) return undefined;
   return { from: addDays(today, -(PRESET_DAYS[filters.period] - 1)), to: today };
 }
+
+/**
+ * Suspense keys for the dashboard cards: a changed key shows that card's loading state again. The ranking
+ * order only feeds the top-products card, so switching it leaves every other card in place.
+ */
+export function cardKeys(filters: DashboardFilters): { shared: string; top: string } {
+  const { order, ...rest } = filters;
+  const shared = JSON.stringify(rest);
+  return { shared, top: `${shared}|${order}` };
+}

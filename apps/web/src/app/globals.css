@@ -19,6 +19,12 @@
   --border: oklch(0.88 0 0);
   --input: oklch(0.88 0 0);
   --ring: oklch(0.6 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --success: oklch(0.6 0.15 155);
+  --warning: oklch(0.7 0.16 70);
+  --chart-1: oklch(0.6 0.17 250);
+  --chart-2: oklch(0.65 0.15 160);
+  --chart-grid: oklch(0.92 0 0);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -41,6 +47,12 @@
     --border: oklch(1 0 0 / 15%);
     --input: oklch(1 0 0 / 20%);
     --ring: oklch(0.556 0 0);
+    --sidebar: oklch(0.18 0 0);
+    --success: oklch(0.72 0.15 155);
+    --warning: oklch(0.8 0.15 75);
+    --chart-1: oklch(0.7 0.14 250);
+    --chart-2: oklch(0.75 0.14 160);
+    --chart-grid: oklch(1 0 0 / 10%);
   }
 }
 
@@ -63,10 +75,40 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+}
+
+/* Strong ease-out for UI feedback (replaces Tailwind's default `ease-out`). */
+@theme {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @layer base {
   * {
     border-color: var(--border);
+  }
+  body {
+    font-feature-settings: 'cv11', 'ss01';
+  }
+}
+
+/* Loading placeholder: a gentle pulse, and none at all for reduced motion. */
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+.skeleton {
+  border-radius: calc(var(--radius, 0.5rem) - 2px);
+  background-color: var(--muted);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
   }
 }

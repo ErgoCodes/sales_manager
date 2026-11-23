@@ -14,9 +14,12 @@ async function Health() {
 
 export default function HomePage() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Estado del sistema</h1>
-      <Suspense fallback={<p className="text-sm opacity-70">Consultando la API…</p>}>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Estado del sistema</h1>
+        <p className="text-sm text-muted-foreground">Conexión del back-office con la API y la base de datos.</p>
+      </div>
+      <Suspense fallback={<p role="status" className="text-sm text-muted-foreground">Consultando la API…</p>}>
         <Health />
       </Suspense>
     </div>

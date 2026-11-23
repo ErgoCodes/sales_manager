@@ -71,26 +71,26 @@ describe('multi-currency summary', () => {
   });
 });
 
-describe('SVG charts (CSP: no style attributes)', () => {
+describe('Recharts charts (CSP: client only, no style attributes in server HTML)', () => {
   const points = dailySeries().series[0]!.points;
 
-  it('the daily chart draws with presentation attributes and has an equivalent table', () => {
+  it('the daily chart renders a labelled placeholder on the server and an equivalent table', () => {
     const out = html(<DailyChart points={points} currency="CUP" />);
-    expect(out).toContain('<svg');
     expect(out).not.toMatch(/\sstyle=/);
-    expect(out).toMatch(/<rect[^>]*height="/);
-    expect(out).toMatch(/<path[^>]*d="M/);
+    expect(out).not.toContain('recharts');
     expect(out).toMatch(/role="img"[^>]*aria-label="[^"]*ventas[^"]*"/i);
-    for (const text of ['<table', '2026-11-21', '4,000.00']) expect(out).toContain(text);
+    expect(out).toContain('class="skeleton');
+    for (const text of ['<table', 'Ver como tabla', '2026-11-21', '4,000.00']) expect(out).toContain(text);
     expect(out).toMatch(/<td[^>]*>-CUP\s20\.00<\/td>/);
   });
 
-  it('the bar chart draws one bar per item, no style attributes, with an equivalent table', () => {
-    const out = html(<BarChart label="Ventas por punto" items={[{ key: 'a', label: 'Centro', value: 700000, display: 'CUP 7,000.00' }, { key: 'b', label: 'Norte', value: 0, display: 'CUP 0.00' }]} />);
+  it('the bar chart renders a labelled placeholder and, by default, its table; table={false} leaves it to the caller', () => {
+    const items = [{ key: 'a', label: 'Centro', value: 700000, display: 'CUP 7,000.00' }, { key: 'b', label: 'Norte', value: 0, display: 'CUP 0.00' }];
+    const out = html(<BarChart label="Ventas por punto" items={items} />);
     expect(out).not.toMatch(/\sstyle=/);
-    expect(out.match(/<rect/g)).toHaveLength(2);
+    expect(out).toMatch(/role="img"[^>]*aria-label="Ventas por punto"/);
     for (const text of ['<table', 'Centro', 'CUP 7,000.00', 'Norte']) expect(out).toContain(text);
-    expect(out).toMatch(/<rect[^>]*width="0.0"/);
+    expect(html(<BarChart label="Ventas por punto" items={items} table={false} />)).not.toContain('<table');
   });
 
   it('charts survive a single point and all-zero values', () => {
@@ -100,7 +100,7 @@ describe('SVG charts (CSP: no style attributes)', () => {
 });
 
 describe('chart modules', () => {
-  it.each(['bar-chart.tsx', 'daily-chart.tsx'])('%s is a client component, so the streamed RSC payload never splits its SVG', async (file) => {
+  it.each(['bar-chart.tsx', 'daily-chart.tsx'])('%s is a client component: Recharts draws only in the browser, where the CSP allows its CSSOM styles', async (file) => {
     const { readFile } = await import('node:fs/promises');
     const { resolve } = await import('node:path');
     const source = await readFile(resolve(import.meta.dirname, '..', file), 'utf8');

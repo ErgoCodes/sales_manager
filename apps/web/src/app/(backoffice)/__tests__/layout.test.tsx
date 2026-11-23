@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getMe = vi.fn();
 vi.mock('@/lib/api/me', () => ({ getMe: () => getMe() }));
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
 
 import BackofficeLayout from '../layout';
 import { LocationFields } from '../puntos-de-venta/location-fields';
@@ -22,7 +23,7 @@ describe('BackofficeLayout', () => {
   it('shows the admin entries to an owner-like user', async () => {
     getMe.mockResolvedValue(me('users:manage', 'roles:manage', 'audit:view'));
     const out = await render();
-    for (const label of ['Usuarios', 'Roles', 'Auditoría', 'Puntos de venta', 'Dispositivos', 'contenido', 'Ana · Mónaco']) expect(out).toContain(label);
+    for (const label of ['Usuarios', 'Roles', 'Auditoría', 'Puntos de venta', 'Dispositivos', 'contenido', '>Ana<', '>Mónaco<']) expect(out).toContain(label);
   });
 
   it('hides them from a cashier', async () => {
