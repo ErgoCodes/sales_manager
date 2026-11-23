@@ -353,7 +353,7 @@ export default function StockEntryScreen() {
                 ? "Guardar cambios"
                 : "Registrar entrada"
           }
-          onPress={onSubmit}
+          onPress={() => void onSubmit()}
           disabled={isSubmitting}
         />
       </ScrollView>

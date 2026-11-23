@@ -8,6 +8,7 @@ import {
   SectionList,
   TextInput,
   View,
+  type TextInputInstance,
 } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ export default function NewSessionScreen() {
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const quantityRef = useRef<TextInput>(null);
+  const quantityRef = useRef<TextInputInstance>(null);
 
   const discountPercentNum = discountPercent === "" ? 0 : Number(discountPercent);
 

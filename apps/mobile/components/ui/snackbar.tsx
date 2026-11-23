@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 
 import { Radius, Shadows } from "@/constants/theme";
@@ -25,7 +25,8 @@ export function Snackbar({
   onDismiss,
   duration = 5000,
 }: SnackbarProps) {
-  const opacity = useRef(new Animated.Value(0)).current;
+  // One Animated.Value for the component's life, without reading a ref during render.
+  const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!visible) return;

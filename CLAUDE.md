@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Docs
 
-Always read https://docs.expo.dev/versions/v54.0.0/ before writing Expo-specific code. The API changes between major versions; training data may be stale.
+Always read https://docs.expo.dev/versions/v58.0.0/ before writing Expo-specific code. The API changes between major versions; training data may be stale.
 
 ## Task Tracking
 
@@ -46,7 +46,7 @@ pnpm --filter web api:generate   # apps/web/src/lib/api/schema.d.ts
 
 Run Expo-specific commands from `apps/mobile/`. Shared pricing, stock, catalog, formatting, and product-status rules belong in `packages/domain/`. It compiles to `dist/` (`pnpm build`; mobile's lint/typecheck/test scripts build it first via `pre*` hooks) and tests with Vitest. Non-Expo TS packages share `@monaco/eslint-config`.
 
-**CI** (`.github/workflows/ci.yml`): `quality` (build packages, lint, typecheck, `test:coverage`), `api-integration` (Testcontainers), `openapi-drift` (fails if `pnpm openapi:generate` / `pnpm --filter web api:generate` change `packages/contracts/openapi.json` or `apps/web/src/lib/api/schema.d.ts`; regenerate and commit both when contracts change) and `build` (`next build` + API `docker build`). The root `devDependencies` pin `react`/`react-dom` 19.1.0 (mobile's) on purpose: with the hoisted linker they keep web's React 19.3 nested under `apps/web`, otherwise web's Testing Library tests render empty trees.
+**CI** (`.github/workflows/ci.yml`): `quality` (build packages, lint, typecheck, `test:coverage`), `api-integration` (Testcontainers), `openapi-drift` (fails if `pnpm openapi:generate` / `pnpm --filter web api:generate` change `packages/contracts/openapi.json` or `apps/web/src/lib/api/schema.d.ts`; regenerate and commit both when contracts change) and `build` (`next build` + API `docker build`). The root `devDependencies` pin `react`/`react-dom` 19.3.0 (mobile's, set by Expo SDK 58) on purpose: with the hoisted linker they keep web's React 19.3 nested under `apps/web`, otherwise web's Testing Library tests render empty trees.
 
 ## Naming Convention
 

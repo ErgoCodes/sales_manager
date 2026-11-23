@@ -147,7 +147,7 @@ export default function InventoryScreen() {
                 stock
               </Text>
             </HeroCard>
-          ) : null
+          ) : undefined
         }
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(index * 30).duration(280)}>

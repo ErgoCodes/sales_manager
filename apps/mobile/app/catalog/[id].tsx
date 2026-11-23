@@ -445,7 +445,7 @@ export default function ProductFormScreen() {
                 ? "Crear producto"
                 : "Guardar cambios"
           }
-          onPress={onSubmit}
+          onPress={() => void onSubmit()}
           disabled={isSubmitting}
         />
       </ScrollView>

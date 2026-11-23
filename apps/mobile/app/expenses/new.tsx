@@ -166,7 +166,7 @@ export default function NewExpenseScreen() {
                 ? "Guardar cambios"
                 : "Registrar gasto"
           }
-          onPress={onSubmit}
+          onPress={() => void onSubmit()}
           disabled={isSubmitting}
         />
       </ScrollView>
