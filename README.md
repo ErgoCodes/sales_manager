@@ -27,7 +27,7 @@ The constraints shaped the design:
 
 ### Mobile (`apps/mobile`)
 
-- **Framework**: [Expo SDK 54](https://expo.dev/) with [Expo Router v6](https://docs.expo.dev/router/introduction/) (file-based routing).
+- **Framework**: [Expo SDK 58](https://expo.dev/) with [Expo Router](https://docs.expo.dev/router/introduction/) (file-based routing).
 - **Language**: [TypeScript](https://www.typescriptlang.org/) in strict mode.
 - **Database**: [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) with [Drizzle ORM](https://orm.drizzle.team/) for typed queries and migrations.
 - **Styling**: [uniwind](https://github.com/uniwind/uniwind) (Tailwind CSS v4 for React Native).
@@ -172,13 +172,15 @@ Keeping the business rules in `packages/domain`, independent of React Native, me
 
 ## Mobile app: getting started
 
-Prerequisites: Node.js 18.18+ (20 recommended), pnpm 11, and Android SDK or Xcode for emulators or devices. Local notifications need a development build on a real device; they don't fully work in Expo Go.
+Prerequisites: Node.js 22.13+ or 24.3+ (Expo SDK 58), pnpm 11, and Android SDK or Xcode for emulators or devices. Local notifications need a development build on a real device; they don't fully work in Expo Go.
 
 ```bash
 pnpm install       # install dependencies
 pnpm start         # start the Expo dev server
 pnpm android       # or: pnpm ios
 ```
+
+To open it in Expo Go on a phone on the same Wi-Fi, use the store Expo Go (it only runs SDK 58) and start Metro with `EXPO_OFFLINE=1 pnpm exec expo start --go --lan` from `apps/mobile`. `--go` serves Expo Go instead of the dev client; `EXPO_OFFLINE=1` skips the Expo account login that otherwise hangs the phone when the CLI runs without a terminal. Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local` to the computer's LAN address (for example `http://192.168.0.9:4000`).
 
 Quality checks:
 

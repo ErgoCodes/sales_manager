@@ -274,7 +274,7 @@ export default function ConfigurationScreen() {
 
         <Button
           label={isSubmitting ? "Guardando…" : "Guardar"}
-          onPress={onSubmit}
+          onPress={() => void onSubmit()}
           disabled={isSubmitting}
         />
 

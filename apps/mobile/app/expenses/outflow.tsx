@@ -334,7 +334,7 @@ export default function OutflowScreen() {
                 ? "Guardar cambios"
                 : "Registrar salida"
           }
-          onPress={onSubmit}
+          onPress={() => void onSubmit()}
           disabled={isSubmitting}
         />
       </ScrollView>

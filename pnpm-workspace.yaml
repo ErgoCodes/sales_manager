@@ -4,6 +4,7 @@ packages:
 
 nodeLinker: hoisted
 allowBuilds:
+  '@parcel/watcher': true
   '@scarf/scarf': false
   '@swc/core': false
   better-sqlite3: true
